@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DndProvider } from 'react-dnd';
+import { DndProvider, useDrag } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { 
   Calendar, 
@@ -28,7 +28,8 @@ import {
   FileText,
   Link as LinkIcon,
   Volume2,
-  Image
+  Image,
+  X
 } from 'lucide-react';
 import { ActivityLibrary } from './ActivityLibrary';
 import { LessonPlannerCalendar } from './LessonPlannerCalendar';
@@ -695,7 +696,7 @@ interface ActivityCardProps {
 }
 
 function ActivityCard({ activity, onSelect, onResourceClick, viewMode }: ActivityCardProps) {
-  const [{ isDragging }, drag] = React.useDrag(() => ({
+  const [{ isDragging }, drag] = useDrag(() => ({
     type: 'activity',
     item: { activity },
     collect: (monitor) => ({
