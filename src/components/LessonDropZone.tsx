@@ -45,9 +45,10 @@ interface DraggableActivityProps {
   onRemove: () => void;
   onReorder: (dragIndex: number, hoverIndex: number) => void;
   isEditing: boolean;
+  onActivityClick?: (activity: Activity) => void;
 }
 
-function DraggableActivity({ activity, index, onRemove, onReorder, isEditing }: DraggableActivityProps) {
+function DraggableActivity({ activity, index, onRemove, onReorder, isEditing, onActivityClick }: DraggableActivityProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   const [{ handlerId }, drop] = useDrop({
@@ -129,12 +130,19 @@ function DraggableActivity({ activity, index, onRemove, onReorder, isEditing }: 
     return text.replace(/\n/g, '<br>');
   };
 
+  const handleClick = () => {
+    if (onActivityClick && !isEditing) {
+      onActivityClick(activity);
+    }
+  };
+
   return (
     <div
       ref={ref}
       style={{ opacity }}
       data-handler-id={handlerId}
       className="bg-white rounded-lg border-2 border-gray-200 p-4 transition-all duration-200 hover:shadow-md group"
+      onClick={handleClick}
     >
       <div className="flex items-start space-x-3">
         {isEditing && (
@@ -179,7 +187,10 @@ function DraggableActivity({ activity, index, onRemove, onReorder, isEditing }: 
               
               {isEditing && (
                 <button
-                  onClick={onRemove}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemove();
+                  }}
                   className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors duration-200 opacity-0 group-hover:opacity-100"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -190,7 +201,7 @@ function DraggableActivity({ activity, index, onRemove, onReorder, isEditing }: 
           
           {activity.description && (
             <div 
-              className="text-sm text-gray-600 leading-relaxed"
+              className="text-sm text-gray-600 leading-relaxed prose prose-sm max-w-none"
               dangerouslySetInnerHTML={{ __html: formatDescription(activity.description) }}
             />
           )}

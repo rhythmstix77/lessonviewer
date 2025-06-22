@@ -21,7 +21,9 @@ import {
   EyeOff,
   MoreVertical,
   List,
-  ListOrdered
+  ListOrdered,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { useDrag } from 'react-dnd';
 import type { Activity } from '../contexts/DataContext';
@@ -36,6 +38,7 @@ interface ActivityCardProps {
   categoryColor: string;
   viewMode?: 'compact' | 'detailed' | 'minimal';
   onResourceClick?: (url: string, title: string, type: string) => void;
+  onActivityClick?: (activity: Activity) => void;
 }
 
 const categoryColors: Record<string, string> = {
@@ -53,6 +56,9 @@ const categoryColors: Record<string, string> = {
   'Goodbye': '#14B8A6'
 };
 
+// Character limit for truncated description
+const DESCRIPTION_CHAR_LIMIT = 150;
+
 export function ActivityCard({ 
   activity, 
   onUpdate, 
@@ -62,11 +68,13 @@ export function ActivityCard({
   onEditToggle,
   categoryColor,
   viewMode = 'detailed',
-  onResourceClick
+  onResourceClick,
+  onActivityClick
 }: ActivityCardProps) {
   const [editedActivity, setEditedActivity] = useState<Activity>(activity);
   const [showResources, setShowResources] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
 
   const [{ isDragging }, drag] = useDrag(() => ({
@@ -117,6 +125,30 @@ export function ActivityCard({
     return text;
   };
 
+  // Check if description is long enough to truncate
+  const isDescriptionLong = activity.description && 
+    (activity.description.length > DESCRIPTION_CHAR_LIMIT || 
+     activity.description.includes('\n') || 
+     activity.description.includes('<br>') ||
+     activity.description.includes('<li>'));
+
+  // Get truncated description
+  const getTruncatedDescription = () => {
+    if (!activity.description) return '';
+    
+    // If it's HTML, try to extract text
+    if (activity.description.includes('<')) {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = activity.description;
+      const textContent = tempDiv.textContent || tempDiv.innerText || '';
+      return textContent.substring(0, DESCRIPTION_CHAR_LIMIT) + (textContent.length > DESCRIPTION_CHAR_LIMIT ? '...' : '');
+    }
+    
+    // Otherwise just truncate the text
+    return activity.description.substring(0, DESCRIPTION_CHAR_LIMIT) + 
+           (activity.description.length > DESCRIPTION_CHAR_LIMIT ? '...' : '');
+  };
+
   const resources = [
     { label: 'Video', url: activity.videoLink, icon: Video, color: 'text-red-600 bg-red-50 border-red-200', type: 'video' },
     { label: 'Music', url: activity.musicLink, icon: Music, color: 'text-green-600 bg-green-50 border-green-200', type: 'music' },
@@ -129,6 +161,19 @@ export function ActivityCard({
 
   const cardColor = categoryColors[activity.category] || categoryColor;
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't trigger card click if clicking on a button or link
+    if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a')) {
+      return;
+    }
+    
+    if (onActivityClick) {
+      onActivityClick(activity);
+    } else if (isDescriptionLong) {
+      setIsExpanded(!isExpanded);
+    }
+  };
+
   if (viewMode === 'minimal') {
     return (
       <div
@@ -137,6 +182,7 @@ export function ActivityCard({
           isDragging ? 'opacity-50 scale-95' : 'hover:scale-[1.02]'
         }`}
         style={{ borderLeftColor: cardColor }}
+        onClick={handleCardClick}
       >
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
@@ -161,6 +207,7 @@ export function ActivityCard({
           isDragging ? 'opacity-50 scale-95' : 'hover:scale-[1.02]'
         } ${isEditing ? 'ring-4 ring-blue-300' : 'border-gray-200 hover:border-gray-300'}`}
         style={{ borderLeftColor: cardColor, borderLeftWidth: '6px' }}
+        onClick={handleCardClick}
       >
         <div className="p-4">
           <div className="flex items-start justify-between mb-2">
@@ -229,6 +276,7 @@ export function ActivityCard({
         isDragging ? 'opacity-50 scale-95' : 'hover:scale-[1.02]'
       } ${isEditing ? 'ring-4 ring-blue-300' : 'border-gray-200 hover:border-gray-300'}`}
       style={{ borderLeftColor: cardColor, borderLeftWidth: '6px' }}
+      onClick={handleCardClick}
     >
       {/* Card Header */}
       <div 
@@ -249,6 +297,7 @@ export function ActivityCard({
                   onChange={(e) => setEditedActivity(prev => ({ ...prev, activity: e.target.value }))}
                   className="w-full bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-70 border border-white border-opacity-30 rounded-lg px-3 py-2 text-lg font-bold"
                   placeholder="Activity name"
+                  onClick={(e) => e.stopPropagation()}
                 />
               ) : (
                 <h3 className="text-lg font-bold leading-tight">{activity.activity}</h3>
@@ -353,7 +402,7 @@ export function ActivityCard({
         {/* Description */}
         <div className="mb-4">
           {isEditing ? (
-            <div>
+            <div onClick={(e) => e.stopPropagation()}>
               {/* Rich Text Toolbar */}
               <div className="flex items-center space-x-1 mb-2 p-2 bg-gray-50 rounded-lg">
                 <button
@@ -406,10 +455,44 @@ export function ActivityCard({
               />
             </div>
           ) : (
-            <div 
-              className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: formatDescription(activity.description) }}
-            />
+            <>
+              {isDescriptionLong && !isExpanded ? (
+                <div>
+                  <div className="text-gray-700 leading-relaxed line-clamp-3">
+                    {getTruncatedDescription()}
+                  </div>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsExpanded(true);
+                    }}
+                    className="mt-2 text-blue-600 hover:text-blue-800 text-sm flex items-center space-x-1"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                    <span>Show more</span>
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div 
+                    className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: formatDescription(activity.description) }}
+                  />
+                  {isDescriptionLong && isExpanded && (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsExpanded(false);
+                      }}
+                      className="mt-2 text-blue-600 hover:text-blue-800 text-sm flex items-center space-x-1"
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                      <span>Show less</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -426,6 +509,7 @@ export function ActivityCard({
                 onChange={(e) => setEditedActivity(prev => ({ ...prev, unitName: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Unit name"
+                onClick={(e) => e.stopPropagation()}
               />
             ) : (
               <p className="text-sm text-gray-700 font-medium">{activity.unitName}</p>
@@ -439,7 +523,7 @@ export function ActivityCard({
             <h4 className="text-sm font-medium text-gray-700">Resources</h4>
             
             {isEditing ? (
-              <div className="space-y-3">
+              <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
                 {[
                   { key: 'videoLink', label: 'Video', icon: Video },
                   { key: 'musicLink', label: 'Music', icon: Music },
@@ -489,15 +573,21 @@ export function ActivityCard({
 
         {/* Edit Actions */}
         {isEditing && onEditToggle && (
-          <div className="flex justify-end space-x-2 mt-4 pt-4 border-t border-gray-200">
+          <div className="flex justify-end space-x-2 mt-4 pt-4 border-t border-gray-200" onClick={(e) => e.stopPropagation()}>
             <button
-              onClick={handleCancel}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCancel();
+              }}
               className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium rounded-lg transition-colors duration-200"
             >
               Cancel
             </button>
             <button
-              onClick={handleSave}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSave();
+              }}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
             >
               <Save className="h-4 w-4" />

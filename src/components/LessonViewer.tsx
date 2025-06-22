@@ -6,7 +6,7 @@ import { ActivityDetails } from './ActivityDetails';
 import { ExportButtons } from './ExportButtons';
 import { LoadingSpinner } from './LoadingSpinner';
 import { LessonPlanBuilder } from './LessonPlanBuilder';
-import { BookOpen, X, Search, GraduationCap, Edit3, Calendar } from 'lucide-react';
+import { BookOpen, X, Search, GraduationCap, Edit3, Calendar, ArrowLeft, Home } from 'lucide-react';
 import type { Activity } from '../contexts/DataContext';
 
 export function LessonViewer() {
@@ -81,9 +81,29 @@ export function LessonViewer() {
     setSearchQuery('');
   };
 
+  const handleBackToHome = () => {
+    setSelectedLesson('');
+    setSelectedActivity(null);
+    setShowPlanBuilder(false);
+  };
+
   // Show Lesson Plan Builder if requested
   if (showPlanBuilder) {
-    return <LessonPlanBuilder />;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
+        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <button
+            onClick={handleBackToHome}
+            className="mb-4 inline-flex items-center space-x-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back to Lesson Viewer</span>
+          </button>
+          
+          <LessonPlanBuilder />
+        </div>
+      </div>
+    );
   }
 
   // If a lesson is selected, show full-width expanded view
@@ -201,9 +221,13 @@ export function LessonViewer() {
                         {/* Activity Content - FULL DESCRIPTION WITHOUT TRUNCATION */}
                         <div className="p-4">
                           {/* Full Description - No line clamps or truncation */}
-                          <div className="text-sm text-gray-700 leading-relaxed mb-3 whitespace-pre-wrap">
-                            {activity.description || 'No description available'}
-                          </div>
+                          <div 
+                            className="text-sm text-gray-700 leading-relaxed mb-3 prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ __html: activity.description.includes('<') ? 
+                              activity.description : 
+                              activity.description.replace(/\n/g, '<br>') 
+                            }}
+                          />
 
                           {/* Unit Name */}
                           {activity.unitName && (
@@ -232,7 +256,7 @@ export function LessonViewer() {
               onClick={handleCloseLessonView}
               className="inline-flex items-center space-x-2 px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-xl transition-colors duration-200 shadow-lg hover:shadow-xl"
             >
-              <X className="h-5 w-5" />
+              <Home className="h-5 w-5" />
               <span>Back to Lesson Overview</span>
             </button>
           </div>
