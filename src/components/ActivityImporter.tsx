@@ -36,12 +36,16 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
         throw new Error('No data found in the file.');
       }
 
+      console.log("Raw imported data:", data);
+
       // Validate and transform the data
       const activities = transformData(data);
       
       if (activities.length === 0) {
         throw new Error('No valid activities found in the file. Please check the format.');
       }
+
+      console.log("Transformed activities:", activities);
 
       setImportedData(activities);
       setPreviewData(activities.slice(0, 5)); // Show first 5 for preview
@@ -92,6 +96,7 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
 
     // Extract headers (first row)
     const headers = data[0].map((header: any) => String(header).trim());
+    console.log("Headers found:", headers);
     
     // Expected headers
     const expectedHeaders = [
@@ -129,6 +134,20 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
     const backingIdx = getColumnIndex('Backing');
     const resourceIdx = getColumnIndex('Resource');
     const unitNameIdx = getColumnIndex('Unit Name');
+
+    console.log("Column indices:", {
+      lessonNumber: lessonNumberIdx,
+      category: categoryIdx,
+      activityName: activityNameIdx,
+      description: descriptionIdx,
+      level: levelIdx,
+      time: timeIdx,
+      video: videoIdx,
+      music: musicIdx,
+      backing: backingIdx,
+      resource: resourceIdx,
+      unitName: unitNameIdx
+    });
 
     // Transform data rows
     const activities: Activity[] = [];

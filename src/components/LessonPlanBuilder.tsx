@@ -22,7 +22,13 @@ import {
   Tag,
   SortAsc,
   SortDesc,
-  MoreVertical
+  MoreVertical,
+  Video,
+  Music,
+  FileText,
+  Link as LinkIcon,
+  Volume2,
+  Image
 } from 'lucide-react';
 import { ActivityLibrary } from './ActivityLibrary';
 import { LessonPlannerCalendar } from './LessonPlannerCalendar';
@@ -59,6 +65,7 @@ export function LessonPlanBuilder() {
   const [sortBy, setSortBy] = useState<'name' | 'category' | 'time' | 'level'>('category');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
+  const [selectedResource, setSelectedResource] = useState<{url: string, title: string, type: string} | null>(null);
 
   // Load lesson plans from localStorage
   useEffect(() => {
@@ -239,6 +246,8 @@ export function LessonPlanBuilder() {
     
     const updatedLibrary = [...libraryActivities, ...newActivities];
     saveLibraryActivities(updatedLibrary);
+    
+    console.log(`Imported ${newActivities.length} new activities. Total library now: ${updatedLibrary.length}`);
   };
 
   // Filter and sort activities for the library
@@ -571,6 +580,7 @@ export function LessonPlanBuilder() {
                               key={`${activity.activity}-${activity.category}-${index}`}
                               activity={activity}
                               onSelect={() => handleActivityAdd(activity)}
+                              onResourceClick={(url, title, type) => setSelectedResource({url, title, type})}
                               viewMode={viewMode}
                             />
                           ))}
@@ -636,6 +646,7 @@ export function LessonPlanBuilder() {
                             key={`${activity.activity}-${activity.category}-${index}`}
                             activity={activity}
                             onSelect={() => handleActivityAdd(activity)}
+                            onResourceClick={(url, title, type) => setSelectedResource({url, title, type})}
                             viewMode="compact"
                           />
                         ))}
@@ -661,6 +672,16 @@ export function LessonPlanBuilder() {
           onClose={() => setShowImporter(false)}
         />
       )}
+
+      {/* Resource Viewer Modal */}
+      {selectedResource && (
+        <ResourceViewer
+          url={selectedResource.url}
+          title={selectedResource.title}
+          type={selectedResource.type}
+          onClose={() => setSelectedResource(null)}
+        />
+      )}
     </DndProvider>
   );
 }
@@ -669,10 +690,11 @@ export function LessonPlanBuilder() {
 interface ActivityCardProps {
   activity: Activity;
   onSelect: () => void;
+  onResourceClick: (url: string, title: string, type: string) => void;
   viewMode: 'grid' | 'list' | 'compact';
 }
 
-function ActivityCard({ activity, onSelect, viewMode }: ActivityCardProps) {
+function ActivityCard({ activity, onSelect, onResourceClick, viewMode }: ActivityCardProps) {
   const [{ isDragging }, drag] = React.useDrag(() => ({
     type: 'activity',
     item: { activity },
@@ -699,10 +721,13 @@ function ActivityCard({ activity, onSelect, viewMode }: ActivityCardProps) {
   const cardColor = categoryColors[activity.category] || '#6B7280';
 
   const resources = [
-    { type: 'video', url: activity.videoLink },
-    { type: 'music', url: activity.musicLink },
-    { type: 'backing', url: activity.backingLink },
-    { type: 'resource', url: activity.resourceLink }
+    { label: 'Video', url: activity.videoLink, icon: Video, color: 'text-red-600 bg-red-50 border-red-200', type: 'video' },
+    { label: 'Music', url: activity.musicLink, icon: Music, color: 'text-green-600 bg-green-50 border-green-200', type: 'music' },
+    { label: 'Backing', url: activity.backingLink, icon: Volume2, color: 'text-blue-600 bg-blue-50 border-blue-200', type: 'backing' },
+    { label: 'Resource', url: activity.resourceLink, icon: FileText, color: 'text-purple-600 bg-purple-50 border-purple-200', type: 'resource' },
+    { label: 'Link', url: activity.link, icon: LinkIcon, color: 'text-gray-600 bg-gray-50 border-gray-200', type: 'link' },
+    { label: 'Vocals', url: activity.vocalsLink, icon: Volume2, color: 'text-orange-600 bg-orange-50 border-orange-200', type: 'vocals' },
+    { label: 'Image', url: activity.imageLink, icon: Image, color: 'text-pink-600 bg-pink-50 border-pink-200', type: 'image' },
   ].filter(resource => resource.url && resource.url.trim());
 
   if (viewMode === 'compact') {
@@ -734,7 +759,6 @@ function ActivityCard({ activity, onSelect, viewMode }: ActivityCardProps) {
     return (
       <div
         ref={drag}
-        onClick={onSelect}
         className={`bg-white rounded-xl shadow-sm border border-gray-200 hover:border-gray-300 p-4 transition-all duration-200 hover:shadow-md cursor-move ${
           isDragging ? 'opacity-50 scale-95' : 'hover:scale-[1.01]'
         }`}
@@ -772,15 +796,23 @@ function ActivityCard({ activity, onSelect, viewMode }: ActivityCardProps) {
             <p className="text-sm text-gray-600 mt-2 line-clamp-2">{activity.description}</p>
             
             {resources.length > 0 && (
-              <div className="flex items-center space-x-1 mt-2">
-                {resources.map((resource, i) => (
-                  <span 
-                    key={i}
-                    className="inline-block w-2 h-2 rounded-full"
-                    style={{ backgroundColor: cardColor }}
-                  />
-                ))}
-                <span className="text-xs text-gray-500 ml-1">{resources.length} resource{resources.length !== 1 ? 's' : ''}</span>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {resources.map((resource, index) => {
+                  const IconComponent = resource.icon;
+                  return (
+                    <button
+                      key={index}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onResourceClick(resource.url, `${activity.activity} - ${resource.label}`, resource.type);
+                      }}
+                      className={`inline-flex items-center space-x-1 px-2 py-1 rounded-lg border text-xs ${resource.color}`}
+                    >
+                      <IconComponent className="h-3 w-3" />
+                      <span>{resource.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -793,7 +825,6 @@ function ActivityCard({ activity, onSelect, viewMode }: ActivityCardProps) {
   return (
     <div
       ref={drag}
-      onClick={onSelect}
       className={`bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl cursor-move overflow-hidden ${
         isDragging ? 'opacity-50 scale-95' : 'hover:scale-[1.02]'
       } border-gray-200 hover:border-gray-300`}
@@ -835,29 +866,234 @@ function ActivityCard({ activity, onSelect, viewMode }: ActivityCardProps) {
 
       {/* Card Content */}
       <div className="p-4">
-        <p className="text-gray-700 leading-relaxed line-clamp-3 text-sm mb-3">
-          {activity.description || 'No description available'}
-        </p>
-        
-        {activity.unitName && (
-          <div className="mb-3">
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Unit:</span>
-            <p className="text-sm text-gray-700 font-medium">{activity.unitName}</p>
-          </div>
-        )}
+        <div onClick={onSelect} className="cursor-pointer">
+          <p className="text-gray-700 leading-relaxed line-clamp-3 text-sm mb-3">
+            {activity.description || 'No description available'}
+          </p>
+          
+          {activity.unitName && (
+            <div className="mb-3">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Unit:</span>
+              <p className="text-sm text-gray-700 font-medium">{activity.unitName}</p>
+            </div>
+          )}
+        </div>
         
         {resources.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {resources.map((resource, index) => (
-              <span 
-                key={index}
-                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
-              >
-                {resource.type}
-              </span>
-            ))}
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            {resources.map((resource, index) => {
+              const IconComponent = resource.icon;
+              return (
+                <button
+                  key={index}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onResourceClick(resource.url, `${activity.activity} - ${resource.label}`, resource.type);
+                  }}
+                  className={`flex items-center space-x-2 p-2 rounded-lg border transition-all duration-200 hover:scale-105 hover:shadow-sm ${resource.color}`}
+                >
+                  <IconComponent className="h-4 w-4 flex-shrink-0" />
+                  <span className="text-sm font-medium truncate">{resource.label}</span>
+                </button>
+              );
+            })}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// Resource Viewer Component
+interface ResourceViewerProps {
+  url: string;
+  title: string;
+  type: string;
+  onClose: () => void;
+}
+
+function ResourceViewer({ url, title, type, onClose }: ResourceViewerProps) {
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [error, setError] = React.useState(false);
+
+  // Detect content type from URL
+  const getContentType = () => {
+    const urlLower = url.toLowerCase();
+    
+    if (urlLower.includes('youtube.com') || urlLower.includes('youtu.be')) {
+      return 'youtube';
+    }
+    if (urlLower.includes('vimeo.com')) {
+      return 'vimeo';
+    }
+    if (urlLower.match(/\.(mp4|webm|ogg)$/)) {
+      return 'video';
+    }
+    if (urlLower.match(/\.(mp3|wav|ogg|m4a)$/)) {
+      return 'audio';
+    }
+    if (urlLower.match(/\.(jpg|jpeg|png|gif|webp|svg)$/)) {
+      return 'image';
+    }
+    if (urlLower.match(/\.(pdf)$/)) {
+      return 'pdf';
+    }
+    return 'webpage';
+  };
+
+  const contentType = getContentType();
+
+  // Convert YouTube URLs to embed format
+  const getEmbedUrl = () => {
+    if (contentType === 'youtube') {
+      const videoId = extractYouTubeId(url);
+      return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0` : url;
+    }
+    if (contentType === 'vimeo') {
+      const videoId = extractVimeoId(url);
+      return videoId ? `https://player.vimeo.com/video/${videoId}` : url;
+    }
+    return url;
+  };
+
+  const extractYouTubeId = (url: string) => {
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+    return match ? match[1] : null;
+  };
+
+  const extractVimeoId = (url: string) => {
+    const match = url.match(/vimeo\.com\/(\d+)/);
+    return match ? match[1] : null;
+  };
+
+  const handleLoad = () => {
+    setIsLoading(false);
+    setError(false);
+  };
+
+  const handleError = () => {
+    setIsLoading(false);
+    setError(true);
+  };
+
+  const renderContent = () => {
+    if (error) {
+      return (
+        <div className="flex-1 flex items-center justify-center bg-gray-100">
+          <div className="text-center p-8">
+            <LinkIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Unable to load content</h3>
+            <p className="text-gray-600 mb-4">This content cannot be displayed in the viewer.</p>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
+            >
+              <LinkIcon className="h-4 w-4" />
+              <span>Open in New Tab</span>
+            </a>
+          </div>
+        </div>
+      );
+    }
+
+    if (contentType === 'image') {
+      return (
+        <div className="flex-1 flex items-center justify-center bg-gray-100 p-4">
+          <img
+            src={url}
+            alt={title}
+            className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+            onLoad={handleLoad}
+            onError={handleError}
+          />
+        </div>
+      );
+    }
+
+    if (contentType === 'audio') {
+      return (
+        <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-green-50 to-teal-50 p-8">
+          <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
+            <div className="text-center mb-6">
+              <div className="bg-green-100 p-4 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                <Volume2 className="h-10 w-10 text-green-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+            </div>
+            <audio
+              controls
+              className="w-full"
+              onLoadedData={handleLoad}
+              onError={handleError}
+            >
+              <source src={url} />
+              Your browser does not support the audio element.
+            </audio>
+          </div>
+        </div>
+      );
+    }
+
+    if (contentType === 'video') {
+      return (
+        <div className="flex-1 flex items-center justify-center bg-black p-4">
+          <video
+            controls
+            className="max-w-full max-h-full rounded-lg"
+            onLoadedData={handleLoad}
+            onError={handleError}
+          >
+            <source src={url} />
+            Your browser does not support the video element.
+          </video>
+        </div>
+      );
+    }
+
+    // Default: iframe for web content
+    return (
+      <iframe
+        src={getEmbedUrl()}
+        className="flex-1 w-full border-0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+        onLoad={handleLoad}
+        onError={handleError}
+        title={title}
+      />
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl overflow-hidden w-full max-w-4xl h-[80vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900 truncate">{title}</h2>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Loading Indicator */}
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 z-20">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading content...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Content */}
+        <div className="flex-1 overflow-hidden">
+          {renderContent()}
+        </div>
       </div>
     </div>
   );
