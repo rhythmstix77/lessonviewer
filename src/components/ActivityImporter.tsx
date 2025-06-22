@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, FileText, CheckCircle, AlertCircle, X, Download, RefreshCw } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, X, Download, RefreshCw, List, ListOrdered } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import type { Activity } from '../contexts/DataContext';
 
@@ -175,9 +175,17 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
         }
       }
 
+      // Format description with proper line breaks
+      let description = String(row[descriptionIdx] || '').trim();
+      
+      // If description doesn't already contain HTML, convert newlines to <br> tags
+      if (description && !description.includes('<')) {
+        description = description.replace(/\n/g, '<br>');
+      }
+
       const activity: Activity = {
         activity: String(row[activityNameIdx] || '').trim(),
-        description: String(row[descriptionIdx] || '').trim(),
+        description: description,
         time,
         videoLink: String(row[videoIdx] || '').trim(),
         musicLink: String(row[musicIdx] || '').trim(),
@@ -217,9 +225,9 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
     // Add some sample data
     const data = [
       headers,
-      ['Welcome', 'Hello Song', 'A welcoming song to start the lesson', 'All', '3', 'https://example.com/video', 'https://example.com/music', '', '', ''],
-      ['Rhythm', 'Clapping Game', 'Students clap along to the beat', 'EYFS', '5', '', 'https://example.com/music2', '', '', 'Rhythm Unit'],
-      ['Singing', 'Echo Song', 'Teacher sings a line, students repeat', 'All', '4', '', '', '', '', '']
+      ['Welcome', 'Hello Song', 'A welcoming song to start the lesson\nWith multiple lines\nAnd more details', 'All', '3', 'https://example.com/video', 'https://example.com/music', '', '', ''],
+      ['Rhythm', 'Clapping Game', 'Students clap along to the beat\n• First clap slowly\n• Then speed up\n• Finally, add a pattern', 'EYFS', '5', '', 'https://example.com/music2', '', '', 'Rhythm Unit'],
+      ['Singing', 'Echo Song', 'Teacher sings a line, students repeat\n1. Start with simple phrases\n2. Increase complexity\n3. Add movements', 'All', '4', '', '', '', '', '']
     ];
     
     // Create a worksheet
@@ -268,11 +276,11 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
               </li>
               <li className="flex items-start space-x-2">
                 <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
-                <span>Click the "Choose File" button below and select your file</span>
+                <span>For descriptions, use line breaks to format text. You can also use bullet points and numbered lists.</span>
               </li>
               <li className="flex items-start space-x-2">
                 <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">4</span>
-                <span>Review the preview and click "Import Activities" to add them to your library</span>
+                <span>Click the "Choose File" button below and select your file</span>
               </li>
             </ol>
             <div className="mt-4 flex justify-end">
@@ -323,6 +331,50 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
                   <span className="text-sm font-medium">{statusMessage}</span>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Formatting Instructions */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Text Formatting Tips</h3>
+            <div className="space-y-4">
+              <div className="flex items-start space-x-3">
+                <div className="bg-yellow-100 p-2 rounded-lg">
+                  <List className="h-5 w-5 text-yellow-700" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-1">Bullet Points</h4>
+                  <p className="text-sm text-gray-700 mb-2">
+                    When editing activities, use the bullet list button to create bullet points.
+                  </p>
+                  <div className="bg-white p-3 rounded-lg border border-yellow-200 text-sm">
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li>First item</li>
+                      <li>Second item</li>
+                      <li>Third item</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-3">
+                <div className="bg-yellow-100 p-2 rounded-lg">
+                  <ListOrdered className="h-5 w-5 text-yellow-700" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-1">Numbered Lists</h4>
+                  <p className="text-sm text-gray-700 mb-2">
+                    Use the numbered list button to create step-by-step instructions.
+                  </p>
+                  <div className="bg-white p-3 rounded-lg border border-yellow-200 text-sm">
+                    <ol className="list-decimal pl-5 space-y-1">
+                      <li>First step</li>
+                      <li>Second step</li>
+                      <li>Third step</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

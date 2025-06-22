@@ -13,6 +13,8 @@ import {
   X
 } from 'lucide-react';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
+import { useDrop } from 'react-dnd';
+import type { Activity } from '../contexts/DataContext';
 
 interface LessonPlan {
   id: string;
@@ -109,16 +111,58 @@ export function LessonPlannerCalendar({
     const isSelected = selectedDate && isSameDay(date, selectedDate);
     const isToday = isSameDay(date, new Date());
 
+    // Set up drop target for activities
+    const [{ isOver }, drop] = useDrop(() => ({
+      accept: 'activity',
+      drop: (item: { activity: Activity }) => {
+        // If there's already a plan for this date, add the activity to it
+        if (lessonPlan) {
+          const updatedPlan = {
+            ...lessonPlan,
+            activities: [...lessonPlan.activities, item.activity],
+            duration: lessonPlan.duration + (item.activity.time || 0)
+          };
+          onUpdateLessonPlan(updatedPlan);
+        } else {
+          // Otherwise create a new plan with this activity
+          const weekNumber = Math.ceil(
+            (date.getTime() - new Date(date.getFullYear(), 0, 1).getTime()) / 
+            (7 * 24 * 60 * 60 * 1000)
+          );
+          
+          const newPlan = {
+            id: `plan-${Date.now()}`,
+            date,
+            week: weekNumber,
+            className,
+            activities: [item.activity],
+            duration: item.activity.time || 0,
+            notes: '',
+            status: 'planned',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+          
+          onUpdateLessonPlan(newPlan);
+        }
+      },
+      collect: (monitor) => ({
+        isOver: monitor.isOver()
+      })
+    }), [lessonPlan, onUpdateLessonPlan]);
+
     return (
-      <button
+      <div
+        ref={drop}
         key={date.toISOString()}
         onClick={() => handleDateClick(date)}
         className={`
-          relative w-full h-24 p-2 border border-gray-200 hover:bg-blue-50 transition-colors duration-200
+          relative w-full h-24 p-2 border border-gray-200 hover:bg-blue-50 transition-colors duration-200 group
           ${isSelected ? 'bg-blue-100 border-blue-300' : ''}
           ${isToday ? 'ring-2 ring-blue-400' : ''}
           ${lessonPlan ? 'bg-green-50' : ''}
           ${!isCurrentMonth ? 'opacity-40' : ''}
+          ${isOver ? 'bg-blue-100 border-blue-300' : ''}
         `}
       >
         <div className="flex flex-col h-full">
@@ -147,7 +191,7 @@ export function LessonPlannerCalendar({
             </div>
           )}
         </div>
-      </button>
+      </div>
     );
   };
 

@@ -10,7 +10,12 @@ import {
   Trash2,
   Edit3,
   Save,
-  X
+  X,
+  Bold,
+  Italic,
+  Underline,
+  List,
+  ListOrdered
 } from 'lucide-react';
 import type { Activity } from '../contexts/DataContext';
 
@@ -111,6 +116,19 @@ function DraggableActivity({ activity, index, onRemove, onReorder, isEditing }: 
 
   const categoryColor = categoryColors[activity.category] || '#6B7280';
 
+  // Format description with line breaks
+  const formatDescription = (text: string) => {
+    if (!text) return '';
+    
+    // If already HTML, return as is
+    if (text.includes('<')) {
+      return text;
+    }
+    
+    // Replace newlines with <br> tags
+    return text.replace(/\n/g, '<br>');
+  };
+
   return (
     <div
       ref={ref}
@@ -172,8 +190,8 @@ function DraggableActivity({ activity, index, onRemove, onReorder, isEditing }: 
           
           {activity.description && (
             <div 
-              className="text-sm text-gray-600 leading-relaxed line-clamp-2"
-              dangerouslySetInnerHTML={{ __html: activity.description }}
+              className="text-sm text-gray-600 leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: formatDescription(activity.description) }}
             />
           )}
         </div>
@@ -199,6 +217,17 @@ export function LessonDropZone({
       isOver: monitor.isOver(),
     }),
   }));
+
+  const [isRichTextEditing, setIsRichTextEditing] = useState(false);
+  const notesRef = useRef<HTMLDivElement>(null);
+
+  const execCommand = (command: string, value?: string) => {
+    document.execCommand(command, false, value);
+    if (notesRef.current) {
+      const updatedContent = notesRef.current.innerHTML;
+      onNotesUpdate(updatedContent);
+    }
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
@@ -303,16 +332,95 @@ export function LessonDropZone({
         </div>
         
         {isEditing ? (
-          <textarea
-            value={lessonPlan.notes}
-            onChange={(e) => onNotesUpdate(e.target.value)}
-            className="w-full h-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
-            placeholder="Add notes about this lesson plan..."
-          />
+          <div>
+            {isRichTextEditing ? (
+              <div>
+                {/* Rich Text Toolbar */}
+                <div className="flex items-center space-x-1 mb-2 p-2 bg-white rounded-lg border border-gray-200">
+                  <button
+                    onClick={() => execCommand('bold')}
+                    className="p-1 hover:bg-gray-100 rounded"
+                    title="Bold"
+                  >
+                    <Bold className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => execCommand('italic')}
+                    className="p-1 hover:bg-gray-100 rounded"
+                    title="Italic"
+                  >
+                    <Italic className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => execCommand('underline')}
+                    className="p-1 hover:bg-gray-100 rounded"
+                    title="Underline"
+                  >
+                    <Underline className="h-4 w-4" />
+                  </button>
+                  <div className="w-px h-6 bg-gray-300 mx-1"></div>
+                  <button
+                    onClick={() => execCommand('insertUnorderedList')}
+                    className="p-1 hover:bg-gray-100 rounded"
+                    title="Bullet List"
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => execCommand('insertOrderedList')}
+                    className="p-1 hover:bg-gray-100 rounded"
+                    title="Numbered List"
+                  >
+                    <ListOrdered className="h-4 w-4" />
+                  </button>
+                </div>
+                
+                <div
+                  ref={notesRef}
+                  contentEditable
+                  className="min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none bg-white"
+                  dangerouslySetInnerHTML={{ __html: lessonPlan.notes }}
+                  onInput={(e) => {
+                    const target = e.target as HTMLDivElement;
+                    onNotesUpdate(target.innerHTML);
+                  }}
+                />
+                
+                <div className="flex justify-end mt-2">
+                  <button
+                    onClick={() => setIsRichTextEditing(false)}
+                    className="text-sm text-gray-600 hover:text-gray-900"
+                  >
+                    Switch to plain text
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <textarea
+                  value={lessonPlan.notes.replace(/<br\s*\/?>/g, '\n').replace(/<[^>]*>/g, '')}
+                  onChange={(e) => onNotesUpdate(e.target.value)}
+                  className="w-full h-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                  placeholder="Add notes about this lesson plan..."
+                />
+                <div className="flex justify-end mt-2">
+                  <button
+                    onClick={() => setIsRichTextEditing(true)}
+                    className="text-sm text-gray-600 hover:text-gray-900"
+                  >
+                    Use rich text editor
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="text-gray-700">
             {lessonPlan.notes ? (
-              <p className="whitespace-pre-wrap">{lessonPlan.notes}</p>
+              <div 
+                className="prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: lessonPlan.notes }}
+              />
             ) : (
               <p className="text-gray-500 italic">No notes added yet</p>
             )}

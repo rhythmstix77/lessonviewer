@@ -32,7 +32,9 @@ import {
   X,
   Maximize2,
   Minimize2,
-  ExternalLink
+  ExternalLink,
+  Play,
+  Pause
 } from 'lucide-react';
 import { ActivityCard } from './ActivityCard';
 import { LessonPlannerCalendar } from './LessonPlannerCalendar';
@@ -787,6 +789,18 @@ function ResourceViewer({ url, title, type, onClose }: ResourceViewerProps) {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
+  // Handle escape key
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isFullscreen) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, isFullscreen]);
+
   const handleLoad = () => {
     setIsLoading(false);
     setError(false);
@@ -795,6 +809,40 @@ function ResourceViewer({ url, title, type, onClose }: ResourceViewerProps) {
   const handleError = () => {
     setIsLoading(false);
     setError(true);
+  };
+
+  const getTypeIcon = () => {
+    switch (contentType) {
+      case 'youtube':
+      case 'vimeo':
+      case 'video':
+        return <Play className="h-5 w-5" />;
+      case 'audio':
+        return <Volume2 className="h-5 w-5" />;
+      case 'image':
+        return <Image className="h-5 w-5" />;
+      case 'pdf':
+        return <FileText className="h-5 w-5" />;
+      default:
+        return <LinkIcon className="h-5 w-5" />;
+    }
+  };
+
+  const getTypeColor = () => {
+    switch (contentType) {
+      case 'youtube':
+      case 'vimeo':
+      case 'video':
+        return 'text-red-600 bg-red-100';
+      case 'audio':
+        return 'text-green-600 bg-green-100';
+      case 'image':
+        return 'text-purple-600 bg-purple-100';
+      case 'pdf':
+        return 'text-orange-600 bg-orange-100';
+      default:
+        return 'text-blue-600 bg-blue-100';
+    }
   };
 
   const renderContent = () => {
@@ -899,7 +947,15 @@ function ResourceViewer({ url, title, type, onClose }: ResourceViewerProps) {
         <div className={`flex items-center justify-between p-4 border-b border-gray-200 ${
           isFullscreen ? 'bg-black bg-opacity-50 text-white' : ''
         }`}>
-          <h2 className="text-lg font-semibold truncate">{title}</h2>
+          <div className="flex items-center space-x-3 flex-1 min-w-0">
+            <div className={`p-2 rounded-lg ${getTypeColor()}`}>
+              {getTypeIcon()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-semibold truncate">{title}</h2>
+              <p className="text-sm text-gray-600 truncate">{url}</p>
+            </div>
+          </div>
           <div className="flex items-center space-x-2">
             <button
               onClick={toggleFullscreen}
@@ -952,6 +1008,26 @@ function ResourceViewer({ url, title, type, onClose }: ResourceViewerProps) {
         <div className="flex-1 overflow-hidden">
           {renderContent()}
         </div>
+
+        {/* Fullscreen Controls Overlay */}
+        {isFullscreen && (
+          <div className="absolute bottom-4 right-4 flex space-x-2 z-10">
+            <button
+              onClick={toggleFullscreen}
+              className="p-3 bg-black bg-opacity-50 hover:bg-opacity-70 text-white rounded-lg transition-all duration-200"
+              title="Exit Fullscreen"
+            >
+              <Minimize2 className="h-5 w-5" />
+            </button>
+            <button
+              onClick={onClose}
+              className="p-3 bg-black bg-opacity-50 hover:bg-opacity-70 text-white rounded-lg transition-all duration-200"
+              title="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

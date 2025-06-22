@@ -19,7 +19,9 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
-  MoreVertical
+  MoreVertical,
+  List,
+  ListOrdered
 } from 'lucide-react';
 import { useDrag } from 'react-dnd';
 import type { Activity } from '../contexts/DataContext';
@@ -101,6 +103,18 @@ export function ActivityCard({
       const updatedContent = descriptionRef.current.innerHTML;
       setEditedActivity(prev => ({ ...prev, description: updatedContent }));
     }
+  };
+
+  // Format description with line breaks
+  const formatDescription = (text: string) => {
+    if (!text) return '';
+    
+    // Replace newlines with <br> tags if not already HTML
+    if (!text.includes('<')) {
+      return text.replace(/\n/g, '<br>');
+    }
+    
+    return text;
   };
 
   const resources = [
@@ -363,6 +377,21 @@ export function ActivityCard({
                 >
                   <Underline className="h-4 w-4" />
                 </button>
+                <div className="w-px h-6 bg-gray-300 mx-1"></div>
+                <button
+                  onClick={() => execCommand('insertUnorderedList')}
+                  className="p-1 hover:bg-gray-200 rounded"
+                  title="Bullet List"
+                >
+                  <List className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => execCommand('insertOrderedList')}
+                  className="p-1 hover:bg-gray-200 rounded"
+                  title="Numbered List"
+                >
+                  <ListOrdered className="h-4 w-4" />
+                </button>
               </div>
               
               <div
@@ -379,7 +408,7 @@ export function ActivityCard({
           ) : (
             <div 
               className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: activity.description }}
+              dangerouslySetInnerHTML={{ __html: formatDescription(activity.description) }}
             />
           )}
         </div>
