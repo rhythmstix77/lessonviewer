@@ -13,11 +13,21 @@ import {
   BookOpen,
   ArrowLeft,
   Download,
-  Share2
+  Share2,
+  Upload,
+  Filter,
+  Search,
+  Grid3X3,
+  List,
+  Tag,
+  SortAsc,
+  SortDesc,
+  MoreVertical
 } from 'lucide-react';
 import { ActivityLibrary } from './ActivityLibrary';
 import { LessonPlannerCalendar } from './LessonPlannerCalendar';
 import { LessonDropZone } from './LessonDropZone';
+import { ActivityImporter } from './ActivityImporter';
 import { useData } from '../contexts/DataContext';
 import type { Activity } from '../contexts/DataContext';
 
@@ -35,12 +45,20 @@ interface LessonPlan {
 }
 
 export function LessonPlanBuilder() {
-  const { currentSheetInfo } = useData();
+  const { currentSheetInfo, allLessonsData } = useData();
   const [currentView, setCurrentView] = useState<'calendar' | 'library' | 'builder'>('calendar');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentLessonPlan, setCurrentLessonPlan] = useState<LessonPlan | null>(null);
   const [lessonPlans, setLessonPlans] = useState<LessonPlan[]>([]);
   const [isEditing, setIsEditing] = useState(false);
+  const [showImporter, setShowImporter] = useState(false);
+  const [libraryActivities, setLibraryActivities] = useState<Activity[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedLevel, setSelectedLevel] = useState('all');
+  const [sortBy, setSortBy] = useState<'name' | 'category' | 'time' | 'level'>('category');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
 
   // Load lesson plans from localStorage
   useEffect(() => {
@@ -54,12 +72,40 @@ export function LessonPlanBuilder() {
       }));
       setLessonPlans(plans);
     }
-  }, []);
+
+    // Load library activities
+    const savedActivities = localStorage.getItem('library-activities');
+    if (savedActivities) {
+      setLibraryActivities(JSON.parse(savedActivities));
+    } else {
+      // Extract activities from all lessons data as initial library
+      const activities: Activity[] = [];
+      Object.values(allLessonsData).forEach(lessonData => {
+        Object.values(lessonData.grouped).forEach(categoryActivities => {
+          activities.push(...categoryActivities);
+        });
+      });
+      
+      // Remove duplicates based on activity name and category
+      const uniqueActivities = activities.filter((activity, index, self) => 
+        index === self.findIndex(a => a.activity === activity.activity && a.category === activity.category)
+      );
+      
+      setLibraryActivities(uniqueActivities);
+      localStorage.setItem('library-activities', JSON.stringify(uniqueActivities));
+    }
+  }, [allLessonsData]);
 
   // Save lesson plans to localStorage
   const saveLessonPlans = (plans: LessonPlan[]) => {
     localStorage.setItem('lesson-plans', JSON.stringify(plans));
     setLessonPlans(plans);
+  };
+
+  // Save library activities to localStorage
+  const saveLibraryActivities = (activities: Activity[]) => {
+    localStorage.setItem('library-activities', JSON.stringify(activities));
+    setLibraryActivities(activities);
   };
 
   const handleDateSelect = (date: Date) => {
@@ -186,13 +232,93 @@ export function LessonPlanBuilder() {
     }
   };
 
+  const handleImportActivities = (activities: Activity[]) => {
+    // Merge with existing activities, avoiding duplicates
+    const existingActivities = new Set(libraryActivities.map(a => `${a.activity}-${a.category}`));
+    const newActivities = activities.filter(a => !existingActivities.has(`${a.activity}-${a.category}`));
+    
+    const updatedLibrary = [...libraryActivities, ...newActivities];
+    saveLibraryActivities(updatedLibrary);
+  };
+
+  // Filter and sort activities for the library
+  const filteredAndSortedActivities = React.useMemo(() => {
+    let filtered = libraryActivities.filter(activity => {
+      const matchesSearch = activity.activity.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           activity.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === 'all' || activity.category === selectedCategory;
+      const matchesLevel = selectedLevel === 'all' || activity.level === selectedLevel;
+      
+      return matchesSearch && matchesCategory && matchesLevel;
+    });
+
+    // Sort activities
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'name':
+          comparison = a.activity.localeCompare(b.activity);
+          break;
+        case 'category':
+          comparison = a.category.localeCompare(b.category);
+          break;
+        case 'time':
+          comparison = a.time - b.time;
+          break;
+        case 'level':
+          comparison = a.level.localeCompare(b.level);
+          break;
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return filtered;
+  }, [libraryActivities, searchQuery, selectedCategory, selectedLevel, sortBy, sortOrder]);
+
+  // Get unique categories and levels for filters
+  const categories = React.useMemo(() => {
+    const cats = new Set(libraryActivities.map(a => a.category));
+    return Array.from(cats).sort();
+  }, [libraryActivities]);
+
+  const levels = React.useMemo(() => {
+    const lvls = new Set(libraryActivities.map(a => a.level).filter(Boolean));
+    return Array.from(lvls).sort();
+  }, [libraryActivities]);
+
+  const toggleSort = (field: typeof sortBy) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
+
+  // Group activities by lesson number
+  const activitiesByLesson = React.useMemo(() => {
+    const grouped: Record<string, Activity[]> = {};
+    
+    filteredAndSortedActivities.forEach(activity => {
+      const lessonNumber = activity.lessonNumber || 'Unassigned';
+      if (!grouped[lessonNumber]) {
+        grouped[lessonNumber] = [];
+      }
+      grouped[lessonNumber].push(activity);
+    });
+    
+    return grouped;
+  }, [filteredAndSortedActivities]);
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Navigation Header */}
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 mb-6">
               <div className="flex items-center space-x-4">
                 <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-3 rounded-xl shadow-lg">
                   <Calendar className="h-8 w-8 text-white" />
@@ -205,35 +331,45 @@ export function LessonPlanBuilder() {
                 </div>
               </div>
 
-              {currentView === 'builder' && currentLessonPlan && (
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={handleExportLessonPlan}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    <span>Export</span>
-                  </button>
-                  
-                  {isEditing ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  onClick={() => setShowImporter(true)}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  <span>Import Activities</span>
+                </button>
+
+                {currentView === 'builder' && currentLessonPlan && (
+                  <>
                     <button
-                      onClick={handleSaveLessonPlan}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                      onClick={handleExportLessonPlan}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
                     >
-                      <Save className="h-4 w-4" />
-                      <span>Save Plan</span>
+                      <Download className="h-4 w-4" />
+                      <span>Export</span>
                     </button>
-                  ) : (
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                    >
-                      <Edit3 className="h-4 w-4" />
-                      <span>Edit Plan</span>
-                    </button>
-                  )}
-                </div>
-              )}
+                    
+                    {isEditing ? (
+                      <button
+                        onClick={handleSaveLessonPlan}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                      >
+                        <Save className="h-4 w-4" />
+                        <span>Save Plan</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setIsEditing(true)}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                        <span>Edit Plan</span>
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
 
             {/* View Navigation */}
@@ -289,11 +425,162 @@ export function LessonPlanBuilder() {
           )}
 
           {currentView === 'library' && (
-            <ActivityLibrary
-              onActivitySelect={handleActivityAdd}
-              selectedActivities={currentLessonPlan?.activities || []}
-              className={currentSheetInfo.sheet}
-            />
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+              {/* Library Header */}
+              <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <BookOpen className="h-6 w-6" />
+                    <div>
+                      <h2 className="text-xl font-bold">Activity Library</h2>
+                      <p className="text-purple-100 text-sm">
+                        {filteredAndSortedActivities.length} of {libraryActivities.length} activities
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setViewMode('grid')}
+                      className={`p-2 rounded-lg transition-colors duration-200 ${
+                        viewMode === 'grid' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
+                      }`}
+                    >
+                      <Grid3X3 className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode('list')}
+                      className={`p-2 rounded-lg transition-colors duration-200 ${
+                        viewMode === 'list' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
+                      }`}
+                    >
+                      <List className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode('compact')}
+                      className={`p-2 rounded-lg transition-colors duration-200 ${
+                        viewMode === 'compact' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
+                      }`}
+                    >
+                      <MoreVertical className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Search and Filters */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-purple-300" />
+                    <input
+                      type="text"
+                      placeholder="Search activities..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-purple-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
+                    />
+                  </div>
+                  
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
+                  >
+                    <option value="all" className="text-gray-900">All Categories</option>
+                    {categories.map(category => (
+                      <option key={category} value={category} className="text-gray-900">
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  <select
+                    value={selectedLevel}
+                    onChange={(e) => setSelectedLevel(e.target.value)}
+                    className="px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
+                  >
+                    <option value="all" className="text-gray-900">All Levels</option>
+                    {levels.map(level => (
+                      <option key={level} value={level} className="text-gray-900">
+                        {level}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => toggleSort('category')}
+                      className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors duration-200 ${
+                        sortBy === 'category' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
+                      }`}
+                    >
+                      <Tag className="h-4 w-4" />
+                      {sortBy === 'category' && (sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />)}
+                    </button>
+                    <button
+                      onClick={() => toggleSort('time')}
+                      className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors duration-200 ${
+                        sortBy === 'time' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
+                      }`}
+                    >
+                      <Clock className="h-4 w-4" />
+                      {sortBy === 'time' && (sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />)}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Activity Grid */}
+              <div className="p-6">
+                {filteredAndSortedActivities.length === 0 ? (
+                  <div className="text-center py-12">
+                    <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No activities found</h3>
+                    <p className="text-gray-600">
+                      {searchQuery || selectedCategory !== 'all' || selectedLevel !== 'all'
+                        ? 'Try adjusting your search or filters'
+                        : 'No activities available in the library'
+                      }
+                    </p>
+                    {libraryActivities.length === 0 && (
+                      <button
+                        onClick={() => setShowImporter(true)}
+                        className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 inline-flex items-center space-x-2"
+                      >
+                        <Upload className="h-4 w-4" />
+                        <span>Import Activities</span>
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-8">
+                    {Object.entries(activitiesByLesson).map(([lessonNumber, activities]) => (
+                      <div key={lessonNumber} className="space-y-4">
+                        <h3 className="text-xl font-bold text-gray-900 flex items-center space-x-2 border-b border-gray-200 pb-2">
+                          <span>Lesson {lessonNumber}</span>
+                          <span className="text-sm font-normal text-gray-500">({activities.length} activities)</span>
+                        </h3>
+                        
+                        <div className={`
+                          ${viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' :
+                            viewMode === 'list' ? 'space-y-4' :
+                            'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'
+                          }
+                        `}>
+                          {activities.map((activity, index) => (
+                            <ActivityCard 
+                              key={`${activity.activity}-${activity.category}-${index}`}
+                              activity={activity}
+                              onSelect={() => handleActivityAdd(activity)}
+                              viewMode={viewMode}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           )}
 
           {currentView === 'builder' && currentLessonPlan && (
@@ -316,14 +603,49 @@ export function LessonPlanBuilder() {
                   <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
                     <h3 className="text-lg font-semibold">Quick Add Activities</h3>
                     <p className="text-purple-100 text-sm">Drag activities to your lesson plan</p>
+                    
+                    {/* Mini search */}
+                    <div className="mt-3 relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-purple-300" />
+                      <input
+                        type="text"
+                        placeholder="Filter activities..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-purple-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
+                      />
+                    </div>
                   </div>
                   
-                  <div className="p-4 max-h-96 overflow-y-auto">
-                    <ActivityLibrary
-                      onActivitySelect={handleActivityAdd}
-                      selectedActivities={currentLessonPlan.activities}
-                      className={currentSheetInfo.sheet}
-                    />
+                  <div className="p-4 max-h-[600px] overflow-y-auto">
+                    {filteredAndSortedActivities.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500">No matching activities found</p>
+                        <button
+                          onClick={() => setShowImporter(true)}
+                          className="mt-4 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 inline-flex items-center space-x-1"
+                        >
+                          <Upload className="h-3 w-3" />
+                          <span>Import</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {filteredAndSortedActivities.slice(0, 20).map((activity, index) => (
+                          <ActivityCard 
+                            key={`${activity.activity}-${activity.category}-${index}`}
+                            activity={activity}
+                            onSelect={() => handleActivityAdd(activity)}
+                            viewMode="compact"
+                          />
+                        ))}
+                        {filteredAndSortedActivities.length > 20 && (
+                          <div className="text-center text-sm text-gray-500 pt-2">
+                            + {filteredAndSortedActivities.length - 20} more activities
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -331,6 +653,212 @@ export function LessonPlanBuilder() {
           )}
         </div>
       </div>
+
+      {/* Activity Importer Modal */}
+      {showImporter && (
+        <ActivityImporter 
+          onImport={handleImportActivities}
+          onClose={() => setShowImporter(false)}
+        />
+      )}
     </DndProvider>
+  );
+}
+
+// Activity Card Component
+interface ActivityCardProps {
+  activity: Activity;
+  onSelect: () => void;
+  viewMode: 'grid' | 'list' | 'compact';
+}
+
+function ActivityCard({ activity, onSelect, viewMode }: ActivityCardProps) {
+  const [{ isDragging }, drag] = React.useDrag(() => ({
+    type: 'activity',
+    item: { activity },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  }));
+
+  const categoryColors: Record<string, string> = {
+    'Welcome': '#F59E0B',
+    'Kodaly Songs': '#8B5CF6',
+    'Kodaly Action Songs': '#F97316',
+    'Action/Games Songs': '#F97316',
+    'Rhythm Sticks': '#D97706',
+    'Scarf Songs': '#10B981',
+    'General Game': '#3B82F6',
+    'Core Songs': '#84CC16',
+    'Parachute Games': '#EF4444',
+    'Percussion Games': '#06B6D4',
+    'Teaching Units': '#6366F1',
+    'Goodbye': '#14B8A6'
+  };
+
+  const cardColor = categoryColors[activity.category] || '#6B7280';
+
+  const resources = [
+    { type: 'video', url: activity.videoLink },
+    { type: 'music', url: activity.musicLink },
+    { type: 'backing', url: activity.backingLink },
+    { type: 'resource', url: activity.resourceLink }
+  ].filter(resource => resource.url && resource.url.trim());
+
+  if (viewMode === 'compact') {
+    return (
+      <div
+        ref={drag}
+        onClick={onSelect}
+        className={`bg-white rounded-lg shadow-sm border-l-4 p-3 transition-all duration-200 hover:shadow-md cursor-move ${
+          isDragging ? 'opacity-50 scale-95' : 'hover:scale-[1.02]'
+        }`}
+        style={{ borderLeftColor: cardColor }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex-1 min-w-0">
+            <h4 className="font-medium text-gray-900 text-sm truncate">{activity.activity}</h4>
+            <p className="text-xs text-gray-500">{activity.category}</p>
+          </div>
+          {activity.time > 0 && (
+            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full ml-2">
+              {activity.time}m
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (viewMode === 'list') {
+    return (
+      <div
+        ref={drag}
+        onClick={onSelect}
+        className={`bg-white rounded-xl shadow-sm border border-gray-200 hover:border-gray-300 p-4 transition-all duration-200 hover:shadow-md cursor-move ${
+          isDragging ? 'opacity-50 scale-95' : 'hover:scale-[1.01]'
+        }`}
+      >
+        <div className="flex items-start space-x-4">
+          <div 
+            className="w-2 h-full rounded-full flex-shrink-0 self-stretch"
+            style={{ backgroundColor: cardColor }}
+          />
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between">
+              <div>
+                <h4 className="font-semibold text-gray-900">{activity.activity}</h4>
+                <div className="flex items-center space-x-2 mt-1">
+                  <span className="text-sm text-gray-600">{activity.category}</span>
+                  {activity.level && (
+                    <span 
+                      className="px-2 py-0.5 text-white text-xs font-medium rounded-full"
+                      style={{ backgroundColor: cardColor }}
+                    >
+                      {activity.level}
+                    </span>
+                  )}
+                </div>
+              </div>
+              
+              {activity.time > 0 && (
+                <span className="text-sm text-gray-500 font-medium bg-gray-100 px-2 py-1 rounded-full">
+                  {activity.time}m
+                </span>
+              )}
+            </div>
+            
+            <p className="text-sm text-gray-600 mt-2 line-clamp-2">{activity.description}</p>
+            
+            {resources.length > 0 && (
+              <div className="flex items-center space-x-1 mt-2">
+                {resources.map((resource, i) => (
+                  <span 
+                    key={i}
+                    className="inline-block w-2 h-2 rounded-full"
+                    style={{ backgroundColor: cardColor }}
+                  />
+                ))}
+                <span className="text-xs text-gray-500 ml-1">{resources.length} resource{resources.length !== 1 ? 's' : ''}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Grid view (default)
+  return (
+    <div
+      ref={drag}
+      onClick={onSelect}
+      className={`bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl cursor-move overflow-hidden ${
+        isDragging ? 'opacity-50 scale-95' : 'hover:scale-[1.02]'
+      } border-gray-200 hover:border-gray-300`}
+      style={{ borderLeftColor: cardColor, borderLeftWidth: '6px' }}
+    >
+      {/* Card Header */}
+      <div 
+        className="p-4 text-white relative overflow-hidden"
+        style={{ 
+          background: `linear-gradient(135deg, ${cardColor} 0%, ${cardColor}CC 100%)` 
+        }}
+      >
+        <div className="absolute top-0 right-0 w-20 h-20 bg-white bg-opacity-10 rounded-full -translate-y-10 translate-x-10"></div>
+        
+        <div className="relative z-10">
+          <div className="flex items-start justify-between mb-2">
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-bold leading-tight truncate">{activity.activity}</h3>
+              
+              <div className="flex items-center space-x-3 mt-1">
+                <span className="text-sm opacity-90">{activity.category}</span>
+                {activity.level && (
+                  <span className="px-2 py-1 bg-white bg-opacity-20 text-xs font-medium rounded-full">
+                    {activity.level}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {activity.time > 0 && (
+              <div className="flex items-center space-x-1 bg-white bg-opacity-20 px-2 py-1 rounded-full ml-2">
+                <Clock className="h-4 w-4" />
+                <span className="text-sm font-medium">{activity.time}m</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Card Content */}
+      <div className="p-4">
+        <p className="text-gray-700 leading-relaxed line-clamp-3 text-sm mb-3">
+          {activity.description || 'No description available'}
+        </p>
+        
+        {activity.unitName && (
+          <div className="mb-3">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Unit:</span>
+            <p className="text-sm text-gray-700 font-medium">{activity.unitName}</p>
+          </div>
+        )}
+        
+        {resources.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {resources.map((resource, index) => (
+              <span 
+                key={index}
+                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+              >
+                {resource.type}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
