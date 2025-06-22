@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Clock, 
   Video, 
@@ -26,13 +26,14 @@ import type { Activity } from '../contexts/DataContext';
 
 interface ActivityCardProps {
   activity: Activity;
-  onUpdate: (updatedActivity: Activity) => void;
-  onDelete: (activityId: string) => void;
-  onDuplicate: (activity: Activity) => void;
+  onUpdate?: (updatedActivity: Activity) => void;
+  onDelete?: (activityId: string) => void;
+  onDuplicate?: (activity: Activity) => void;
   isEditing?: boolean;
-  onEditToggle: () => void;
+  onEditToggle?: () => void;
   categoryColor: string;
   viewMode?: 'compact' | 'detailed' | 'minimal';
+  onResourceClick?: (url: string, title: string, type: string) => void;
 }
 
 const categoryColors: Record<string, string> = {
@@ -58,7 +59,8 @@ export function ActivityCard({
   isEditing = false, 
   onEditToggle,
   categoryColor,
-  viewMode = 'detailed'
+  viewMode = 'detailed',
+  onResourceClick
 }: ActivityCardProps) {
   const [editedActivity, setEditedActivity] = useState<Activity>(activity);
   const [showResources, setShowResources] = useState(false);
@@ -73,18 +75,24 @@ export function ActivityCard({
     }),
   }));
 
-  useEffect(() => {
+  React.useEffect(() => {
     setEditedActivity(activity);
   }, [activity]);
 
   const handleSave = () => {
-    onUpdate(editedActivity);
-    onEditToggle();
+    if (onUpdate) {
+      onUpdate(editedActivity);
+    }
+    if (onEditToggle) {
+      onEditToggle();
+    }
   };
 
   const handleCancel = () => {
     setEditedActivity(activity);
-    onEditToggle();
+    if (onEditToggle) {
+      onEditToggle();
+    }
   };
 
   const execCommand = (command: string, value?: string) => {
@@ -96,13 +104,13 @@ export function ActivityCard({
   };
 
   const resources = [
-    { label: 'Video', url: activity.videoLink, icon: Video, color: 'text-red-600 bg-red-50 border-red-200' },
-    { label: 'Music', url: activity.musicLink, icon: Music, color: 'text-green-600 bg-green-50 border-green-200' },
-    { label: 'Backing', url: activity.backingLink, icon: Volume2, color: 'text-blue-600 bg-blue-50 border-blue-200' },
-    { label: 'Resource', url: activity.resourceLink, icon: FileText, color: 'text-purple-600 bg-purple-50 border-purple-200' },
-    { label: 'Link', url: activity.link, icon: LinkIcon, color: 'text-gray-600 bg-gray-50 border-gray-200' },
-    { label: 'Vocals', url: activity.vocalsLink, icon: Volume2, color: 'text-orange-600 bg-orange-50 border-orange-200' },
-    { label: 'Image', url: activity.imageLink, icon: Image, color: 'text-pink-600 bg-pink-50 border-pink-200' },
+    { label: 'Video', url: activity.videoLink, icon: Video, color: 'text-red-600 bg-red-50 border-red-200', type: 'video' },
+    { label: 'Music', url: activity.musicLink, icon: Music, color: 'text-green-600 bg-green-50 border-green-200', type: 'music' },
+    { label: 'Backing', url: activity.backingLink, icon: Volume2, color: 'text-blue-600 bg-blue-50 border-blue-200', type: 'backing' },
+    { label: 'Resource', url: activity.resourceLink, icon: FileText, color: 'text-purple-600 bg-purple-50 border-purple-200', type: 'resource' },
+    { label: 'Link', url: activity.link, icon: LinkIcon, color: 'text-gray-600 bg-gray-50 border-gray-200', type: 'link' },
+    { label: 'Vocals', url: activity.vocalsLink, icon: Volume2, color: 'text-orange-600 bg-orange-50 border-orange-200', type: 'vocals' },
+    { label: 'Image', url: activity.imageLink, icon: Image, color: 'text-pink-600 bg-pink-50 border-pink-200', type: 'image' },
   ].filter(resource => resource.url && resource.url.trim());
 
   const cardColor = categoryColors[activity.category] || categoryColor;
@@ -150,7 +158,10 @@ export function ActivityCard({
                 </span>
               )}
               <button
-                onClick={() => setShowMenu(!showMenu)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onEditToggle) setShowMenu(!showMenu);
+                }}
                 className="p-1 text-gray-400 hover:text-gray-600 rounded"
               >
                 <MoreVertical className="h-4 w-4" />
@@ -174,9 +185,16 @@ export function ActivityCard({
               {resources.slice(0, 3).map((resource, index) => {
                 const IconComponent = resource.icon;
                 return (
-                  <div key={index} className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
+                  <button
+                    key={index}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onResourceClick) onResourceClick(resource.url, `${activity.activity} - ${resource.label}`, resource.type);
+                    }}
+                    className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+                  >
                     <IconComponent className="h-3 w-3 text-gray-600" />
-                  </div>
+                  </button>
                 );
               })}
               {resources.length > 3 && (
@@ -240,57 +258,77 @@ export function ActivityCard({
                 </div>
               )}
               
-              <div className="relative">
-                <button
-                  onClick={() => setShowMenu(!showMenu)}
-                  className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200"
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </button>
+              {onEditToggle && (
+                <div className="relative">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowMenu(!showMenu);
+                    }}
+                    className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
 
-                {showMenu && (
-                  <div className="absolute top-full right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 py-2 min-w-[150px] z-50">
-                    <button
-                      onClick={() => {
-                        onEditToggle();
-                        setShowMenu(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                    >
-                      <Edit3 className="h-4 w-4" />
-                      <span>Edit</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        onDuplicate(activity);
-                        setShowMenu(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                    >
-                      <Copy className="h-4 w-4" />
-                      <span>Duplicate</span>
-                    </button>
-                    <button
-                      onClick={() => setShowResources(!showResources)}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                    >
-                      {showResources ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      <span>{showResources ? 'Hide' : 'Show'} Resources</span>
-                    </button>
-                    <hr className="my-1" />
-                    <button
-                      onClick={() => {
-                        onDelete(activity.activity);
-                        setShowMenu(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      <span>Delete</span>
-                    </button>
-                  </div>
-                )}
-              </div>
+                  {showMenu && (
+                    <div className="absolute top-full right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 py-2 min-w-[150px] z-50">
+                      {onEditToggle && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditToggle();
+                            setShowMenu(false);
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                        >
+                          <Edit3 className="h-4 w-4" />
+                          <span>Edit</span>
+                        </button>
+                      )}
+                      {onDuplicate && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDuplicate(activity);
+                            setShowMenu(false);
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                        >
+                          <Copy className="h-4 w-4" />
+                          <span>Duplicate</span>
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowResources(!showResources);
+                          setShowMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                      >
+                        {showResources ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        <span>{showResources ? 'Hide' : 'Show'} Resources</span>
+                      </button>
+                      {onDelete && (
+                        <>
+                          <hr className="my-1" />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDelete(activity.activity);
+                              setShowMenu(false);
+                            }}
+                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span>Delete</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -399,17 +437,20 @@ export function ActivityCard({
                 {resources.map((resource, index) => {
                   const IconComponent = resource.icon;
                   return (
-                    <a
+                    <button
                       key={index}
-                      href={resource.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onResourceClick) {
+                          onResourceClick(resource.url, `${activity.activity} - ${resource.label}`, resource.type);
+                        }
+                      }}
                       className={`flex items-center space-x-2 p-2 rounded-lg border transition-all duration-200 hover:scale-105 hover:shadow-sm ${resource.color}`}
                     >
                       <IconComponent className="h-4 w-4 flex-shrink-0" />
                       <span className="text-sm font-medium truncate">{resource.label}</span>
                       <ExternalLink className="h-3 w-3 flex-shrink-0 opacity-60" />
-                    </a>
+                    </button>
                   );
                 })}
               </div>
@@ -418,7 +459,7 @@ export function ActivityCard({
         )}
 
         {/* Edit Actions */}
-        {isEditing && (
+        {isEditing && onEditToggle && (
           <div className="flex justify-end space-x-2 mt-4 pt-4 border-t border-gray-200">
             <button
               onClick={handleCancel}

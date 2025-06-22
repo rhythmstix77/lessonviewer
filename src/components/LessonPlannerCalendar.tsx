@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   Calendar, 
   ChevronLeft, 
@@ -12,14 +12,14 @@ import {
   Save,
   X
 } from 'lucide-react';
-import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
+import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 
 interface LessonPlan {
   id: string;
   date: Date;
   week: number;
   className: string;
-  activities: string[]; // Activity IDs
+  activities: any[]; // Activity IDs or objects
   duration: number;
   notes: string;
   status: 'planned' | 'completed' | 'cancelled';
@@ -48,21 +48,34 @@ export function LessonPlannerCalendar({
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
-  const calendarDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const startDay = getDay(monthStart);
+  
+  // Calculate days from previous month to show
+  const daysFromPrevMonth = startDay;
+  const prevMonthDays = Array.from({ length: daysFromPrevMonth }, (_, i) => 
+    addDays(monthStart, -daysFromPrevMonth + i)
+  );
+  
+  // Current month days
+  const currentMonthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  
+  // Calculate days from next month to show (to complete the grid)
+  const totalDaysShown = Math.ceil((daysFromPrevMonth + currentMonthDays.length) / 7) * 7;
+  const daysFromNextMonth = totalDaysShown - (daysFromPrevMonth + currentMonthDays.length);
+  const nextMonthDays = Array.from({ length: daysFromNextMonth }, (_, i) => 
+    addDays(addDays(monthEnd, 1), i)
+  );
+  
+  // Combine all days
+  const calendarDays = [...prevMonthDays, ...currentMonthDays, ...nextMonthDays];
 
   const weekStart = startOfWeek(currentDate);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   const getLessonPlanForDate = (date: Date) => {
     return lessonPlans.find(plan => 
-      isSameDay(plan.date, date) && plan.className === className
+      isSameDay(new Date(plan.date), date) && plan.className === className
     );
-  };
-
-  const getWeekNumber = (date: Date) => {
-    const start = new Date(date.getFullYear(), 0, 1);
-    const diff = date.getTime() - start.getTime();
-    return Math.ceil(diff / (7 * 24 * 60 * 60 * 1000));
   };
 
   const handleDateClick = (date: Date) => {
@@ -91,7 +104,7 @@ export function LessonPlannerCalendar({
     }
   };
 
-  const renderCalendarDay = (date: Date) => {
+  const renderCalendarDay = (date: Date, isCurrentMonth: boolean = true) => {
     const lessonPlan = getLessonPlanForDate(date);
     const isSelected = selectedDate && isSameDay(date, selectedDate);
     const isToday = isSameDay(date, new Date());
@@ -105,6 +118,7 @@ export function LessonPlannerCalendar({
           ${isSelected ? 'bg-blue-100 border-blue-300' : ''}
           ${isToday ? 'ring-2 ring-blue-400' : ''}
           ${lessonPlan ? 'bg-green-50' : ''}
+          ${!isCurrentMonth ? 'opacity-40' : ''}
         `}
       >
         <div className="flex flex-col h-full">
@@ -129,7 +143,7 @@ export function LessonPlannerCalendar({
           
           {!lessonPlan && (
             <div className="flex-1 flex items-center justify-center">
-              <Plus className="h-4 w-4 text-gray-400" />
+              <Plus className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100" />
             </div>
           )}
         </div>
@@ -162,7 +176,10 @@ export function LessonPlannerCalendar({
             {day}
           </div>
         ))}
-        {calendarDays.map(date => renderCalendarDay(date))}
+        {calendarDays.map((date, i) => {
+          const isCurrentMonth = i >= daysFromPrevMonth && i < (daysFromPrevMonth + currentMonthDays.length);
+          return renderCalendarDay(date, isCurrentMonth);
+        })}
       </div>
     );
   };

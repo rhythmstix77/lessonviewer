@@ -190,7 +190,7 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
         category: String(row[categoryIdx] || '').trim(),
         level: String(row[levelIdx] || '').trim(),
         unitName: String(row[unitNameIdx] || '').trim(),
-        lessonNumber: currentLessonNumber || '1' // Default to lesson 1 if no lesson number
+        lessonNumber: '' // Remove lesson number assignment
       };
 
       activities.push(activity);
@@ -210,16 +210,16 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
     
     // Define the headers
     const headers = [
-      'Lesson Number', 'Category', 'Activity Name', 'Description', 
+      'Category', 'Activity Name', 'Description', 
       'Level', 'Time (Mins)', 'Video', 'Music', 'Backing', 'Resource', 'Unit Name'
     ];
     
     // Add some sample data
     const data = [
       headers,
-      ['1', 'Welcome', 'Hello Song', 'A welcoming song to start the lesson', 'All', '3', 'https://example.com/video', 'https://example.com/music', '', '', ''],
-      ['1', 'Rhythm', 'Clapping Game', 'Students clap along to the beat', 'EYFS', '5', '', 'https://example.com/music2', '', '', 'Rhythm Unit'],
-      ['2', 'Singing', 'Echo Song', 'Teacher sings a line, students repeat', 'All', '4', '', '', '', '', '']
+      ['Welcome', 'Hello Song', 'A welcoming song to start the lesson', 'All', '3', 'https://example.com/video', 'https://example.com/music', '', '', ''],
+      ['Rhythm', 'Clapping Game', 'Students clap along to the beat', 'EYFS', '5', '', 'https://example.com/music2', '', '', 'Rhythm Unit'],
+      ['Singing', 'Echo Song', 'Teacher sings a line, students repeat', 'All', '4', '', '', '', '', '']
     ];
     
     // Create a worksheet
@@ -334,7 +334,6 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lesson</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Activity</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
@@ -344,7 +343,6 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {previewData.map((activity, index) => (
                       <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{activity.lessonNumber}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{activity.category}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{activity.activity}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{activity.level}</td>

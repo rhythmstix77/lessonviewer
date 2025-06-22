@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DndProvider, useDrag } from 'react-dnd';
+import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { 
   Calendar, 
@@ -29,9 +29,12 @@ import {
   Link as LinkIcon,
   Volume2,
   Image,
-  X
+  X,
+  Maximize2,
+  Minimize2,
+  ExternalLink
 } from 'lucide-react';
-import { ActivityLibrary } from './ActivityLibrary';
+import { ActivityCard } from './ActivityCard';
 import { LessonPlannerCalendar } from './LessonPlannerCalendar';
 import { LessonDropZone } from './LessonDropZone';
 import { ActivityImporter } from './ActivityImporter';
@@ -307,21 +310,6 @@ export function LessonPlanBuilder() {
     }
   };
 
-  // Group activities by lesson number
-  const activitiesByLesson = React.useMemo(() => {
-    const grouped: Record<string, Activity[]> = {};
-    
-    filteredAndSortedActivities.forEach(activity => {
-      const lessonNumber = activity.lessonNumber || 'Unassigned';
-      if (!grouped[lessonNumber]) {
-        grouped[lessonNumber] = [];
-      }
-      grouped[lessonNumber].push(activity);
-    });
-    
-    return grouped;
-  }, [filteredAndSortedActivities]);
-
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
@@ -562,31 +550,35 @@ export function LessonPlanBuilder() {
                     )}
                   </div>
                 ) : (
-                  <div className="space-y-8">
-                    {Object.entries(activitiesByLesson).map(([lessonNumber, activities]) => (
-                      <div key={lessonNumber} className="space-y-4">
-                        <h3 className="text-xl font-bold text-gray-900 flex items-center space-x-2 border-b border-gray-200 pb-2">
-                          <span>Lesson {lessonNumber}</span>
-                          <span className="text-sm font-normal text-gray-500">({activities.length} activities)</span>
-                        </h3>
-                        
-                        <div className={`
-                          ${viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' :
-                            viewMode === 'list' ? 'space-y-4' :
-                            'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'
-                          }
-                        `}>
-                          {activities.map((activity, index) => (
-                            <ActivityCard 
-                              key={`${activity.activity}-${activity.category}-${index}`}
-                              activity={activity}
-                              onSelect={() => handleActivityAdd(activity)}
-                              onResourceClick={(url, title, type) => setSelectedResource({url, title, type})}
-                              viewMode={viewMode}
-                            />
-                          ))}
-                        </div>
-                      </div>
+                  <div className={`
+                    ${viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' :
+                      viewMode === 'list' ? 'space-y-4' :
+                      'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'
+                    }
+                  `}>
+                    {filteredAndSortedActivities.map((activity, index) => (
+                      <ActivityCard 
+                        key={`${activity.activity}-${activity.category}-${index}`}
+                        activity={activity}
+                        categoryColor={activity.category ? 
+                          {
+                            'Welcome': '#F59E0B',
+                            'Kodaly Songs': '#8B5CF6',
+                            'Kodaly Action Songs': '#F97316',
+                            'Action/Games Songs': '#F97316',
+                            'Rhythm Sticks': '#D97706',
+                            'Scarf Songs': '#10B981',
+                            'General Game': '#3B82F6',
+                            'Core Songs': '#84CC16',
+                            'Parachute Games': '#EF4444',
+                            'Percussion Games': '#06B6D4',
+                            'Teaching Units': '#6366F1',
+                            'Goodbye': '#14B8A6'
+                          }[activity.category] || '#6B7280'
+                        : '#6B7280'}
+                        viewMode={viewMode}
+                        onResourceClick={(url, title, type) => setSelectedResource({url, title, type})}
+                      />
                     ))}
                   </div>
                 )}
@@ -646,9 +638,24 @@ export function LessonPlanBuilder() {
                           <ActivityCard 
                             key={`${activity.activity}-${activity.category}-${index}`}
                             activity={activity}
-                            onSelect={() => handleActivityAdd(activity)}
-                            onResourceClick={(url, title, type) => setSelectedResource({url, title, type})}
+                            categoryColor={activity.category ? 
+                              {
+                                'Welcome': '#F59E0B',
+                                'Kodaly Songs': '#8B5CF6',
+                                'Kodaly Action Songs': '#F97316',
+                                'Action/Games Songs': '#F97316',
+                                'Rhythm Sticks': '#D97706',
+                                'Scarf Songs': '#10B981',
+                                'General Game': '#3B82F6',
+                                'Core Songs': '#84CC16',
+                                'Parachute Games': '#EF4444',
+                                'Percussion Games': '#06B6D4',
+                                'Teaching Units': '#6366F1',
+                                'Goodbye': '#14B8A6'
+                              }[activity.category] || '#6B7280'
+                            : '#6B7280'}
                             viewMode="compact"
+                            onResourceClick={(url, title, type) => setSelectedResource({url, title, type})}
                           />
                         ))}
                         {filteredAndSortedActivities.length > 20 && (
@@ -687,225 +694,7 @@ export function LessonPlanBuilder() {
   );
 }
 
-// Activity Card Component
-interface ActivityCardProps {
-  activity: Activity;
-  onSelect: () => void;
-  onResourceClick: (url: string, title: string, type: string) => void;
-  viewMode: 'grid' | 'list' | 'compact';
-}
-
-function ActivityCard({ activity, onSelect, onResourceClick, viewMode }: ActivityCardProps) {
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: 'activity',
-    item: { activity },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  }));
-
-  const categoryColors: Record<string, string> = {
-    'Welcome': '#F59E0B',
-    'Kodaly Songs': '#8B5CF6',
-    'Kodaly Action Songs': '#F97316',
-    'Action/Games Songs': '#F97316',
-    'Rhythm Sticks': '#D97706',
-    'Scarf Songs': '#10B981',
-    'General Game': '#3B82F6',
-    'Core Songs': '#84CC16',
-    'Parachute Games': '#EF4444',
-    'Percussion Games': '#06B6D4',
-    'Teaching Units': '#6366F1',
-    'Goodbye': '#14B8A6'
-  };
-
-  const cardColor = categoryColors[activity.category] || '#6B7280';
-
-  const resources = [
-    { label: 'Video', url: activity.videoLink, icon: Video, color: 'text-red-600 bg-red-50 border-red-200', type: 'video' },
-    { label: 'Music', url: activity.musicLink, icon: Music, color: 'text-green-600 bg-green-50 border-green-200', type: 'music' },
-    { label: 'Backing', url: activity.backingLink, icon: Volume2, color: 'text-blue-600 bg-blue-50 border-blue-200', type: 'backing' },
-    { label: 'Resource', url: activity.resourceLink, icon: FileText, color: 'text-purple-600 bg-purple-50 border-purple-200', type: 'resource' },
-    { label: 'Link', url: activity.link, icon: LinkIcon, color: 'text-gray-600 bg-gray-50 border-gray-200', type: 'link' },
-    { label: 'Vocals', url: activity.vocalsLink, icon: Volume2, color: 'text-orange-600 bg-orange-50 border-orange-200', type: 'vocals' },
-    { label: 'Image', url: activity.imageLink, icon: Image, color: 'text-pink-600 bg-pink-50 border-pink-200', type: 'image' },
-  ].filter(resource => resource.url && resource.url.trim());
-
-  if (viewMode === 'compact') {
-    return (
-      <div
-        ref={drag}
-        onClick={onSelect}
-        className={`bg-white rounded-lg shadow-sm border-l-4 p-3 transition-all duration-200 hover:shadow-md cursor-move ${
-          isDragging ? 'opacity-50 scale-95' : 'hover:scale-[1.02]'
-        }`}
-        style={{ borderLeftColor: cardColor }}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex-1 min-w-0">
-            <h4 className="font-medium text-gray-900 text-sm truncate">{activity.activity}</h4>
-            <p className="text-xs text-gray-500">{activity.category}</p>
-          </div>
-          {activity.time > 0 && (
-            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full ml-2">
-              {activity.time}m
-            </span>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  if (viewMode === 'list') {
-    return (
-      <div
-        ref={drag}
-        className={`bg-white rounded-xl shadow-sm border border-gray-200 hover:border-gray-300 p-4 transition-all duration-200 hover:shadow-md cursor-move ${
-          isDragging ? 'opacity-50 scale-95' : 'hover:scale-[1.01]'
-        }`}
-      >
-        <div className="flex items-start space-x-4">
-          <div 
-            className="w-2 h-full rounded-full flex-shrink-0 self-stretch"
-            style={{ backgroundColor: cardColor }}
-          />
-          
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between">
-              <div>
-                <h4 className="font-semibold text-gray-900">{activity.activity}</h4>
-                <div className="flex items-center space-x-2 mt-1">
-                  <span className="text-sm text-gray-600">{activity.category}</span>
-                  {activity.level && (
-                    <span 
-                      className="px-2 py-0.5 text-white text-xs font-medium rounded-full"
-                      style={{ backgroundColor: cardColor }}
-                    >
-                      {activity.level}
-                    </span>
-                  )}
-                </div>
-              </div>
-              
-              {activity.time > 0 && (
-                <span className="text-sm text-gray-500 font-medium bg-gray-100 px-2 py-1 rounded-full">
-                  {activity.time}m
-                </span>
-              )}
-            </div>
-            
-            <p className="text-sm text-gray-600 mt-2 line-clamp-2">{activity.description}</p>
-            
-            {resources.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {resources.map((resource, index) => {
-                  const IconComponent = resource.icon;
-                  return (
-                    <button
-                      key={index}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onResourceClick(resource.url, `${activity.activity} - ${resource.label}`, resource.type);
-                      }}
-                      className={`inline-flex items-center space-x-1 px-2 py-1 rounded-lg border text-xs ${resource.color}`}
-                    >
-                      <IconComponent className="h-3 w-3" />
-                      <span>{resource.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Grid view (default)
-  return (
-    <div
-      ref={drag}
-      className={`bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl cursor-move overflow-hidden ${
-        isDragging ? 'opacity-50 scale-95' : 'hover:scale-[1.02]'
-      } border-gray-200 hover:border-gray-300`}
-      style={{ borderLeftColor: cardColor, borderLeftWidth: '6px' }}
-    >
-      {/* Card Header */}
-      <div 
-        className="p-4 text-white relative overflow-hidden"
-        style={{ 
-          background: `linear-gradient(135deg, ${cardColor} 0%, ${cardColor}CC 100%)` 
-        }}
-      >
-        <div className="absolute top-0 right-0 w-20 h-20 bg-white bg-opacity-10 rounded-full -translate-y-10 translate-x-10"></div>
-        
-        <div className="relative z-10">
-          <div className="flex items-start justify-between mb-2">
-            <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-bold leading-tight truncate">{activity.activity}</h3>
-              
-              <div className="flex items-center space-x-3 mt-1">
-                <span className="text-sm opacity-90">{activity.category}</span>
-                {activity.level && (
-                  <span className="px-2 py-1 bg-white bg-opacity-20 text-xs font-medium rounded-full">
-                    {activity.level}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {activity.time > 0 && (
-              <div className="flex items-center space-x-1 bg-white bg-opacity-20 px-2 py-1 rounded-full ml-2">
-                <Clock className="h-4 w-4" />
-                <span className="text-sm font-medium">{activity.time}m</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Card Content */}
-      <div className="p-4">
-        <div onClick={onSelect} className="cursor-pointer">
-          <p className="text-gray-700 leading-relaxed line-clamp-3 text-sm mb-3">
-            {activity.description || 'No description available'}
-          </p>
-          
-          {activity.unitName && (
-            <div className="mb-3">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Unit:</span>
-              <p className="text-sm text-gray-700 font-medium">{activity.unitName}</p>
-            </div>
-          )}
-        </div>
-        
-        {resources.length > 0 && (
-          <div className="grid grid-cols-2 gap-2 mt-3">
-            {resources.map((resource, index) => {
-              const IconComponent = resource.icon;
-              return (
-                <button
-                  key={index}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onResourceClick(resource.url, `${activity.activity} - ${resource.label}`, resource.type);
-                  }}
-                  className={`flex items-center space-x-2 p-2 rounded-lg border transition-all duration-200 hover:scale-105 hover:shadow-sm ${resource.color}`}
-                >
-                  <IconComponent className="h-4 w-4 flex-shrink-0" />
-                  <span className="text-sm font-medium truncate">{resource.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Resource Viewer Component
+// Resource Viewer Component with Fullscreen Support
 interface ResourceViewerProps {
   url: string;
   title: string;
@@ -916,6 +705,8 @@ interface ResourceViewerProps {
 function ResourceViewer({ url, title, type, onClose }: ResourceViewerProps) {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
 
   // Detect content type from URL
   const getContentType = () => {
@@ -966,6 +757,35 @@ function ResourceViewer({ url, title, type, onClose }: ResourceViewerProps) {
     const match = url.match(/vimeo\.com\/(\d+)/);
     return match ? match[1] : null;
   };
+
+  // Fullscreen functionality
+  const toggleFullscreen = async () => {
+    if (!containerRef.current) return;
+
+    try {
+      if (!isFullscreen) {
+        if (containerRef.current.requestFullscreen) {
+          await containerRef.current.requestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
+      }
+    } catch (error) {
+      console.error('Fullscreen error:', error);
+    }
+  };
+
+  // Listen for fullscreen changes
+  React.useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   const handleLoad = () => {
     setIsLoading(false);
@@ -1069,16 +889,53 @@ function ResourceViewer({ url, title, type, onClose }: ResourceViewerProps) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl overflow-hidden w-full max-w-4xl h-[80vh] flex flex-col">
+      <div 
+        ref={containerRef}
+        className={`bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col ${
+          isFullscreen ? 'w-full h-full rounded-none' : 'w-full max-w-4xl h-[80vh]'
+        }`}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900 truncate">{title}</h2>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-          >
-            <X className="h-5 w-5" />
-          </button>
+        <div className={`flex items-center justify-between p-4 border-b border-gray-200 ${
+          isFullscreen ? 'bg-black bg-opacity-50 text-white' : ''
+        }`}>
+          <h2 className="text-lg font-semibold truncate">{title}</h2>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={toggleFullscreen}
+              className={`p-2 rounded-lg transition-colors duration-200 ${
+                isFullscreen 
+                  ? 'text-white hover:bg-white hover:bg-opacity-20' 
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+              }`}
+              title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+            >
+              {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+            </button>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`p-2 rounded-lg transition-colors duration-200 ${
+                isFullscreen 
+                  ? 'text-white hover:bg-white hover:bg-opacity-20' 
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+              }`}
+              title="Open in New Tab"
+            >
+              <ExternalLink className="h-5 w-5" />
+            </a>
+            <button
+              onClick={onClose}
+              className={`p-2 rounded-lg transition-colors duration-200 ${
+                isFullscreen 
+                  ? 'text-white hover:bg-white hover:bg-opacity-20' 
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {/* Loading Indicator */}
