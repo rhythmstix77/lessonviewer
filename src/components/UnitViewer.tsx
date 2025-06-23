@@ -60,8 +60,8 @@ export function UnitViewer() {
             <div className="w-24 h-24 border-4 border-gray-200 rounded-full"></div>
             <div className="absolute top-0 left-0 w-24 h-24 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Unit Data</h2>
-          <p className="text-gray-600">Please wait while we fetch your {currentSheetInfo.display} units...</p>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Lesson Data</h2>
+          <p className="text-gray-600">Please wait while we fetch your {currentSheetInfo.display} lessons...</p>
         </div>
       </div>
     );
@@ -125,7 +125,7 @@ export function UnitViewer() {
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-xl font-bold mb-1">
-                    Unit {selectedLesson} - {currentSheetInfo.display}
+                    Lesson {selectedLesson} - {currentSheetInfo.display}
                   </h1>
                   <p className="text-white text-opacity-90 text-sm">
                     {lessonData.totalTime} minutes • {lessonData.categoryOrder.length} categories
@@ -415,7 +415,7 @@ export function UnitViewer() {
                   Unit Viewer
                 </h1>
                 <p className="text-gray-600 text-lg">
-                  {currentSheetInfo.display} • {lessonNumbers.length} units available
+                  {currentSheetInfo.display} • {lessonNumbers.length} lessons available
                 </p>
               </div>
             </div>
@@ -426,7 +426,7 @@ export function UnitViewer() {
         </div>
 
         {/* Half-Term Cards Grid */}
-        <div className={`grid ${expandedHalfTerms.includes('A1') ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-6 mb-8`}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {HALF_TERMS.map((halfTerm) => {
             const lessonsInTerm = lessonsByHalfTerm[halfTerm.id] || [];
             const hasLessons = lessonsInTerm.length > 0;
@@ -476,7 +476,7 @@ export function UnitViewer() {
                     <div className="flex items-center space-x-6 text-white text-opacity-90 mt-2">
                       <div className="flex items-center space-x-2">
                         <BookOpen className="h-5 w-5" />
-                        <span className="font-medium">{lessonsInTerm.length} units</span>
+                        <span className="font-medium">{lessonsInTerm.length} lessons</span>
                       </div>
                     </div>
                   </div>
@@ -489,7 +489,7 @@ export function UnitViewer() {
                     {isAutumn1Expanded ? (
                       <div className="space-y-6">
                         <h3 className="text-xl font-bold text-gray-900 mb-4 px-2">
-                          All Units for {halfTerm.name}
+                          All Lessons for {halfTerm.name}
                         </h3>
                         
                         {/* Organized lesson list with clear numbering */}
@@ -519,7 +519,7 @@ export function UnitViewer() {
                                       >
                                         {lessonNum}
                                       </div>
-                                      <h4 className="font-bold text-gray-900 text-lg">Unit {lessonNum}</h4>
+                                      <h4 className="font-bold text-gray-900 text-lg">Lesson {lessonNum}</h4>
                                     </div>
                                     <ChevronRight className="h-5 w-5 text-gray-400" />
                                   </div>
@@ -593,7 +593,7 @@ export function UnitViewer() {
                             >
                               <div className="flex justify-between items-start">
                                 <div>
-                                  <h4 className="font-semibold text-gray-900">Unit {lessonNum}</h4>
+                                  <h4 className="font-semibold text-gray-900">Lesson {lessonNum}</h4>
                                   <p className="text-sm text-gray-600 mt-1">
                                     {lessonData.totalTime} mins • {lessonData.categoryOrder.length} categories
                                   </p>
@@ -628,7 +628,7 @@ export function UnitViewer() {
                 {/* Empty State */}
                 {!hasLessons && (
                   <div className="p-6 text-center text-gray-500">
-                    <p>No units available for this half-term</p>
+                    <p>No lessons available for this half-term</p>
                   </div>
                 )}
               </div>
