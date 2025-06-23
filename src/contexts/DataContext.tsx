@@ -118,19 +118,31 @@ const SAMPLE_DATA = {
     ['Lesson Number', 'Category', 'Activity Name', 'Description', 'Level', 'Time (Mins)', 'Video', 'Music', 'Backing', 'Resource', 'Unit Name'],
     ['1', 'Welcome', 'Hello Everyone', "Hello Everyone Hello Everyone Hello Everyone It's time for music now!", 'All', '3', 'https://example.com/video', '', '', '', ''],
     ['1', 'Kodaly Songs', 'Cobbler Cobbler', "Sol/Mi - Song and Game. Children sit in a circle, sing Cobbler Cobbler Mend My Shoe. Keep the beat by tapping shoes with hands or rhythm sticks.", 'All', '5', '', 'https://example.com/music', '', '', ''],
-    ['1', 'Goodbye', 'Goodbye Song', "Goodbye everyone, goodbye everyone, we'll see you next time.", 'All', '2', '', 'https://example.com/goodbye', '', '', '']
+    ['1', 'Goodbye', 'Goodbye Song', "Goodbye everyone, goodbye everyone, we'll see you next time.", 'All', '2', '', 'https://example.com/goodbye', '', '', ''],
+    ['2', 'Welcome', 'Hello Friends', "Welcome song for class", 'All', '3', '', 'https://example.com/hello', '', '', ''],
+    ['2', 'Core Songs', 'I am a Robot', "Robot movement activity with sounds", 'EYFS U', '4', '', 'https://example.com/robot', '', '', 'Robot Unit'],
+    ['2', 'Goodbye', 'See You Soon', "Goodbye song with actions", 'All', '2', '', 'https://example.com/goodbye', '', '', ''],
+    ['3', 'Welcome', 'Good Morning', "Morning greeting song with actions", 'All', '3', '', 'https://example.com/morning', '', '', ''],
+    ['3', 'Action/Games Songs', 'Bounce High Bounce Low', "Movement game with ball", 'All', '4', '', 'https://example.com/bounce', '', '', ''],
+    ['3', 'Goodbye', 'Time to Go', "Farewell song with waves", 'All', '2', '', 'https://example.com/farewell', '', '', '']
   ],
   'UKG': [
     ['Lesson Number', 'Category', 'Activity Name', 'Description', 'Level', 'Time (Mins)', 'Video', 'Music', 'Backing', 'Resource', 'Unit Name'],
     ['1', 'Welcome', 'Hello Friends', "Welcome song for UKG class", 'All', '3', '', 'https://example.com/hello', '', '', ''],
     ['1', 'Core Songs', 'I am a Robot', "Robot movement activity with sounds", 'EYFS U', '4', '', 'https://example.com/robot', '', '', 'Robot Unit'],
-    ['1', 'Goodbye', 'See You Soon', "Goodbye song with actions", 'All', '2', '', 'https://example.com/goodbye', '', '', '']
+    ['1', 'Goodbye', 'See You Soon', "Goodbye song with actions", 'All', '2', '', 'https://example.com/goodbye', '', '', ''],
+    ['2', 'Welcome', 'Morning Circle', "Circle time greeting", 'All', '3', '', 'https://example.com/circle', '', '', ''],
+    ['2', 'Rhythm Sticks', 'Tap and Stop', "Rhythm game with sticks", 'EYFS U', '5', '', 'https://example.com/rhythm', '', '', ''],
+    ['2', 'Goodbye', 'Wave Goodbye', "Farewell with waving", 'All', '2', '', 'https://example.com/wave', '', '', '']
   ],
   'Reception': [
     ['Lesson Number', 'Category', 'Activity Name', 'Description', 'Level', 'Time (Mins)', 'Video', 'Music', 'Backing', 'Resource', 'Unit Name'],
     ['1', 'Welcome', 'Good Morning', "Morning greeting song with actions", 'All', '3', '', 'https://example.com/morning', '', '', ''],
     ['1', 'Action/Games Songs', 'Bounce High Bounce Low', "Movement game with ball", 'All', '4', '', 'https://example.com/bounce', '', '', ''],
-    ['1', 'Goodbye', 'Time to Go', "Farewell song with waves", 'All', '2', '', 'https://example.com/farewell', '', '', '']
+    ['1', 'Goodbye', 'Time to Go', "Farewell song with waves", 'All', '2', '', 'https://example.com/farewell', '', '', ''],
+    ['2', 'Welcome', 'Hello Circle', "Circle time greeting", 'All', '3', '', 'https://example.com/hello-circle', '', '', ''],
+    ['2', 'Percussion Games', 'Beat Makers', "Creating rhythms with percussion", 'Reception', '6', '', 'https://example.com/percussion', '', '', ''],
+    ['2', 'Goodbye', 'Goodbye Friends', "Farewell song", 'All', '2', '', 'https://example.com/goodbye-friends', '', '', '']
   ]
 };
 

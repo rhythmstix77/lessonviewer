@@ -352,7 +352,10 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
       {selectedActivityDetails && (
         <ActivityDetails
           activity={selectedActivityDetails}
-          onClose={() => setSelectedActivityDetails(null)}
+          onClose={() => {
+            setSelectedActivityDetails(null);
+            setEditingActivity(null);
+          }}
           onAddToLesson={() => {
             onActivitySelect(selectedActivityDetails);
             setSelectedActivityDetails(null);

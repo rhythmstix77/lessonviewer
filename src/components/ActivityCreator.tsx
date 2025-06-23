@@ -48,6 +48,22 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
   const descriptionRef = React.useRef<HTMLDivElement>(null);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
 
+  // All available categories
+  const allCategories = [
+    'Welcome',
+    'Kodaly Songs',
+    'Kodaly Action Songs',
+    'Action/Games Songs',
+    'Rhythm Sticks',
+    'Scarf Songs',
+    'General Game',
+    'Core Songs',
+    'Parachute Games',
+    'Percussion Games',
+    'Teaching Units',
+    'Goodbye'
+  ];
+
   // Simplified level options - just the core options without duplicates
   const simplifiedLevels = ['All', 'EYFS L', 'EYFS U', 'Reception'];
 
@@ -176,7 +192,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                   className={`w-full px-4 py-3 border ${errors.category ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
                 >
                   <option value="">Select a category</option>
-                  {categories.map(category => (
+                  {allCategories.map(category => (
                     <option key={category} value={category}>{category}</option>
                   ))}
                 </select>
