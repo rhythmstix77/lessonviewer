@@ -607,6 +607,22 @@ export function DataProvider({ children }: DataProviderProps) {
     
     // Save to localStorage in flat format
     localStorage.setItem(`eyfs-statements-flat-${currentSheetInfo.sheet}`, JSON.stringify(statements));
+    
+    // Also update the structured format
+    const structuredStatements: Record<string, string[]> = {};
+    statements.forEach(statement => {
+      const parts = statement.split(':');
+      const area = parts[0].trim();
+      const detail = parts.length > 1 ? parts[1].trim() : statement;
+      
+      if (!structuredStatements[area]) {
+        structuredStatements[area] = [];
+      }
+      
+      structuredStatements[area].push(detail);
+    });
+    
+    localStorage.setItem(`eyfs-standards-${currentSheetInfo.sheet}`, JSON.stringify(structuredStatements));
   };
 
   const value = {

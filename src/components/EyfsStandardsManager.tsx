@@ -24,7 +24,7 @@ interface EyfsStandardsManagerProps {
 
 export function EyfsStandardsManager({ isOpen, onClose }: EyfsStandardsManagerProps) {
   const { user } = useAuth();
-  const { allEyfsStatements, eyfsStatements, currentSheetInfo } = useData();
+  const { allEyfsStatements, eyfsStatements, currentSheetInfo, updateAllEyfsStatements } = useData();
   const [standards, setStandards] = useState<Record<string, string[]>>({});
   const [expandedAreas, setExpandedAreas] = useState<string[]>([]);
   const [editingStandard, setEditingStandard] = useState<{area: string, index: number, value: string} | null>(null);
@@ -175,12 +175,12 @@ export function EyfsStandardsManager({ isOpen, onClose }: EyfsStandardsManagerPr
         });
       });
       
-      // Update the data context (this would need to be implemented in the DataContext)
-      // For now, we'll just simulate success
-      setTimeout(() => {
-        setSaveStatus('success');
-        setTimeout(() => setSaveStatus('idle'), 3000);
-      }, 1000);
+      // Update the data context
+      updateAllEyfsStatements(flatStandards);
+      
+      // Show success message
+      setSaveStatus('success');
+      setTimeout(() => setSaveStatus('idle'), 3000);
       
     } catch (error) {
       console.error('Failed to save EYFS standards:', error);
