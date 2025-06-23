@@ -155,6 +155,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
   };
 
   const handleEditActivity = (activity: Activity) => {
+    setSelectedActivityDetails(activity);
     setEditingActivity(activity);
   };
 
@@ -314,7 +315,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
             }
           `}>
             {filteredAndSortedActivities.map((activity, index) => (
-              <div key={`${activity.activity}-${activity.category}-${index}`} className="relative group">
+              <div key={`${activity.activity}-${activity.category}-${index}`} className="relative group h-full">
                 {/* Edit button in corner */}
                 <button
                   onClick={(e) => {
@@ -356,18 +357,11 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
             onActivitySelect(selectedActivityDetails);
             setSelectedActivityDetails(null);
           }}
-        />
-      )}
-
-      {/* Activity Editor Modal */}
-      {editingActivity && (
-        <ActivityDetails
-          activity={editingActivity}
-          onClose={() => setEditingActivity(null)}
-          isEditing={true}
+          isEditing={!!editingActivity}
           onUpdate={(updatedActivity) => {
             handleActivityUpdate(updatedActivity);
             setEditingActivity(null);
+            setSelectedActivityDetails(null);
           }}
         />
       )}

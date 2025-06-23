@@ -171,11 +171,11 @@ export function ActivityCard({
     return (
       <div
         ref={dragRef}
-        className={`bg-white rounded-lg shadow-sm border-l-4 p-3 transition-all duration-200 hover:shadow-md ${draggable ? 'cursor-move' : 'cursor-pointer'}`}
+        className={`bg-white rounded-lg shadow-sm border-l-4 p-3 transition-all duration-200 hover:shadow-md ${draggable ? 'cursor-move' : 'cursor-pointer'} h-full`}
         style={{ borderLeftColor: cardColor }}
         onClick={handleCardClick}
       >
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between h-full">
           <div className="flex-1 min-w-0">
             <h4 className="font-medium text-gray-900 text-sm truncate">{activity.activity}</h4>
             <p className="text-xs text-gray-500">{activity.category}</p>
@@ -194,11 +194,11 @@ export function ActivityCard({
     return (
       <div
         ref={dragRef}
-        className={`bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl ${draggable ? 'cursor-move' : 'cursor-pointer'} ${isEditing ? 'ring-4 ring-blue-300' : 'border-gray-200 hover:border-gray-300'}`}
+        className={`bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl ${draggable ? 'cursor-move' : 'cursor-pointer'} ${isEditing ? 'ring-4 ring-blue-300' : 'border-gray-200 hover:border-gray-300'} h-full flex flex-col`}
         style={{ borderLeftColor: cardColor, borderLeftWidth: '6px' }}
         onClick={handleCardClick}
       >
-        <div className="p-4">
+        <div className="p-4 flex flex-col flex-grow">
           <div className="flex items-start justify-between mb-2">
             <h4 className="font-semibold text-gray-900 text-base leading-tight">{activity.activity}</h4>
             <div className="flex items-center space-x-1 ml-2">
@@ -221,28 +221,30 @@ export function ActivityCard({
             </span>
           )}
           
-          {resources.length > 0 && (
-            <div className="flex items-center space-x-1 mt-2">
-              {resources.slice(0, 3).map((resource, index) => {
-                const IconComponent = resource.icon;
-                return (
-                  <button
-                    key={index}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onResourceClick) onResourceClick(resource.url, `${activity.activity} - ${resource.label}`, resource.type);
-                    }}
-                    className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
-                  >
-                    <IconComponent className="h-3 w-3 text-gray-600" />
-                  </button>
-                );
-              })}
-              {resources.length > 3 && (
-                <span className="text-xs text-gray-500">+{resources.length - 3}</span>
-              )}
-            </div>
-          )}
+          <div className="mt-auto">
+            {resources.length > 0 && (
+              <div className="flex items-center space-x-1 mt-2">
+                {resources.slice(0, 3).map((resource, index) => {
+                  const IconComponent = resource.icon;
+                  return (
+                    <button
+                      key={index}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onResourceClick) onResourceClick(resource.url, `${activity.activity} - ${resource.label}`, resource.type);
+                      }}
+                      className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+                    >
+                      <IconComponent className="h-3 w-3 text-gray-600" />
+                    </button>
+                  );
+                })}
+                {resources.length > 3 && (
+                  <span className="text-xs text-gray-500">+{resources.length - 3}</span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -252,7 +254,7 @@ export function ActivityCard({
   return (
     <div
       ref={dragRef}
-      className={`bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl ${draggable ? 'cursor-move' : 'cursor-pointer'} overflow-hidden ${isEditing ? 'ring-4 ring-blue-300' : 'border-gray-200 hover:border-gray-300'}`}
+      className={`bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl ${draggable ? 'cursor-move' : 'cursor-pointer'} overflow-hidden ${isEditing ? 'ring-4 ring-blue-300' : 'border-gray-200 hover:border-gray-300'} h-full flex flex-col`}
       style={{ borderLeftColor: cardColor, borderLeftWidth: '6px' }}
       onClick={handleCardClick}
     >
@@ -304,9 +306,9 @@ export function ActivityCard({
       </div>
 
       {/* Card Content */}
-      <div className="p-4">
+      <div className="p-4 flex-grow flex flex-col">
         {/* Description */}
-        <div className="mb-4">
+        <div className="mb-4 flex-grow">
           {isEditing ? (
             <div onClick={(e) => e.stopPropagation()}>
               {/* Rich Text Toolbar */}
@@ -432,7 +434,7 @@ export function ActivityCard({
 
         {/* Resources */}
         {(showResources || isEditing) && (
-          <div className="space-y-3">
+          <div className="space-y-3 mt-auto">
             <h4 className="text-sm font-medium text-gray-700">Resources</h4>
             
             {isEditing ? (
