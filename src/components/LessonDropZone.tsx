@@ -15,9 +15,11 @@ import {
   Italic,
   Underline,
   List,
-  ListOrdered
+  ListOrdered,
+  Tag
 } from 'lucide-react';
 import type { Activity } from '../contexts/DataContext';
+import { EyfsStandardsSelector } from './EyfsStandardsSelector';
 
 interface LessonPlan {
   id: string;
@@ -276,6 +278,11 @@ export function LessonDropZone({
             <p className="text-sm text-green-200 mt-1">{lessonPlan.className}</p>
           </div>
         </div>
+      </div>
+
+      {/* EYFS Standards Selector */}
+      <div className="p-4 border-b border-gray-200 bg-blue-50">
+        <EyfsStandardsSelector lessonNumber={lessonPlan.id} />
       </div>
 
       {/* Drop Zone */}

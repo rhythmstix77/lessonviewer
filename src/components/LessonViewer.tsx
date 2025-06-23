@@ -6,7 +6,9 @@ import { ActivityDetails } from './ActivityDetails';
 import { ExportButtons } from './ExportButtons';
 import { LoadingSpinner } from './LoadingSpinner';
 import { LessonPlanBuilder } from './LessonPlanBuilder';
-import { BookOpen, X, Search, GraduationCap, Edit3, Calendar, ArrowLeft, Home } from 'lucide-react';
+import { EyfsStandardsList } from './EyfsStandardsList';
+import { EyfsStandardsSelector } from './EyfsStandardsSelector';
+import { BookOpen, X, Search, GraduationCap, Edit3, Calendar, ArrowLeft, Home, Tag } from 'lucide-react';
 import type { Activity } from '../contexts/DataContext';
 
 export function LessonViewer() {
@@ -16,6 +18,7 @@ export function LessonViewer() {
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
+  const [showEyfsSelector, setShowEyfsSelector] = useState(false);
   
   // Ref for scrolling to top when lesson is selected
   const topRef = useRef<HTMLDivElement>(null);
@@ -135,6 +138,14 @@ export function LessonViewer() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
+                    onClick={() => setShowEyfsSelector(!showEyfsSelector)}
+                    className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 group flex items-center space-x-2"
+                    title="Manage EYFS Standards"
+                  >
+                    <Tag className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+                    <span className="text-sm font-medium">EYFS Standards</span>
+                  </button>
+                  <button
                     onClick={() => setShowPlanBuilder(true)}
                     className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 group flex items-center space-x-2"
                     title="Edit lesson in Plan Builder"
@@ -152,6 +163,18 @@ export function LessonViewer() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* EYFS Standards Selector (conditionally shown) */}
+          {showEyfsSelector && (
+            <div className="mb-6">
+              <EyfsStandardsSelector lessonNumber={selectedLesson} />
+            </div>
+          )}
+
+          {/* EYFS Standards List */}
+          <div className="mb-6">
+            <EyfsStandardsList lessonNumber={selectedLesson} />
           </div>
 
           {/* Full Width Categories Grid */}

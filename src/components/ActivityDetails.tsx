@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, Clock, Video, Music, FileText, Link as LinkIcon, Image, Volume2, Maximize2, Minimize2, ExternalLink } from 'lucide-react';
+import { X, Clock, Video, Music, FileText, Link as LinkIcon, Image, Volume2, Maximize2, Minimize2, ExternalLink, Tag } from 'lucide-react';
 import { EditableText } from './EditableText';
 import type { Activity } from '../contexts/DataContext';
+import { useData } from '../contexts/DataContext';
 
 interface ActivityDetailsProps {
   activity: Activity;
@@ -9,8 +10,11 @@ interface ActivityDetailsProps {
 }
 
 export function ActivityDetails({ activity, onClose }: ActivityDetailsProps) {
+  const { allEyfsStatements, addEyfsToLesson, removeEyfsFromLesson } = useData();
   const [selectedLink, setSelectedLink] = useState<{ url: string; title: string; type: string } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showEyfsSelector, setShowEyfsSelector] = useState(false);
+  const [selectedEyfs, setSelectedEyfs] = useState<string[]>(activity.eyfsStandards || []);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
   // Fullscreen functionality
@@ -96,6 +100,20 @@ export function ActivityDetails({ activity, onClose }: ActivityDetailsProps) {
     });
   };
 
+  const handleEyfsToggle = (eyfsStatement: string) => {
+    if (selectedEyfs.includes(eyfsStatement)) {
+      setSelectedEyfs(prev => prev.filter(s => s !== eyfsStatement));
+      if (activity.lessonNumber) {
+        removeEyfsFromLesson(activity.lessonNumber, eyfsStatement);
+      }
+    } else {
+      setSelectedEyfs(prev => [...prev, eyfsStatement]);
+      if (activity.lessonNumber) {
+        addEyfsToLesson(activity.lessonNumber, eyfsStatement);
+      }
+    }
+  };
+
   return (
     <>
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -120,6 +138,13 @@ export function ActivityDetails({ activity, onClose }: ActivityDetailsProps) {
             </div>
             <div className="flex items-center space-x-2">
               <button
+                onClick={() => setShowEyfsSelector(!showEyfsSelector)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                title="EYFS Standards"
+              >
+                <Tag className="h-5 w-5" />
+              </button>
+              <button
                 onClick={toggleFullscreen}
                 className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                 title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
@@ -137,6 +162,47 @@ export function ActivityDetails({ activity, onClose }: ActivityDetailsProps) {
 
           {/* Content */}
           <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+            {/* EYFS Standards Selector (conditionally shown) */}
+            {showEyfsSelector && activity.lessonNumber && (
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-md font-semibold text-blue-900 flex items-center space-x-2">
+                    <Tag className="h-4 w-4" />
+                    <span>EYFS Standards for this Activity</span>
+                  </h3>
+                  <button
+                    onClick={() => setShowEyfsSelector(false)}
+                    className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-100 rounded-full"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                
+                <div className="space-y-2 max-h-60 overflow-y-auto p-2">
+                  {allEyfsStatements.map(statement => (
+                    <div 
+                      key={statement}
+                      className="flex items-center space-x-2 p-2 hover:bg-blue-100 rounded-lg cursor-pointer"
+                      onClick={() => handleEyfsToggle(statement)}
+                    >
+                      <div className={`w-5 h-5 flex-shrink-0 rounded border ${
+                        selectedEyfs.includes(statement)
+                          ? 'bg-blue-600 border-blue-600 flex items-center justify-center'
+                          : 'border-gray-300'
+                      }`}>
+                        {selectedEyfs.includes(statement) && (
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-sm text-gray-700">{statement}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Time */}
             {activity.time > 0 && (
               <div className="flex items-center space-x-2 mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
@@ -175,6 +241,28 @@ export function ActivityDetails({ activity, onClose }: ActivityDetailsProps) {
                   />
                 </h3>
                 <p className="text-gray-700">{activity.unitName}</p>
+              </div>
+            )}
+
+            {/* EYFS Standards (if any) */}
+            {selectedEyfs.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center space-x-2">
+                  <Tag className="h-4 w-4 text-blue-600" />
+                  <span>EYFS Standards</span>
+                </h3>
+                <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                  <ul className="space-y-2">
+                    {selectedEyfs.map((standard, index) => (
+                      <li key={index} className="flex items-start space-x-2">
+                        <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-sm text-gray-700">{standard}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             )}
 
@@ -414,7 +502,7 @@ function ResourceViewer({ url, title, type, onClose }: ResourceViewerProps) {
               rel="noopener noreferrer"
               className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
             >
-              <ExternalLink className="h-4 w-4" />
+              <LinkIcon className="h-4 w-4" />
               <span>Open in New Tab</span>
             </a>
           </div>

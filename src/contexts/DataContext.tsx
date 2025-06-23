@@ -18,12 +18,14 @@ export interface Activity {
   level: string;
   unitName: string;
   lessonNumber: string;
+  eyfsStandards?: string[];
 }
 
 export interface LessonData {
   grouped: Record<string, Activity[]>;
   categoryOrder: string[];
   totalTime: number;
+  eyfsStatements?: string[];
 }
 
 export interface SheetInfo {
@@ -39,9 +41,12 @@ interface DataContextType {
   teachingUnits: string[];
   allLessonsData: Record<string, LessonData>;
   eyfsStatements: Record<string, string[]>;
+  allEyfsStatements: string[];
   loading: boolean;
   refreshData: () => Promise<void>;
   uploadExcelFile: (file: File) => Promise<void>;
+  addEyfsToLesson: (lessonNumber: string, eyfsStatement: string) => void;
+  removeEyfsFromLesson: (lessonNumber: string, eyfsStatement: string) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -74,6 +79,50 @@ const CATEGORY_ORDER = [
   'Teaching Units'
 ];
 
+// EYFS statements for each age group
+const DEFAULT_EYFS_STATEMENTS = {
+  'LKG': [
+    'Communication and Language: Listening and attention',
+    'Communication and Language: Understanding',
+    'Communication and Language: Speaking',
+    'Physical Development: Moving and handling',
+    'Physical Development: Health and self-care',
+    'Personal, Social and Emotional Development: Self-confidence and self-awareness',
+    'Personal, Social and Emotional Development: Managing feelings and behaviour',
+    'Personal, Social and Emotional Development: Making relationships'
+  ],
+  'UKG': [
+    'Literacy: Reading',
+    'Literacy: Writing',
+    'Mathematics: Numbers',
+    'Mathematics: Shape, space and measures',
+    'Understanding the World: People and communities',
+    'Understanding the World: The world',
+    'Understanding the World: Technology',
+    'Expressive Arts and Design: Exploring and using media and materials',
+    'Expressive Arts and Design: Being imaginative'
+  ],
+  'Reception': [
+    'Communication and Language: Listening, Attention and Understanding',
+    'Communication and Language: Speaking',
+    'Personal, Social and Emotional Development: Self-Regulation',
+    'Personal, Social and Emotional Development: Managing Self',
+    'Personal, Social and Emotional Development: Building Relationships',
+    'Physical Development: Gross Motor Skills',
+    'Physical Development: Fine Motor Skills',
+    'Literacy: Comprehension',
+    'Literacy: Word Reading',
+    'Literacy: Writing',
+    'Mathematics: Number',
+    'Mathematics: Numerical Patterns',
+    'Understanding the World: Past and Present',
+    'Understanding the World: People, Culture and Communities',
+    'Understanding the World: The Natural World',
+    'Expressive Arts and Design: Creating with Materials',
+    'Expressive Arts and Design: Being Imaginative and Expressive'
+  ]
+};
+
 export function DataProvider({ children }: DataProviderProps) {
   const [currentSheetInfo, setCurrentSheetInfo] = useState<SheetInfo>({
     sheet: 'LKG',
@@ -85,10 +134,13 @@ export function DataProvider({ children }: DataProviderProps) {
   const [teachingUnits, setTeachingUnits] = useState<string[]>([]);
   const [allLessonsData, setAllLessonsData] = useState<Record<string, LessonData>>({});
   const [eyfsStatements, setEyfsStatements] = useState<Record<string, string[]>>({});
+  const [allEyfsStatements, setAllEyfsStatements] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadData();
+    // Set all EYFS statements based on current sheet
+    setAllEyfsStatements(DEFAULT_EYFS_STATEMENTS[currentSheetInfo.sheet as keyof typeof DEFAULT_EYFS_STATEMENTS] || []);
   }, [currentSheetInfo]);
 
   const loadData = async () => {
@@ -256,7 +308,8 @@ export function DataProvider({ children }: DataProviderProps) {
           category,
           level,
           unitName,
-          lessonNumber: currentLessonNumber || '1' // Default to lesson 1 if no lesson number
+          lessonNumber: currentLessonNumber || '1', // Default to lesson 1 if no lesson number
+          eyfsStandards: []
         };
 
         activities.push(activity);
@@ -299,7 +352,8 @@ export function DataProvider({ children }: DataProviderProps) {
         lessonsData[lessonNum] = {
           grouped,
           categoryOrder,
-          totalTime
+          totalTime,
+          eyfsStatements: []
         };
       });
 
@@ -307,16 +361,12 @@ export function DataProvider({ children }: DataProviderProps) {
       console.log(`Sample ${currentSheetInfo.sheet} lesson category order:`, lessonsData[sortedLessonNumbers[0]]?.categoryOrder);
       setAllLessonsData(lessonsData);
 
-      // Mock EYFS statements for now
-      const mockEyfs: Record<string, string[]> = {};
+      // Set EYFS statements for each lesson
+      const eyfsStatementsMap: Record<string, string[]> = {};
       sortedLessonNumbers.forEach(lessonNum => {
-        mockEyfs[lessonNum] = [
-          'Listen attentively and respond to what they hear with relevant questions, comments and actions',
-          'Make comments about what they have heard and ask questions to clarify their understanding',
-          'Hold conversation when engaged in back-and-forth exchanges with their teacher and peers'
-        ];
+        eyfsStatementsMap[lessonNum] = [];
       });
-      setEyfsStatements(mockEyfs);
+      setEyfsStatements(eyfsStatementsMap);
 
     } catch (error) {
       console.error(`Error processing ${currentSheetInfo.sheet} sheet data:`, error);
@@ -345,7 +395,8 @@ export function DataProvider({ children }: DataProviderProps) {
             }]
           },
           categoryOrder: ['Welcome'],
-          totalTime: 0
+          totalTime: 0,
+          eyfsStatements: []
         }
       });
       setEyfsStatements({});
@@ -378,6 +429,60 @@ export function DataProvider({ children }: DataProviderProps) {
     await loadData();
   };
 
+  // Add EYFS statement to a lesson
+  const addEyfsToLesson = (lessonNumber: string, eyfsStatement: string) => {
+    setEyfsStatements(prev => {
+      const updatedStatements = { ...prev };
+      if (!updatedStatements[lessonNumber]) {
+        updatedStatements[lessonNumber] = [];
+      }
+      if (!updatedStatements[lessonNumber].includes(eyfsStatement)) {
+        updatedStatements[lessonNumber] = [...updatedStatements[lessonNumber], eyfsStatement];
+      }
+      return updatedStatements;
+    });
+
+    setAllLessonsData(prev => {
+      const updatedLessonsData = { ...prev };
+      if (updatedLessonsData[lessonNumber]) {
+        const currentStatements = updatedLessonsData[lessonNumber].eyfsStatements || [];
+        if (!currentStatements.includes(eyfsStatement)) {
+          updatedLessonsData[lessonNumber] = {
+            ...updatedLessonsData[lessonNumber],
+            eyfsStatements: [...currentStatements, eyfsStatement]
+          };
+        }
+      }
+      return updatedLessonsData;
+    });
+  };
+
+  // Remove EYFS statement from a lesson
+  const removeEyfsFromLesson = (lessonNumber: string, eyfsStatement: string) => {
+    setEyfsStatements(prev => {
+      const updatedStatements = { ...prev };
+      if (updatedStatements[lessonNumber]) {
+        updatedStatements[lessonNumber] = updatedStatements[lessonNumber].filter(
+          statement => statement !== eyfsStatement
+        );
+      }
+      return updatedStatements;
+    });
+
+    setAllLessonsData(prev => {
+      const updatedLessonsData = { ...prev };
+      if (updatedLessonsData[lessonNumber] && updatedLessonsData[lessonNumber].eyfsStatements) {
+        updatedLessonsData[lessonNumber] = {
+          ...updatedLessonsData[lessonNumber],
+          eyfsStatements: updatedLessonsData[lessonNumber].eyfsStatements!.filter(
+            statement => statement !== eyfsStatement
+          )
+        };
+      }
+      return updatedLessonsData;
+    });
+  };
+
   const value = {
     currentSheetInfo,
     setCurrentSheetInfo,
@@ -385,9 +490,12 @@ export function DataProvider({ children }: DataProviderProps) {
     teachingUnits,
     allLessonsData,
     eyfsStatements,
+    allEyfsStatements,
     loading,
     refreshData,
-    uploadExcelFile
+    uploadExcelFile,
+    addEyfsToLesson,
+    removeEyfsFromLesson
   };
 
   return (

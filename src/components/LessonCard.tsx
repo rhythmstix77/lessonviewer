@@ -1,6 +1,7 @@
 import React from 'react';
-import { Clock, Users, ChevronRight } from 'lucide-react';
+import { Clock, Users, ChevronRight, Tag } from 'lucide-react';
 import type { LessonData, Activity } from '../contexts/DataContext';
+import { useData } from '../contexts/DataContext';
 
 interface LessonCardProps {
   lessonNumber: string;
@@ -54,6 +55,8 @@ export function LessonCard({
   onActivityClick,
   theme
 }: LessonCardProps) {
+  const { eyfsStatements } = useData();
+  
   // Safely calculate total activities
   const totalActivities = React.useMemo(() => {
     try {
@@ -87,6 +90,9 @@ export function LessonCard({
       return 0;
     }
   }, [lessonData]);
+
+  // Get EYFS standards count
+  const eyfsCount = (eyfsStatements[lessonNumber] || []).length;
 
   if (!lessonData) {
     return (
@@ -142,6 +148,12 @@ export function LessonCard({
               <Users className="h-5 w-5" />
               <span className="font-medium">{totalActivities} activities</span>
             </div>
+            {eyfsCount > 0 && (
+              <div className="flex items-center space-x-2">
+                <Tag className="h-5 w-5" />
+                <span className="font-medium">{eyfsCount} EYFS</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
