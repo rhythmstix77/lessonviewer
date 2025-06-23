@@ -5,7 +5,6 @@ import {
   Save, 
   Clock, 
   Users, 
-  Download,
   Search,
   Grid3X3,
   List,
@@ -161,7 +160,6 @@ export function LessonPlanBuilder() {
       _uniqueId: Date.now() + Math.random().toString(36).substring(2, 9)
     };
     
-    // Update the lesson plan
     const updatedPlan = {
       ...currentLessonPlan,
       activities: [...currentLessonPlan.activities, uniqueActivity],
@@ -197,35 +195,6 @@ export function LessonPlanBuilder() {
 
   const handleSaveLessonPlan = () => {
     const success = handleUpdateLessonPlan(currentLessonPlan);
-  };
-
-  const handleExportLessonPlan = () => {
-    // Create a simple text export
-    const exportData = {
-      date: currentLessonPlan.date.toLocaleDateString(),
-      week: currentLessonPlan.week,
-      className: currentLessonPlan.className,
-      duration: currentLessonPlan.duration,
-      activities: currentLessonPlan.activities.map(activity => ({
-        name: activity.activity,
-        category: activity.category,
-        time: activity.time,
-        description: activity.description,
-        level: activity.level,
-      })),
-      notes: currentLessonPlan.notes,
-    };
-
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `lesson-plan-${currentLessonPlan.date.toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
   // Filter and sort activities for the library
@@ -359,33 +328,31 @@ export function LessonPlanBuilder() {
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Navigation Header */}
-          <div className="mb-8">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 mb-6">
+          {/* Header */}
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
               <div className="flex items-center space-x-4">
-                <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-3 rounded-xl shadow-lg">
-                  <Edit3 className="h-8 w-8 text-white" />
+                <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-3 rounded-xl shadow-md">
+                  <Edit3 className="h-7 w-7 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Lesson Plan Builder</h1>
-                  <p className="text-gray-600 text-lg">
-                    {currentSheetInfo.display} • Create and manage your lesson plans
-                  </p>
+                  <h1 className="text-2xl font-bold text-gray-900">Lesson Plan Builder</h1>
+                  <div className="flex items-center space-x-2 text-gray-600">
+                    <span>{currentSheetInfo.display}</span>
+                    <span>•</span>
+                    <span>Week {currentLessonPlan.week}</span>
+                    <span>•</span>
+                    <span>{currentLessonPlan.activities.length} activities</span>
+                    <span>•</span>
+                    <span>{currentLessonPlan.duration} minutes</span>
+                  </div>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
                 <button
-                  onClick={handleExportLessonPlan}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                >
-                  <Download className="h-4 w-4" />
-                  <span>Export</span>
-                </button>
-                
-                <button
                   onClick={handleSaveLessonPlan}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
                 >
                   <Save className="h-4 w-4" />
                   <span>Save Plan</span>
@@ -403,7 +370,7 @@ export function LessonPlanBuilder() {
             
             {/* Save Status Message */}
             {saveStatus !== 'idle' && (
-              <div className={`mb-4 p-3 rounded-lg flex items-center space-x-2 ${
+              <div className={`mt-4 p-3 rounded-lg flex items-center space-x-2 ${
                 saveStatus === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
                 'bg-red-50 text-red-700 border border-red-200'
               }`}>
@@ -423,7 +390,7 @@ export function LessonPlanBuilder() {
           </div>
 
           {/* Main Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Lesson Plan Details */}
             <div className="lg:col-span-2">
               <LessonDropZone
@@ -440,19 +407,31 @@ export function LessonPlanBuilder() {
               />
             </div>
 
-            {/* Quick Activity Library */}
+            {/* Activity Library Panel */}
             <div className="lg:col-span-1">
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden sticky top-8">
-                <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
-                  <h3 className="text-lg font-semibold">Quick Add Activities</h3>
-                  <p className="text-blue-100 text-sm">Select activities to add to your lesson plan</p>
+              <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden sticky top-8">
+                {/* Library Header */}
+                <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-500 to-blue-500 text-white">
+                  <h3 className="text-lg font-semibold mb-2">Activity Library</h3>
                   
-                  {/* Category Selector */}
-                  <div className="mt-3">
+                  {/* Search */}
+                  <div className="relative mb-3">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-blue-300" />
+                    <input
+                      type="text"
+                      placeholder="Search activities..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
+                    />
+                  </div>
+                  
+                  {/* Filters */}
+                  <div className="flex space-x-2">
                     <select
                       value={selectedCategory}
                       onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
+                      className="flex-1 px-3 py-1.5 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
                     >
                       <option value="all" className="text-gray-900">All Categories</option>
                       {categories.map(category => (
@@ -461,18 +440,19 @@ export function LessonPlanBuilder() {
                         </option>
                       ))}
                     </select>
-                  </div>
-                  
-                  {/* Mini search */}
-                  <div className="mt-3 relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-blue-300" />
-                    <input
-                      type="text"
-                      placeholder="Filter activities..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
-                    />
+                    
+                    <select
+                      value={selectedLevel}
+                      onChange={(e) => setSelectedLevel(e.target.value)}
+                      className="flex-1 px-3 py-1.5 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
+                    >
+                      <option value="all" className="text-gray-900">All Levels</option>
+                      {levels.map(level => (
+                        <option key={level} value={level} className="text-gray-900">
+                          {level}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   
                   {/* Add Selected Button */}
@@ -489,13 +469,14 @@ export function LessonPlanBuilder() {
                   )}
                 </div>
                 
-                <div className="p-4 max-h-[600px] overflow-y-auto">
+                {/* Activity List */}
+                <div className="p-3 max-h-[600px] overflow-y-auto">
                   {filteredAndSortedActivities.length === 0 ? (
                     <div className="text-center py-8">
                       <p className="text-gray-500">No matching activities found</p>
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       {filteredAndSortedActivities.map((activity, index) => {
                         const activityId = `${activity.activity}-${activity.category}`;
                         const isSelected = selectedActivities.includes(activityId);
