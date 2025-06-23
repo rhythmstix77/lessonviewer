@@ -8,13 +8,14 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { LessonPlanBuilder } from './LessonPlanBuilder';
 import { EyfsStandardsList } from './EyfsStandardsList';
 import { EyfsStandardsSelector } from './EyfsStandardsSelector';
-import { BookOpen, X, Search, GraduationCap, Edit3, Calendar, ArrowLeft, Home, Tag } from 'lucide-react';
+import { BookOpen, X, Search, GraduationCap, Edit3, Calendar, ArrowLeft, Home, Tag, ChevronRight, ChevronLeft } from 'lucide-react';
 import type { Activity } from '../contexts/DataContext';
 
 export function LessonViewer() {
   const { loading, lessonNumbers, allLessonsData, currentSheetInfo } = useData();
   const { settings, getThemeForClass } = useSettings();
   const [selectedLesson, setSelectedLesson] = useState<string>('');
+  const [previewLesson, setPreviewLesson] = useState<string>('');
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
@@ -74,6 +75,12 @@ export function LessonViewer() {
 
   const handleLessonSelect = (lessonNumber: string) => {
     setSelectedLesson(lessonNumber === selectedLesson ? '' : lessonNumber);
+    setPreviewLesson('');
+  };
+
+  const handleLessonPreview = (lessonNumber: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPreviewLesson(lessonNumber === previewLesson ? '' : lessonNumber);
   };
 
   const handleCloseLessonView = () => {
@@ -330,6 +337,7 @@ export function LessonViewer() {
 
             {/* Action Buttons */}
             <div className="flex items-center space-x-3">
+              {/* Fixed Plan Builder Button */}
               <button
                 onClick={() => setShowPlanBuilder(true)}
                 className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl transition-colors duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl"
@@ -414,7 +422,7 @@ export function LessonViewer() {
             <div className="overflow-x-auto pb-4">
               <div className="flex space-x-6 min-w-max">
                 {filteredLessons.map((lessonNum) => (
-                  <div key={lessonNum} className="flex-shrink-0 w-80">
+                  <div key={lessonNum} className="flex-shrink-0 w-80 relative">
                     <LessonCard
                       lessonNumber={lessonNum}
                       lessonData={allLessonsData[lessonNum]}
@@ -423,6 +431,77 @@ export function LessonViewer() {
                       onActivityClick={setSelectedActivity}
                       theme={theme}
                     />
+                    {/* Preview Button */}
+                    <button
+                      onClick={(e) => handleLessonPreview(lessonNum, e)}
+                      className="absolute top-3 right-3 p-2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full shadow-md transition-all duration-200 z-10"
+                      title="Preview Lesson"
+                    >
+                      {previewLesson === lessonNum ? (
+                        <ChevronLeft className="h-5 w-5 text-blue-600" />
+                      ) : (
+                        <ChevronRight className="h-5 w-5 text-blue-600" />
+                      )}
+                    </button>
+                    
+                    {/* Lesson Preview Box */}
+                    {previewLesson === lessonNum && (
+                      <div className="absolute top-0 -right-[340px] w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-20 max-h-[500px] overflow-y-auto">
+                        <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-bold">Lesson {lessonNum} Preview</h3>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewLesson('');
+                              }}
+                              className="p-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="p-4">
+                          <div className="space-y-4">
+                            {allLessonsData[lessonNum]?.categoryOrder.map(category => {
+                              const activities = allLessonsData[lessonNum].grouped[category] || [];
+                              return (
+                                <div key={category} className="border-b border-gray-100 pb-3 last:border-0">
+                                  <h4 className="font-medium text-gray-900 mb-2">{category}</h4>
+                                  <ul className="space-y-2">
+                                    {activities.map((activity, idx) => (
+                                      <li key={idx} className="text-sm">
+                                        <div className="flex items-start">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 mr-2 flex-shrink-0"></span>
+                                          <div>
+                                            <p className="font-medium">{activity.activity}</p>
+                                            {activity.time > 0 && (
+                                              <span className="text-xs text-gray-500">{activity.time} mins</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="mt-4 pt-3 border-t border-gray-200">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedLesson(lessonNum);
+                                setPreviewLesson('');
+                              }}
+                              className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg"
+                            >
+                              View Full Lesson
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -437,6 +516,17 @@ export function LessonViewer() {
             onClose={() => setSelectedActivity(null)}
           />
         )}
+        
+        {/* Fixed Plan Builder Button */}
+        <div className="fixed bottom-6 right-6 z-40">
+          <button
+            onClick={() => setShowPlanBuilder(true)}
+            className="p-4 bg-purple-600 hover:bg-purple-700 text-white rounded-full shadow-lg transition-all duration-200 hover:scale-105"
+            title="Open Plan Builder"
+          >
+            <Calendar className="h-6 w-6" />
+          </button>
+        </div>
       </div>
     </div>
   );

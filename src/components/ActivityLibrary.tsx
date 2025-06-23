@@ -266,7 +266,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
             }
           `}>
             {filteredAndSortedActivities.map((activity, index) => (
-              <div key={`${activity.activity}-${activity.category}-${index}`}>
+              <div key={`${activity.activity}-${activity.category}-${index}`} onClick={() => onActivitySelect(activity)}>
                 <ActivityCard
                   activity={activity}
                   onUpdate={handleActivityUpdate}
@@ -280,6 +280,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
                   )}
                   categoryColor={categoryColors[activity.category] || '#6B7280'}
                   viewMode={viewMode === 'grid' ? 'detailed' : viewMode === 'list' ? 'compact' : 'minimal'}
+                  onActivityClick={() => onActivitySelect(activity)}
                 />
               </div>
             ))}

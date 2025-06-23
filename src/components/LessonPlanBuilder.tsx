@@ -584,28 +584,33 @@ export function LessonPlanBuilder() {
                     }
                   `}>
                     {filteredAndSortedActivities.map((activity, index) => (
-                      <ActivityCard 
+                      <div 
                         key={`${activity.activity}-${activity.category}-${index}`}
-                        activity={activity}
-                        categoryColor={activity.category ? 
-                          {
-                            'Welcome': '#F59E0B',
-                            'Kodaly Songs': '#8B5CF6',
-                            'Kodaly Action Songs': '#F97316',
-                            'Action/Games Songs': '#F97316',
-                            'Rhythm Sticks': '#D97706',
-                            'Scarf Songs': '#10B981',
-                            'General Game': '#3B82F6',
-                            'Core Songs': '#84CC16',
-                            'Parachute Games': '#EF4444',
-                            'Percussion Games': '#06B6D4',
-                            'Teaching Units': '#6366F1',
-                            'Goodbye': '#14B8A6'
-                          }[activity.category] || '#6B7280'
-                        : '#6B7280'}
-                        viewMode={viewMode}
-                        onResourceClick={(url, title, type) => setSelectedResource({url, title, type})}
-                      />
+                        onClick={() => onActivitySelect(activity)}
+                        className="cursor-pointer"
+                      >
+                        <ActivityCard 
+                          key={`${activity.activity}-${activity.category}-${index}`}
+                          activity={activity}
+                          categoryColor={activity.category ? 
+                            {
+                              'Welcome': '#F59E0B',
+                              'Kodaly Songs': '#8B5CF6',
+                              'Kodaly Action Songs': '#F97316',
+                              'Action/Games Songs': '#F97316',
+                              'Rhythm Sticks': '#D97706',
+                              'Scarf Songs': '#10B981',
+                              'General Game': '#3B82F6',
+                              'Core Songs': '#84CC16',
+                              'Parachute Games': '#EF4444',
+                              'Percussion Games': '#06B6D4',
+                              'Teaching Units': '#6366F1',
+                              'Goodbye': '#14B8A6'
+                            }[activity.category] || '#6B7280'
+                          : '#6B7280'}
+                          viewMode={viewMode}
+                        />
+                      </div>
                     ))}
                   </div>
                 )}
@@ -747,6 +752,17 @@ export function LessonPlanBuilder() {
           onClose={() => setSelectedResource(null)}
         />
       )}
+      
+      {/* Fixed Plan Builder Button */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <button
+          onClick={() => setCurrentView('calendar')}
+          className="p-4 bg-purple-600 hover:bg-purple-700 text-white rounded-full shadow-lg transition-all duration-200 hover:scale-105"
+          title="Open Calendar View"
+        >
+          <Calendar className="h-6 w-6" />
+        </button>
+      </div>
     </DndProvider>
   );
 }
