@@ -47,6 +47,7 @@ interface DataContextType {
   uploadExcelFile: (file: File) => Promise<void>;
   addEyfsToLesson: (lessonNumber: string, eyfsStatement: string) => void;
   removeEyfsFromLesson: (lessonNumber: string, eyfsStatement: string) => void;
+  updateAllEyfsStatements: (statements: string[]) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -161,9 +162,33 @@ export function DataProvider({ children }: DataProviderProps) {
 
   useEffect(() => {
     loadData();
-    // Set all EYFS statements based on current sheet
-    setAllEyfsStatements(DEFAULT_EYFS_STATEMENTS[currentSheetInfo.sheet as keyof typeof DEFAULT_EYFS_STATEMENTS] || []);
+    // Load EYFS statements from localStorage or use defaults
+    loadEyfsStatements();
   }, [currentSheetInfo]);
+
+  const loadEyfsStatements = () => {
+    // Try to load from localStorage first
+    const savedStandards = localStorage.getItem(`eyfs-standards-${currentSheetInfo.sheet}`);
+    if (savedStandards) {
+      try {
+        const parsedStandards = JSON.parse(savedStandards);
+        // Convert from object format to flat array
+        const flatStandards: string[] = [];
+        Object.entries(parsedStandards).forEach(([area, details]) => {
+          (details as string[]).forEach(detail => {
+            flatStandards.push(`${area}: ${detail}`);
+          });
+        });
+        setAllEyfsStatements(flatStandards);
+      } catch (error) {
+        console.error('Error parsing saved EYFS standards:', error);
+        setAllEyfsStatements(DEFAULT_EYFS_STATEMENTS[currentSheetInfo.sheet as keyof typeof DEFAULT_EYFS_STATEMENTS] || []);
+      }
+    } else {
+      // Use default standards if none saved
+      setAllEyfsStatements(DEFAULT_EYFS_STATEMENTS[currentSheetInfo.sheet as keyof typeof DEFAULT_EYFS_STATEMENTS] || []);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -576,6 +601,14 @@ export function DataProvider({ children }: DataProviderProps) {
     });
   };
 
+  // Update all EYFS statements
+  const updateAllEyfsStatements = (statements: string[]) => {
+    setAllEyfsStatements(statements);
+    
+    // Save to localStorage in flat format
+    localStorage.setItem(`eyfs-statements-flat-${currentSheetInfo.sheet}`, JSON.stringify(statements));
+  };
+
   const value = {
     currentSheetInfo,
     setCurrentSheetInfo,
@@ -588,7 +621,8 @@ export function DataProvider({ children }: DataProviderProps) {
     refreshData,
     uploadExcelFile,
     addEyfsToLesson,
-    removeEyfsFromLesson
+    removeEyfsFromLesson,
+    updateAllEyfsStatements
   };
 
   return (
