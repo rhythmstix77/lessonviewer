@@ -46,16 +46,8 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
   const [errors, setErrors] = useState<Record<string, string>>({});
   const descriptionRef = React.useRef<HTMLDivElement>(null);
 
-  // Create a standardized list of level options without duplicates
-  const standardLevels = React.useMemo(() => {
-    // Define standard level options
-    const baseOptions = ['All', 'EYFS L', 'EYFS U', 'Reception', 'EYFS L, EYFS U', 'EYFS U, Reception'];
-    
-    // Create a Set to remove duplicates
-    const uniqueLevels = new Set([...baseOptions]);
-    
-    return Array.from(uniqueLevels);
-  }, []);
+  // Simplified level options - just the core options without duplicates
+  const simplifiedLevels = ['All', 'EYFS L', 'EYFS U', 'Reception'];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -175,7 +167,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                 )}
               </div>
 
-              {/* Level */}
+              {/* Level - Simplified */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Level
@@ -187,7 +179,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   <option value="">Select a level</option>
-                  {standardLevels.map(level => (
+                  {simplifiedLevels.map(level => (
                     <option key={level} value={level}>{level}</option>
                   ))}
                 </select>

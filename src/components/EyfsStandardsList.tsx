@@ -15,14 +15,7 @@ export function EyfsStandardsList({ lessonNumber, className = '' }: EyfsStandard
                               [];
 
   if (lessonEyfsStatements.length === 0) {
-    return (
-      <div className={`bg-gray-50 rounded-lg p-4 border border-gray-200 ${className}`}>
-        <div className="flex items-center space-x-2 text-gray-500">
-          <Info className="h-5 w-5" />
-          <p className="text-sm">No EYFS standards have been added to this lesson yet.</p>
-        </div>
-      </div>
-    );
+    return null; // Don't show anything if there are no standards
   }
 
   // Group statements by area

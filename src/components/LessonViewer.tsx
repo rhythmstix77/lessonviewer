@@ -337,15 +337,6 @@ export function LessonViewer() {
 
             {/* Action Buttons */}
             <div className="flex items-center space-x-3">
-              {/* Fixed Plan Builder Button */}
-              <button
-                onClick={() => setShowPlanBuilder(true)}
-                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl transition-colors duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl"
-              >
-                <Calendar className="h-5 w-5" />
-                <span>Plan Builder</span>
-              </button>
-              
               {/* Search Section */}
               <div className="flex-shrink-0 w-full lg:w-auto lg:min-w-[320px]">
                 <div className="relative">
