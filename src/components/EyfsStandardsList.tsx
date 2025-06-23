@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tag, Check, Info } from 'lucide-react';
+import { Tag, Check } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 
 interface EyfsStandardsListProps {

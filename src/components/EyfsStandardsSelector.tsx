@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, ChevronDown, ChevronUp, Plus, Search, Tag, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Search, Tag, X } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 
 interface EyfsStandardsSelectorProps {

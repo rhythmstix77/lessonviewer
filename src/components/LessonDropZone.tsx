@@ -15,8 +15,7 @@ import {
   Italic,
   Underline,
   List,
-  ListOrdered,
-  Tag
+  ListOrdered
 } from 'lucide-react';
 import type { Activity } from '../contexts/DataContext';
 import { EyfsStandardsSelector } from './EyfsStandardsSelector';

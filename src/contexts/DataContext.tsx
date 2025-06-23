@@ -80,49 +80,36 @@ const CATEGORY_ORDER = [
   'Teaching Units'
 ];
 
-// EYFS statements for each age group
-const DEFAULT_EYFS_STATEMENTS = {
-  'LKG': [
-    'Communication and Language: Listening and attention',
-    'Communication and Language: Understanding',
-    'Communication and Language: Speaking',
-    'Physical Development: Moving and handling',
-    'Physical Development: Health and self-care',
-    'Personal, Social and Emotional Development: Self-confidence and self-awareness',
-    'Personal, Social and Emotional Development: Managing feelings and behaviour',
-    'Personal, Social and Emotional Development: Making relationships'
-  ],
-  'UKG': [
-    'Literacy: Reading',
-    'Literacy: Writing',
-    'Mathematics: Numbers',
-    'Mathematics: Shape, space and measures',
-    'Understanding the World: People and communities',
-    'Understanding the World: The world',
-    'Understanding the World: Technology',
-    'Expressive Arts and Design: Exploring and using media and materials',
-    'Expressive Arts and Design: Being imaginative'
-  ],
-  'Reception': [
-    'Communication and Language: Listening, Attention and Understanding',
-    'Communication and Language: Speaking',
-    'Personal, Social and Emotional Development: Self-Regulation',
-    'Personal, Social and Emotional Development: Managing Self',
-    'Personal, Social and Emotional Development: Building Relationships',
-    'Physical Development: Gross Motor Skills',
-    'Physical Development: Fine Motor Skills',
-    'Literacy: Comprehension',
-    'Literacy: Word Reading',
-    'Literacy: Writing',
-    'Mathematics: Number',
-    'Mathematics: Numerical Patterns',
-    'Understanding the World: Past and Present',
-    'Understanding the World: People, Culture and Communities',
-    'Understanding the World: The Natural World',
-    'Expressive Arts and Design: Creating with Materials',
-    'Expressive Arts and Design: Being Imaginative and Expressive'
-  ]
-};
+// EYFS statements for all age groups
+const DEFAULT_EYFS_STATEMENTS = [
+  "Communication and Language: 🎧 Listens carefully to rhymes and songs",
+  "Communication and Language: 🎧 Enjoys singing and making sounds",
+  "Communication and Language: 🎧 Joins in with familiar songs and rhymes",
+  "Communication and Language: 🎧 Understands and responds to simple questions or instructions",
+  "Communication and Language: 🗣️ Uses talk to express ideas and feelings",
+  "Listening, Attention and Understanding: 🎧 Listens with increased attention to sounds",
+  "Listening, Attention and Understanding: 🎧 Responds to what they hear with relevant actions",
+  "Listening, Attention and Understanding: 🎧 Follows directions with two or more steps",
+  "Listening, Attention and Understanding: 🎧 Understands simple concepts such as in, on, under",
+  "Speaking: 🗣️ Begins to use longer sentences",
+  "Speaking: 🗣️ Retells events or experiences in sequence",
+  "Speaking: 🗣️ Uses new vocabulary in different contexts",
+  "Speaking: 🗣️ Talks about what they are doing or making",
+  "Personal, Social and Emotional Development: 🧠 Shows confidence to try new activities",
+  "Personal, Social and Emotional Development: 🧠 Takes turns and shares with others",
+  "Personal, Social and Emotional Development: 🧠 Expresses own feelings and considers others'",
+  "Personal, Social and Emotional Development: 🧠 Shows resilience and perseverance",
+  "Physical Development: 🕺 Moves energetically, e.g., running, jumping, dancing",
+  "Physical Development: 🕺 Uses large and small motor skills for coordinated movement",
+  "Physical Development: 🕺 Moves with control and coordination",
+  "Physical Development: 🕺 Shows strength, balance and coordination",
+  "Expressive Arts and Design: 🎨 Creates collaboratively, sharing ideas and resources",
+  "Expressive Arts and Design: 🎨 Explores the sounds of instruments",
+  "Expressive Arts and Design: 🎨 Sings a range of well-known nursery rhymes and songs",
+  "Expressive Arts and Design: 🎨 Performs songs, rhymes, poems and stories with others",
+  "Expressive Arts and Design: 🎨 Responds imaginatively to music and dance",
+  "Expressive Arts and Design: 🎨 Develops storylines in pretend play"
+];
 
 // Sample data for initial load
 const SAMPLE_DATA = {
@@ -157,7 +144,7 @@ export function DataProvider({ children }: DataProviderProps) {
   const [teachingUnits, setTeachingUnits] = useState<string[]>([]);
   const [allLessonsData, setAllLessonsData] = useState<Record<string, LessonData>>({});
   const [eyfsStatements, setEyfsStatements] = useState<Record<string, string[]>>({});
-  const [allEyfsStatements, setAllEyfsStatements] = useState<string[]>([]);
+  const [allEyfsStatements, setAllEyfsStatements] = useState<string[]>(DEFAULT_EYFS_STATEMENTS);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -179,14 +166,14 @@ export function DataProvider({ children }: DataProviderProps) {
             flatStandards.push(`${area}: ${detail}`);
           });
         });
-        setAllEyfsStatements(flatStandards);
+        setAllEyfsStatements(flatStandards.length > 0 ? flatStandards : DEFAULT_EYFS_STATEMENTS);
       } catch (error) {
         console.error('Error parsing saved EYFS standards:', error);
-        setAllEyfsStatements(DEFAULT_EYFS_STATEMENTS[currentSheetInfo.sheet as keyof typeof DEFAULT_EYFS_STATEMENTS] || []);
+        setAllEyfsStatements(DEFAULT_EYFS_STATEMENTS);
       }
     } else {
       // Use default standards if none saved
-      setAllEyfsStatements(DEFAULT_EYFS_STATEMENTS[currentSheetInfo.sheet as keyof typeof DEFAULT_EYFS_STATEMENTS] || []);
+      setAllEyfsStatements(DEFAULT_EYFS_STATEMENTS);
     }
   };
 

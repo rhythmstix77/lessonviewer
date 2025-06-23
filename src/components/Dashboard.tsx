@@ -4,10 +4,9 @@ import { UnitViewer } from "./UnitViewer";
 import { LessonPlanBuilder } from "./LessonPlanBuilder";
 import { LessonPlannerCalendar } from "./LessonPlannerCalendar";
 import { ActivityLibrary } from "./ActivityLibrary";
-import { EyfsStandardsManager } from "./EyfsStandardsManager";
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Calendar, BookOpen, Edit3, GraduationCap, Tag } from 'lucide-react';
+import { Calendar, BookOpen, Edit3, GraduationCap } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../hooks/useAuth';
@@ -20,14 +19,6 @@ export function Dashboard() {
   const [activeTab, setActiveTab] = useState('unit-viewer');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [lessonPlans, setLessonPlans] = useState<any[]>([]);
-  const [showEyfsManager, setShowEyfsManager] = useState(false);
-  
-  // Check if user is admin
-  const isAdmin = user?.email === 'admin@rhythmstix.co.uk' || 
-                  user?.email === 'admin@example.com' || 
-                  user?.role === 'administrator' ||
-                  user?.role === 'admin' ||
-                  user?.email === 'rob.reichstorer@gmail.com';
   
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
@@ -148,16 +139,6 @@ export function Dashboard() {
                   <span>Lesson Builder</span>
                 </div>
               </TabsTrigger>
-              
-              {isAdmin && (
-                <button
-                  onClick={() => setShowEyfsManager(true)}
-                  className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-all duration-200"
-                >
-                  <Tag className="h-5 w-5" />
-                  <span>EYFS Standards</span>
-                </button>
-              )}
             </TabsList>
 
             <TabsContent value="unit-viewer" className="mt-6">
@@ -189,12 +170,6 @@ export function Dashboard() {
           </Tabs>
         </div>
       </div>
-
-      {/* EYFS Standards Manager Modal */}
-      <EyfsStandardsManager 
-        isOpen={showEyfsManager}
-        onClose={() => setShowEyfsManager(false)}
-      />
     </DndProvider>
   );
 }
