@@ -12,10 +12,12 @@ import {
   Save,
   X,
   FolderOpen,
-  Tag
+  Tag,
+  Info
 } from 'lucide-react';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import { useDrop } from 'react-dnd';
+import { useData } from '../contexts/DataContext';
 import type { Activity } from '../contexts/DataContext';
 
 interface LessonPlan {
@@ -49,10 +51,12 @@ export function LessonPlannerCalendar({
   onCreateLessonPlan,
   className
 }: LessonPlannerCalendarProps) {
+  const { allLessonsData } = useData();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [editingPlan, setEditingPlan] = useState<LessonPlan | null>(null);
   const [unitFilter, setUnitFilter] = useState<string>('all');
+  const [selectedPlan, setSelectedPlan] = useState<LessonPlan | null>(null);
 
   // Get unique units from lesson plans
   const units = React.useMemo(() => {
@@ -124,10 +128,19 @@ export function LessonPlannerCalendar({
     return null;
   };
 
-  const handleDateClick = (date: Date) => {
-    onDateSelect(date);
-    const existingPlan = getLessonPlanForDate(date);
-    if (!existingPlan) {
+  const handleDateClick = (date: Date, plan: LessonPlan | LessonPlan[] | null) => {
+    // If there's a single plan, show its details
+    if (plan && !Array.isArray(plan)) {
+      setSelectedPlan(plan);
+    } 
+    // If there are multiple plans, show a selection dialog
+    else if (plan && Array.isArray(plan) && plan.length > 0) {
+      // For now, just select the first one
+      setSelectedPlan(plan[0]);
+    }
+    // If no plan exists, create a new one
+    else {
+      onDateSelect(date);
       onCreateLessonPlan(date);
     }
   };
@@ -153,6 +166,11 @@ export function LessonPlannerCalendar({
       
       // Update the state in the parent component
       onUpdateLessonPlan({ ...lessonPlans.find(plan => plan.id === planId)!, id: 'deleted' });
+      
+      // Clear selected plan if it was deleted
+      if (selectedPlan && selectedPlan.id === planId) {
+        setSelectedPlan(null);
+      }
     }
   };
 
@@ -210,7 +228,7 @@ export function LessonPlannerCalendar({
       <div
         ref={drop}
         key={date.toISOString()}
-        onClick={() => handleDateClick(date)}
+        onClick={() => handleDateClick(date, plansForDate)}
         className={`
           relative w-full h-24 p-2 border border-gray-200 hover:bg-blue-50 transition-colors duration-200 group
           ${isSelected ? 'bg-blue-100 border-blue-300' : ''}
@@ -303,6 +321,20 @@ export function LessonPlannerCalendar({
     );
   };
 
+  // Get lesson details if a lesson number is associated with the plan
+  const getLessonDetails = (lessonNumber?: string) => {
+    if (!lessonNumber || !allLessonsData[lessonNumber]) return null;
+    
+    const lessonData = allLessonsData[lessonNumber];
+    return {
+      totalTime: lessonData.totalTime,
+      totalActivities: Object.values(lessonData.grouped).reduce(
+        (sum, activities) => sum + activities.length, 0
+      ),
+      categories: lessonData.categoryOrder
+    };
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
       {/* Calendar Header */}
@@ -370,6 +402,77 @@ export function LessonPlannerCalendar({
                 </option>
               ))}
             </select>
+          </div>
+        </div>
+      )}
+
+      {/* Selected Plan Details */}
+      {selectedPlan && (
+        <div className="p-4 bg-blue-50 border-b border-blue-200">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center">
+                <Info className="h-5 w-5 text-blue-600 mr-2" />
+                {selectedPlan.lessonNumber ? 
+                  `Lesson ${selectedPlan.lessonNumber}` : 
+                  `Week ${selectedPlan.week} Plan`}
+              </h3>
+              
+              <div className="space-y-2">
+                <p className="text-sm text-gray-700">
+                  <strong>Date:</strong> {format(new Date(selectedPlan.date), 'MMMM d, yyyy')}
+                </p>
+                <p className="text-sm text-gray-700">
+                  <strong>Duration:</strong> {selectedPlan.duration} minutes
+                </p>
+                <p className="text-sm text-gray-700">
+                  <strong>Activities:</strong> {selectedPlan.activities.length}
+                </p>
+                
+                {selectedPlan.unitName && (
+                  <p className="text-sm text-gray-700">
+                    <strong>Unit:</strong> {selectedPlan.unitName}
+                  </p>
+                )}
+                
+                {selectedPlan.lessonNumber && (
+                  <div className="mt-3">
+                    <h4 className="text-sm font-medium text-gray-700 mb-1">Lesson Categories:</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {getLessonDetails(selectedPlan.lessonNumber)?.categories.slice(0, 5).map(category => (
+                        <span key={category} className="px-2 py-0.5 bg-white text-xs rounded-full border border-blue-200">
+                          {category}
+                        </span>
+                      ))}
+                      {getLessonDetails(selectedPlan.lessonNumber)?.categories.length > 5 && (
+                        <span className="px-2 py-0.5 bg-white text-xs rounded-full border border-blue-200">
+                          +{getLessonDetails(selectedPlan.lessonNumber)?.categories.length - 5} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex space-x-2">
+              <button
+                onClick={() => {
+                  onDateSelect(new Date(selectedPlan.date));
+                  setSelectedPlan(null);
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+              >
+                <Edit3 className="h-4 w-4" />
+                <span>Edit Plan</span>
+              </button>
+              <button
+                onClick={() => setSelectedPlan(null)}
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
       )}
