@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Clock, Video, Music, FileText, Link as LinkIcon, Image, Volume2, Maximize2, Minimize2, ExternalLink, Tag } from 'lucide-react';
+import { X, Clock, Video, Music, FileText, Link as LinkIcon, Image, Volume2, Maximize2, Minimize2, ExternalLink, Tag, Plus } from 'lucide-react';
 import { EditableText } from './EditableText';
 import type { Activity } from '../contexts/DataContext';
 import { useData } from '../contexts/DataContext';
@@ -7,9 +7,10 @@ import { useData } from '../contexts/DataContext';
 interface ActivityDetailsProps {
   activity: Activity;
   onClose: () => void;
+  onAddToLesson?: () => void;
 }
 
-export function ActivityDetails({ activity, onClose }: ActivityDetailsProps) {
+export function ActivityDetails({ activity, onClose, onAddToLesson }: ActivityDetailsProps) {
   const { allEyfsStatements, addEyfsToLesson, removeEyfsFromLesson } = useData();
   const [selectedLink, setSelectedLink] = useState<{ url: string; title: string; type: string } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -312,7 +313,16 @@ export function ActivityDetails({ activity, onClose }: ActivityDetailsProps) {
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end p-6 border-t border-gray-200 bg-gray-50">
+          <div className="flex justify-between p-6 border-t border-gray-200 bg-gray-50">
+            {onAddToLesson && (
+              <button
+                onClick={onAddToLesson}
+                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Add to Lesson</span>
+              </button>
+            )}
             <button
               onClick={onClose}
               className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
@@ -502,7 +512,7 @@ function ResourceViewer({ url, title, type, onClose }: ResourceViewerProps) {
               rel="noopener noreferrer"
               className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
             >
-              <LinkIcon className="h-4 w-4" />
+              <ExternalLink className="h-4 w-4" />
               <span>Open in New Tab</span>
             </a>
           </div>

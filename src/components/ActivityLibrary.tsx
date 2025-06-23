@@ -14,6 +14,7 @@ import {
   MoreVertical
 } from 'lucide-react';
 import { ActivityCard } from './ActivityCard';
+import { ActivityDetails } from './ActivityDetails';
 import { useData } from '../contexts/DataContext';
 import type { Activity } from '../contexts/DataContext';
 
@@ -47,6 +48,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
   const [editingActivity, setEditingActivity] = useState<string | null>(null);
+  const [selectedActivityDetails, setSelectedActivityDetails] = useState<Activity | null>(null);
 
   // Extract all activities from all lessons
   const allActivities = useMemo(() => {
@@ -138,6 +140,10 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
       setSortBy(field);
       setSortOrder('asc');
     }
+  };
+
+  const handleViewActivityDetails = (activity: Activity) => {
+    setSelectedActivityDetails(activity);
   };
 
   return (
@@ -266,7 +272,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
             }
           `}>
             {filteredAndSortedActivities.map((activity, index) => (
-              <div key={`${activity.activity}-${activity.category}-${index}`} onClick={() => onActivitySelect(activity)}>
+              <div key={`${activity.activity}-${activity.category}-${index}`}>
                 <ActivityCard
                   activity={activity}
                   onUpdate={handleActivityUpdate}
@@ -280,13 +286,28 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
                   )}
                   categoryColor={categoryColors[activity.category] || '#6B7280'}
                   viewMode={viewMode === 'grid' ? 'detailed' : viewMode === 'list' ? 'compact' : 'minimal'}
-                  onActivityClick={() => onActivitySelect(activity)}
+                  onActivityClick={(activity) => {
+                    // First show details, then if user confirms, add to lesson
+                    handleViewActivityDetails(activity);
+                  }}
                 />
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Activity Details Modal */}
+      {selectedActivityDetails && (
+        <ActivityDetails
+          activity={selectedActivityDetails}
+          onClose={() => setSelectedActivityDetails(null)}
+          onAddToLesson={() => {
+            onActivitySelect(selectedActivityDetails);
+            setSelectedActivityDetails(null);
+          }}
+        />
+      )}
     </div>
   );
 }

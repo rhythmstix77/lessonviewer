@@ -39,6 +39,7 @@ interface LessonDropZoneProps {
   onActivityReorder: (dragIndex: number, hoverIndex: number) => void;
   onNotesUpdate: (notes: string) => void;
   isEditing: boolean;
+  onActivityClick?: (activity: Activity) => void;
 }
 
 interface DraggableActivityProps {
@@ -219,7 +220,8 @@ export function LessonDropZone({
   onActivityRemove,
   onActivityReorder,
   onNotesUpdate,
-  isEditing
+  isEditing,
+  onActivityClick
 }: LessonDropZoneProps) {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'activity',
@@ -321,6 +323,7 @@ export function LessonDropZone({
                 onRemove={() => onActivityRemove(index)}
                 onReorder={onActivityReorder}
                 isEditing={isEditing}
+                onActivityClick={onActivityClick}
               />
             ))}
             
