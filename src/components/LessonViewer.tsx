@@ -5,10 +5,9 @@ import { LessonCard } from './LessonCard';
 import { ActivityDetails } from './ActivityDetails';
 import { ExportButtons } from './ExportButtons';
 import { LoadingSpinner } from './LoadingSpinner';
-import { LessonPlanBuilder } from './LessonPlanBuilder';
 import { EyfsStandardsList } from './EyfsStandardsList';
 import { EyfsStandardsSelector } from './EyfsStandardsSelector';
-import { BookOpen, X, Search, GraduationCap, Edit3, Calendar, ArrowLeft, Home, Tag, ChevronRight, ChevronLeft } from 'lucide-react';
+import { BookOpen, X, Search, GraduationCap, Edit3, Tag, ChevronRight, ChevronLeft } from 'lucide-react';
 import type { Activity } from '../contexts/DataContext';
 
 export function LessonViewer() {
@@ -18,7 +17,6 @@ export function LessonViewer() {
   const [previewLesson, setPreviewLesson] = useState<string>('');
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [showPlanBuilder, setShowPlanBuilder] = useState(false);
   const [showEyfsSelector, setShowEyfsSelector] = useState(false);
   
   // Ref for scrolling to top when lesson is selected
@@ -91,31 +89,6 @@ export function LessonViewer() {
     setSearchQuery('');
   };
 
-  const handleBackToHome = () => {
-    setSelectedLesson('');
-    setSelectedActivity(null);
-    setShowPlanBuilder(false);
-  };
-
-  // Show Lesson Plan Builder if requested
-  if (showPlanBuilder) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
-        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <button
-            onClick={handleBackToHome}
-            className="mb-4 inline-flex items-center space-x-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Lesson Viewer</span>
-          </button>
-          
-          <LessonPlanBuilder />
-        </div>
-      </div>
-    );
-  }
-
   // If a lesson is selected, show full-width expanded view
   if (selectedLesson && allLessonsData[selectedLesson]) {
     const lessonData = allLessonsData[selectedLesson];
@@ -151,14 +124,6 @@ export function LessonViewer() {
                   >
                     <Tag className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
                     <span className="text-sm font-medium">EYFS Standards</span>
-                  </button>
-                  <button
-                    onClick={() => setShowPlanBuilder(true)}
-                    className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 group flex items-center space-x-2"
-                    title="Edit lesson in Plan Builder"
-                  >
-                    <Edit3 className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
-                    <span className="text-sm font-medium">Edit Lesson</span>
                   </button>
                   <button
                     onClick={handleCloseLessonView}
@@ -286,7 +251,7 @@ export function LessonViewer() {
               onClick={handleCloseLessonView}
               className="inline-flex items-center space-x-2 px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-xl transition-colors duration-200 shadow-lg hover:shadow-xl"
             >
-              <Home className="h-5 w-5" />
+              <X className="h-5 w-5" />
               <span>Back to Lesson Overview</span>
             </button>
           </div>
@@ -507,17 +472,6 @@ export function LessonViewer() {
             onClose={() => setSelectedActivity(null)}
           />
         )}
-        
-        {/* Fixed Plan Builder Button */}
-        <div className="fixed bottom-6 right-6 z-40">
-          <button
-            onClick={() => setShowPlanBuilder(true)}
-            className="p-4 bg-purple-600 hover:bg-purple-700 text-white rounded-full shadow-lg transition-all duration-200 hover:scale-105"
-            title="Open Plan Builder"
-          >
-            <Calendar className="h-6 w-6" />
-          </button>
-        </div>
       </div>
     </div>
   );

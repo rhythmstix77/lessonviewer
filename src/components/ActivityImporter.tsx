@@ -198,7 +198,7 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
         category: String(row[categoryIdx] || '').trim(),
         level: String(row[levelIdx] || '').trim(),
         unitName: String(row[unitNameIdx] || '').trim(),
-        lessonNumber: '' // Remove lesson number assignment
+        lessonNumber: currentLessonNumber || '1'
       };
 
       activities.push(activity);
