@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Upload, Link, RefreshCw, CheckCircle, AlertCircle, ExternalLink, X } from 'lucide-react';
+import { Settings, Upload, RefreshCw, CheckCircle, AlertCircle, X } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../hooks/useAuth';
 
@@ -103,68 +103,14 @@ export function DataSourceSettings() {
             </div>
           </div>
 
-          {/* Current Google Sheets Connection */}
-          <div className="border border-green-200 bg-green-50 rounded-lg p-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <CheckCircle className="h-6 w-6 text-green-600" />
-              <h3 className="text-lg font-semibold text-gray-900">Connected Google Sheets</h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">
-              Your application is connected to the Google Sheets spreadsheet with different tabs for each class.
-            </p>
-            
-            <div className="space-y-4">
-              <div className="bg-white rounded-lg p-4 border border-green-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-gray-900">Rhythmstix Music Lesson Plans</p>
-                    <p className="text-sm text-gray-600 break-all">ID: 1okYlUMh247SKXtdkot1swOs2BCYlZMEN-3E08-zit2U</p>
-                    <div className="mt-2 space-y-1">
-                      <p className="text-xs text-gray-500">• LKG Tab: GID 1944781789</p>
-                      <p className="text-xs text-gray-500">• UKG Tab: GID 0</p>
-                      <p className="text-xs text-gray-500">• Reception Tab: GID (to be configured)</p>
-                    </div>
-                  </div>
-                  <a
-                    href="https://docs.google.com/spreadsheets/d/1okYlUMh247SKXtdkot1swOs2BCYlZMEN-3E08-zit2U/edit?gid=1944781789#gid=1944781789"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-700 p-2 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                    title="Open in Google Sheets"
-                  >
-                    <ExternalLink className="h-5 w-5" />
-                  </a>
-                </div>
-              </div>
-              
-              <button
-                onClick={handleRefreshData}
-                disabled={loading}
-                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
-              >
-                {loading ? (
-                  <>
-                    <RefreshCw className="h-5 w-5 animate-spin" />
-                    <span>Refreshing...</span>
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-5 w-5" />
-                    <span>Refresh Data from Google Sheets</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Excel File Upload Alternative */}
+          {/* Excel File Upload */}
           <div className="border border-gray-200 rounded-lg p-6">
             <div className="flex items-center space-x-3 mb-4">
               <Upload className="h-6 w-6 text-blue-600" />
-              <h3 className="text-lg font-semibold text-gray-900">Alternative: Excel File Upload</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Excel File Upload</h3>
             </div>
             <p className="text-sm text-gray-600 mb-4">
-              Upload an Excel file (.xlsx, .xls, .csv) to override the current data source.
+              Upload an Excel file (.xlsx, .xls, .csv) to update your lesson data.
             </p>
             
             <div className="space-y-4">
@@ -199,13 +145,42 @@ export function DataSourceSettings() {
             </div>
           </div>
 
+          {/* Refresh Data */}
+          <div className="border border-blue-200 bg-blue-50 rounded-lg p-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <RefreshCw className="h-6 w-6 text-blue-600" />
+              <h3 className="text-lg font-semibold text-gray-900">Refresh Data</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Refresh the application data to ensure you're viewing the latest content.
+            </p>
+            
+            <button
+              onClick={handleRefreshData}
+              disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="h-5 w-5 animate-spin" />
+                  <span>Refreshing...</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-5 w-5" />
+                  <span>Refresh Data</span>
+                </>
+              )}
+            </button>
+          </div>
+
           {/* Current Configuration */}
           <div className="bg-gray-50 rounded-lg p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Configuration</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200">
                 <span className="text-gray-600 font-medium">Data Source:</span>
-                <span className="font-semibold text-green-600">Google Sheets (Multi-Tab)</span>
+                <span className="font-semibold text-green-600">Local Storage</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200">
                 <span className="text-gray-600 font-medium">Authentication:</span>
@@ -225,16 +200,16 @@ export function DataSourceSettings() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Technical Information</h3>
             <div className="space-y-3 text-sm">
               <div>
-                <p className="text-gray-700 font-medium mb-1">Data Fetching Method:</p>
-                <p className="text-gray-600">CSV export from Google Sheets with class-specific tabs</p>
+                <p className="text-gray-700 font-medium mb-1">Data Storage Method:</p>
+                <p className="text-gray-600">Local browser storage with Excel file import capability</p>
               </div>
               <div>
                 <p className="text-gray-700 font-medium mb-1">Class Data Sources:</p>
-                <p className="text-gray-600">LKG, UKG, and Reception each have separate sheet tabs</p>
+                <p className="text-gray-600">LKG, UKG, and Reception data stored locally</p>
               </div>
               <div>
                 <p className="text-gray-700 font-medium mb-1">Update Frequency:</p>
-                <p className="text-gray-600">Manual refresh or automatic on page load</p>
+                <p className="text-gray-600">Manual refresh or file upload</p>
               </div>
               <div>
                 <p className="text-gray-700 font-medium mb-1">Supported File Formats:</p>

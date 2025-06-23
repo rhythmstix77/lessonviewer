@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { fetchGoogleSheetData } from '../config/api';
+import * as XLSX from 'xlsx';
 
 export interface Activity {
   activity: string;
@@ -123,6 +123,28 @@ const DEFAULT_EYFS_STATEMENTS = {
   ]
 };
 
+// Sample data for initial load
+const SAMPLE_DATA = {
+  'LKG': [
+    ['Lesson Number', 'Category', 'Activity Name', 'Description', 'Level', 'Time (Mins)', 'Video', 'Music', 'Backing', 'Resource', 'Unit Name'],
+    ['1', 'Welcome', 'Hello Everyone', "Hello Everyone Hello Everyone Hello Everyone It's time for music now!", 'All', '3', 'https://example.com/video', '', '', '', ''],
+    ['1', 'Kodaly Songs', 'Cobbler Cobbler', "Sol/Mi - Song and Game. Children sit in a circle, sing Cobbler Cobbler Mend My Shoe. Keep the beat by tapping shoes with hands or rhythm sticks.", 'All', '5', '', 'https://example.com/music', '', '', ''],
+    ['1', 'Goodbye', 'Goodbye Song', "Goodbye everyone, goodbye everyone, we'll see you next time.", 'All', '2', '', 'https://example.com/goodbye', '', '', '']
+  ],
+  'UKG': [
+    ['Lesson Number', 'Category', 'Activity Name', 'Description', 'Level', 'Time (Mins)', 'Video', 'Music', 'Backing', 'Resource', 'Unit Name'],
+    ['1', 'Welcome', 'Hello Friends', "Welcome song for UKG class", 'All', '3', '', 'https://example.com/hello', '', '', ''],
+    ['1', 'Core Songs', 'I am a Robot', "Robot movement activity with sounds", 'EYFS U', '4', '', 'https://example.com/robot', '', '', 'Robot Unit'],
+    ['1', 'Goodbye', 'See You Soon', "Goodbye song with actions", 'All', '2', '', 'https://example.com/goodbye', '', '', '']
+  ],
+  'Reception': [
+    ['Lesson Number', 'Category', 'Activity Name', 'Description', 'Level', 'Time (Mins)', 'Video', 'Music', 'Backing', 'Resource', 'Unit Name'],
+    ['1', 'Welcome', 'Good Morning', "Morning greeting song with actions", 'All', '3', '', 'https://example.com/morning', '', '', ''],
+    ['1', 'Action/Games Songs', 'Bounce High Bounce Low', "Movement game with ball", 'All', '4', '', 'https://example.com/bounce', '', '', ''],
+    ['1', 'Goodbye', 'Time to Go', "Farewell song with waves", 'All', '2', '', 'https://example.com/farewell', '', '', '']
+  ]
+};
+
 export function DataProvider({ children }: DataProviderProps) {
   const [currentSheetInfo, setCurrentSheetInfo] = useState<SheetInfo>({
     sheet: 'LKG',
@@ -147,74 +169,73 @@ export function DataProvider({ children }: DataProviderProps) {
     try {
       setLoading(true);
       
-      // First try to load from Google Sheets for the specific class
-      console.log(`Loading data for ${currentSheetInfo.sheet}...`);
-      
-      try {
-        await loadFromGoogleSheets();
-        console.log(`Successfully loaded ${currentSheetInfo.sheet} data from Google Sheets`);
-      } catch (googleError) {
-        console.warn(`Google Sheets failed for ${currentSheetInfo.sheet}, using fallback data:`, googleError);
-        await loadFromLocalData();
+      // Try to load from localStorage first
+      const savedData = localStorage.getItem(`lesson-data-${currentSheetInfo.sheet}`);
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        setAllLessonsData(parsedData.allLessonsData || {});
+        setLessonNumbers(parsedData.lessonNumbers || []);
+        setTeachingUnits(parsedData.teachingUnits || []);
+        setEyfsStatements(parsedData.eyfsStatements || {});
+        console.log(`Loaded ${currentSheetInfo.sheet} data from localStorage`);
+      } else {
+        // If no saved data, load sample data
+        await loadSampleData();
       }
-      
     } catch (error) {
       console.error('Failed to load data:', error);
-      // Load minimal fallback data
-      await loadFromLocalData();
+      // Load sample data as fallback
+      await loadSampleData();
     } finally {
       setLoading(false);
     }
   };
 
-  const loadFromGoogleSheets = async () => {
+  const loadSampleData = async () => {
     try {
-      // Fetch data for the specific sheet type (LKG, UKG, or Reception)
-      const sheetData = await fetchGoogleSheetData(currentSheetInfo.sheet as 'LKG' | 'UKG' | 'Reception');
-      
-      if (!sheetData || sheetData.length === 0) {
-        throw new Error(`No data received from Google Sheets for ${currentSheetInfo.sheet}`);
-      }
-      
-      console.log(`Raw Google Sheets data for ${currentSheetInfo.sheet}:`, sheetData.slice(0, 5)); // Log first 5 rows
-      
-      // Process the sheet data
-      processSheetData(sheetData);
-    } catch (error) {
-      console.error(`Google Sheets loading failed for ${currentSheetInfo.sheet}:`, error);
-      throw error;
-    }
-  };
-
-  const loadFromLocalData = async () => {
-    // This is the issue! We need to use your actual Google Sheets data, not fallback data
-    // The system should be pulling from the different tabs in your spreadsheet
-    
-    console.log(`Loading from Google Sheets for ${currentSheetInfo.sheet} (fallback disabled)`);
-    
-    // Try Google Sheets one more time with better error handling
-    try {
-      const sheetData = await fetchGoogleSheetData(currentSheetInfo.sheet as 'LKG' | 'UKG' | 'Reception');
+      console.log(`Loading sample data for ${currentSheetInfo.sheet}`);
+      const sheetData = SAMPLE_DATA[currentSheetInfo.sheet as keyof typeof SAMPLE_DATA];
       
       if (sheetData && sheetData.length > 0) {
-        console.log(`Successfully loaded ${currentSheetInfo.sheet} from Google Sheets on retry`);
         processSheetData(sheetData);
-        return;
+        console.log(`Successfully loaded sample data for ${currentSheetInfo.sheet}`);
+      } else {
+        throw new Error(`No sample data available for ${currentSheetInfo.sheet}`);
       }
-    } catch (retryError) {
-      console.warn(`Google Sheets retry failed for ${currentSheetInfo.sheet}:`, retryError);
+    } catch (error) {
+      console.error(`Sample data loading failed for ${currentSheetInfo.sheet}:`, error);
+      
+      // Set minimal fallback data
+      setLessonNumbers(['1']);
+      setTeachingUnits(['Welcome', 'Goodbye']);
+      setAllLessonsData({
+        '1': {
+          grouped: {
+            'Welcome': [{
+              activity: 'Sample Activity',
+              description: `This is a sample activity for ${currentSheetInfo.display}.`,
+              time: 5,
+              videoLink: '',
+              musicLink: '',
+              backingLink: '',
+              resourceLink: '',
+              link: '',
+              vocalsLink: '',
+              imageLink: '',
+              teachingUnit: 'Welcome',
+              category: 'Welcome',
+              level: currentSheetInfo.sheet,
+              unitName: '',
+              lessonNumber: '1'
+            }]
+          },
+          categoryOrder: ['Welcome'],
+          totalTime: 5,
+          eyfsStatements: []
+        }
+      });
+      setEyfsStatements({});
     }
-    
-    // Only use minimal fallback if Google Sheets completely fails
-    console.warn(`Using minimal fallback data for ${currentSheetInfo.sheet} - this should not happen in production`);
-    
-    const minimalFallback = [
-      ['Lesson Number', 'Category', 'Activity Name', 'Description', 'Level', 'Time (Mins)', 'Video', 'Music', 'Backing', 'Resource', 'Unit Name'],
-      ['1', 'Welcome', 'Data Loading...', `Loading ${currentSheetInfo.display} lesson data from Google Sheets. Please refresh if this persists.`, currentSheetInfo.sheet, '0', '', '', '', '', ''],
-      ['1', 'Goodbye', 'Please Refresh', 'Click the refresh button in the header to reload data from your Google Sheets.', currentSheetInfo.sheet, '0', '', '', '', '', '']
-    ];
-    
-    processSheetData(minimalFallback);
   };
 
   const sortCategoriesByOrder = (categories: string[]): string[] => {
@@ -368,6 +389,9 @@ export function DataProvider({ children }: DataProviderProps) {
       });
       setEyfsStatements(eyfsStatementsMap);
 
+      // Save data to localStorage
+      saveDataToLocalStorage(lessonsData, sortedLessonNumbers, Array.from(categoriesSet), eyfsStatementsMap);
+
     } catch (error) {
       console.error(`Error processing ${currentSheetInfo.sheet} sheet data:`, error);
       // Set minimal fallback data
@@ -403,26 +427,77 @@ export function DataProvider({ children }: DataProviderProps) {
     }
   };
 
+  const saveDataToLocalStorage = (
+    lessonsData: Record<string, LessonData>, 
+    lessonNums: string[], 
+    categories: string[],
+    eyfsStatementsData: Record<string, string[]>
+  ) => {
+    const dataToSave = {
+      allLessonsData: lessonsData,
+      lessonNumbers: lessonNums,
+      teachingUnits: categories,
+      eyfsStatements: eyfsStatementsData
+    };
+    
+    localStorage.setItem(`lesson-data-${currentSheetInfo.sheet}`, JSON.stringify(dataToSave));
+    console.log(`Saved ${currentSheetInfo.sheet} data to localStorage`);
+  };
+
   const uploadExcelFile = async (file: File) => {
     try {
       setLoading(true);
       
-      // For now, we'll simulate Excel processing
-      // In production, you'd send this to a backend service
-      console.log('Excel file upload simulated:', file.name);
+      // Read the Excel file
+      const data = await readExcelFile(file);
       
-      // Simulate processing delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      if (!data || data.length === 0) {
+        throw new Error('No data found in the file.');
+      }
       
-      // For demo, reload current data
-      await loadData();
+      console.log('Excel data loaded:', data.slice(0, 5)); // Log first 5 rows
       
+      // Process the data
+      processSheetData(data);
+      
+      return true;
     } catch (error) {
       console.error('Excel upload failed:', error);
       throw error;
     } finally {
       setLoading(false);
     }
+  };
+
+  const readExcelFile = (file: File): Promise<string[][]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        try {
+          const data = e.target?.result;
+          if (!data) {
+            reject(new Error('Failed to read file.'));
+            return;
+          }
+
+          const workbook = XLSX.read(data, { type: 'binary' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          
+          resolve(jsonData as string[][]);
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      reader.onerror = () => {
+        reject(new Error('Error reading file.'));
+      };
+
+      reader.readAsBinaryString(file);
+    });
   };
 
   const refreshData = async () => {
@@ -439,6 +514,15 @@ export function DataProvider({ children }: DataProviderProps) {
       if (!updatedStatements[lessonNumber].includes(eyfsStatement)) {
         updatedStatements[lessonNumber] = [...updatedStatements[lessonNumber], eyfsStatement];
       }
+      
+      // Save to localStorage
+      saveDataToLocalStorage(
+        allLessonsData, 
+        lessonNumbers, 
+        teachingUnits, 
+        updatedStatements
+      );
+      
       return updatedStatements;
     });
 
@@ -466,6 +550,15 @@ export function DataProvider({ children }: DataProviderProps) {
           statement => statement !== eyfsStatement
         );
       }
+      
+      // Save to localStorage
+      saveDataToLocalStorage(
+        allLessonsData, 
+        lessonNumbers, 
+        teachingUnits, 
+        updatedStatements
+      );
+      
       return updatedStatements;
     });
 
