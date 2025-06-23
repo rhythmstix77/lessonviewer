@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Clock, Video, Music, FileText, Link as LinkIcon, Image, Volume2, Maximize2, Minimize2, ExternalLink, Tag, Plus, Save, Bold, Italic, Underline, List, ListOrdered, Upload } from 'lucide-react';
+import { X, Clock, Video, Music, FileText, Link as LinkIcon, Image, Volume2, Maximize2, Minimize2, ExternalLink, Tag, Plus, Save, Bold, Italic, Underline, List, ListOrdered, Upload, Edit3 } from 'lucide-react';
 import { EditableText } from './EditableText';
 import type { Activity } from '../contexts/DataContext';
 import { useData } from '../contexts/DataContext';
@@ -25,6 +25,7 @@ export function ActivityDetails({
   const [showEyfsSelector, setShowEyfsSelector] = useState(false);
   const [selectedEyfs, setSelectedEyfs] = useState<string[]>(activity.eyfsStandards || []);
   const [editedActivity, setEditedActivity] = useState<Activity>({...activity});
+  const [isEditMode, setIsEditMode] = useState(isEditing);
   const containerRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -62,7 +63,8 @@ export function ActivityDetails({
   useEffect(() => {
     setEditedActivity({...activity});
     setSelectedEyfs(activity.eyfsStandards || []);
-  }, [activity]);
+    setIsEditMode(isEditing);
+  }, [activity, isEditing]);
 
   const execCommand = (command: string, value?: string) => {
     document.execCommand(command, false, value);
@@ -79,6 +81,7 @@ export function ActivityDetails({
         eyfsStandards: selectedEyfs
       });
     }
+    setIsEditMode(false);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,7 +101,7 @@ export function ActivityDetails({
   };
 
   const renderDescription = () => {
-    if (isEditing) {
+    if (isEditMode) {
       return (
         <div>
           {/* Rich Text Toolbar */}
@@ -191,13 +194,13 @@ export function ActivityDetails({
   };
 
   const resources = [
-    { label: 'Video', url: isEditing ? editedActivity.videoLink : activity.videoLink, icon: Video, color: 'text-red-600 bg-red-50 border-red-200', type: 'video' },
-    { label: 'Music', url: isEditing ? editedActivity.musicLink : activity.musicLink, icon: Music, color: 'text-green-600 bg-green-50 border-green-200', type: 'music' },
-    { label: 'Backing', url: isEditing ? editedActivity.backingLink : activity.backingLink, icon: Volume2, color: 'text-blue-600 bg-blue-50 border-blue-200', type: 'backing' },
-    { label: 'Resource', url: isEditing ? editedActivity.resourceLink : activity.resourceLink, icon: FileText, color: 'text-purple-600 bg-purple-50 border-purple-200', type: 'resource' },
-    { label: 'Link', url: isEditing ? editedActivity.link : activity.link, icon: LinkIcon, color: 'text-gray-600 bg-gray-50 border-gray-200', type: 'link' },
-    { label: 'Vocals', url: isEditing ? editedActivity.vocalsLink : activity.vocalsLink, icon: Volume2, color: 'text-orange-600 bg-orange-50 border-orange-200', type: 'vocals' },
-    { label: 'Image', url: isEditing ? editedActivity.imageLink : activity.imageLink, icon: Image, color: 'text-pink-600 bg-pink-50 border-pink-200', type: 'image' },
+    { label: 'Video', url: isEditMode ? editedActivity.videoLink : activity.videoLink, icon: Video, color: 'text-red-600 bg-red-50 border-red-200', type: 'video' },
+    { label: 'Music', url: isEditMode ? editedActivity.musicLink : activity.musicLink, icon: Music, color: 'text-green-600 bg-green-50 border-green-200', type: 'music' },
+    { label: 'Backing', url: isEditMode ? editedActivity.backingLink : activity.backingLink, icon: Volume2, color: 'text-blue-600 bg-blue-50 border-blue-200', type: 'backing' },
+    { label: 'Resource', url: isEditMode ? editedActivity.resourceLink : activity.resourceLink, icon: FileText, color: 'text-purple-600 bg-purple-50 border-purple-200', type: 'resource' },
+    { label: 'Link', url: isEditMode ? editedActivity.link : activity.link, icon: LinkIcon, color: 'text-gray-600 bg-gray-50 border-gray-200', type: 'link' },
+    { label: 'Vocals', url: isEditMode ? editedActivity.vocalsLink : activity.vocalsLink, icon: Volume2, color: 'text-orange-600 bg-orange-50 border-orange-200', type: 'vocals' },
+    { label: 'Image', url: isEditMode ? editedActivity.imageLink : activity.imageLink, icon: Image, color: 'text-pink-600 bg-pink-50 border-pink-200', type: 'image' },
   ].filter(resource => resource.url && resource.url.trim());
 
   const handleResourceClick = (resource: any) => {
@@ -234,7 +237,7 @@ export function ActivityDetails({
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div>
-              {isEditing ? (
+              {isEditMode ? (
                 <input
                   type="text"
                   value={editedActivity.activity}
@@ -245,7 +248,7 @@ export function ActivityDetails({
                 <h2 className="text-xl font-bold text-gray-900">{activity.activity}</h2>
               )}
               <div className="flex items-center space-x-3 mt-1">
-                {isEditing ? (
+                {isEditMode ? (
                   <select
                     value={editedActivity.category}
                     onChange={(e) => setEditedActivity(prev => ({ ...prev, category: e.target.value }))}
@@ -268,12 +271,12 @@ export function ActivityDetails({
                 ) : (
                   <p className="text-sm text-gray-600">{activity.category}</p>
                 )}
-                {activity.level && !isEditing && (
+                {activity.level && !isEditMode && (
                   <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
                     {activity.level}
                   </span>
                 )}
-                {isEditing && (
+                {isEditMode && (
                   <select
                     value={editedActivity.level}
                     onChange={(e) => setEditedActivity(prev => ({ ...prev, level: e.target.value }))}
@@ -289,6 +292,15 @@ export function ActivityDetails({
               </div>
             </div>
             <div className="flex items-center space-x-2">
+              {!isEditMode && (
+                <button
+                  onClick={() => setIsEditMode(true)}
+                  className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                  title="Edit Activity"
+                >
+                  <Edit3 className="h-5 w-5" />
+                </button>
+              )}
               <button
                 onClick={() => setShowEyfsSelector(!showEyfsSelector)}
                 className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
@@ -356,10 +368,10 @@ export function ActivityDetails({
             )}
 
             {/* Time */}
-            {(activity.time > 0 || isEditing) && (
+            {(activity.time > 0 || isEditMode) && (
               <div className="flex items-center space-x-2 mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <Clock className="h-5 w-5 text-blue-600" />
-                {isEditing ? (
+                {isEditMode ? (
                   <div className="flex items-center space-x-2">
                     <span className="text-sm font-medium text-blue-900">Duration:</span>
                     <input
@@ -393,7 +405,7 @@ export function ActivityDetails({
             </div>
 
             {/* Unit Name */}
-            {(activity.unitName || isEditing) && (
+            {(activity.unitName || isEditMode) && (
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">
                   <EditableText 
@@ -401,7 +413,7 @@ export function ActivityDetails({
                     fallback="Unit"
                   />
                 </h3>
-                {isEditing ? (
+                {isEditMode ? (
                   <input
                     type="text"
                     value={editedActivity.unitName}
@@ -438,7 +450,7 @@ export function ActivityDetails({
             )}
 
             {/* Image Upload (only in edit mode) */}
-            {isEditing && (
+            {isEditMode && (
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Activity Image</h3>
                 <div className="flex items-center space-x-4">
@@ -503,7 +515,7 @@ export function ActivityDetails({
                 />
               </h3>
               
-              {isEditing ? (
+              {isEditMode ? (
                 <div className="space-y-4">
                   {[
                     { key: 'videoLink', label: 'Video URL', icon: Video },
@@ -566,10 +578,10 @@ export function ActivityDetails({
 
           {/* Footer */}
           <div className="flex justify-between p-6 border-t border-gray-200 bg-gray-50">
-            {isEditing ? (
+            {isEditMode ? (
               <div className="flex space-x-3">
                 <button
-                  onClick={onClose}
+                  onClick={() => setIsEditMode(false)}
                   className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
                 >
                   Cancel
