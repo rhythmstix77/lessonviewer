@@ -381,6 +381,39 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
 
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+      {/* Category List */}
+      <div className="p-4 border-b border-gray-200 bg-gray-50 overflow-x-auto">
+        <div className="flex space-x-2 min-w-max">
+          <button
+            onClick={() => setSelectedCategory('all')}
+            className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+              selectedCategory === 'all' 
+                ? 'bg-gray-800 text-white' 
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <span>All Categories</span>
+          </button>
+          
+          {categories.map(category => (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category === selectedCategory ? 'all' : category)}
+              className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200`}
+              style={{
+                backgroundColor: category === selectedCategory 
+                  ? categoryColors[category] || '#6B7280'
+                  : 'transparent',
+                color: category === selectedCategory ? 'white' : 'inherit',
+                borderLeft: `4px solid ${categoryColors[category] || '#6B7280'}`
+              }}
+            >
+              <span>{category}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Header */}
       <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
         <div className="flex items-center justify-between mb-4">
@@ -557,39 +590,6 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
             ))}
           </div>
         )}
-      </div>
-
-      {/* Category List */}
-      <div className="p-4 border-t border-gray-200 bg-gray-50">
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setSelectedCategory('all')}
-            className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
-              selectedCategory === 'all' 
-                ? 'bg-gray-800 text-white' 
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <span>All Categories</span>
-          </button>
-          
-          {categories.map(category => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category === selectedCategory ? 'all' : category)}
-              className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200`}
-              style={{
-                backgroundColor: category === selectedCategory 
-                  ? categoryColors[category] || '#6B7280'
-                  : 'transparent',
-                color: category === selectedCategory ? 'white' : 'inherit',
-                borderLeft: `4px solid ${categoryColors[category] || '#6B7280'}`
-              }}
-            >
-              <span>{category}</span>
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Activity Details Modal */}
