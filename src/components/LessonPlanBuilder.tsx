@@ -127,10 +127,16 @@ export function LessonPlanBuilder() {
     // Create a deep copy of the activity to avoid reference issues
     const activityCopy = JSON.parse(JSON.stringify(activity));
     
+    // Generate a unique ID for this activity instance to ensure it's treated as unique
+    const uniqueActivity = {
+      ...activityCopy,
+      _uniqueId: Date.now() + Math.random().toString(36).substring(2, 9)
+    };
+    
     const updatedPlan = {
       ...currentLessonPlan,
-      activities: [...currentLessonPlan.activities, activityCopy],
-      duration: currentLessonPlan.duration + (activityCopy.time || 0),
+      activities: [...currentLessonPlan.activities, uniqueActivity],
+      duration: currentLessonPlan.duration + (uniqueActivity.time || 0),
     };
     
     setCurrentLessonPlan(updatedPlan);
