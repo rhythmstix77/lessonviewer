@@ -222,6 +222,7 @@ export function LessonDropZone({
   isEditing,
   onActivityClick
 }: LessonDropZoneProps) {
+  // Fix: Use the correct drag type 'activity' instead of a different type
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'activity',
     drop: (item: { activity: Activity }) => {

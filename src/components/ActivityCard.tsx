@@ -78,6 +78,7 @@ export function ActivityCard({
   const [isExpanded, setIsExpanded] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
 
+  // Fix: Use the correct drag type 'activity' instead of 'lesson-activity'
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'activity',
     item: { activity },
