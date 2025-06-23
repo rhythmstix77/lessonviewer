@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { 
-  Calendar, 
   Plus, 
   Save, 
   Edit3, 
@@ -23,8 +22,6 @@ import {
 } from 'lucide-react';
 import { ActivityCard } from './ActivityCard';
 import { LessonDropZone } from './LessonDropZone';
-import { ActivityImporter } from './ActivityImporter';
-import { ActivityCreator } from './ActivityCreator';
 import { ActivityDetails } from './ActivityDetails';
 import { useData } from '../contexts/DataContext';
 import type { Activity } from '../contexts/DataContext';
@@ -49,9 +46,6 @@ export function LessonPlanBuilder() {
   const [currentLessonPlan, setCurrentLessonPlan] = useState<LessonPlan | null>(null);
   const [lessonPlans, setLessonPlans] = useState<LessonPlan[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [showImporter, setShowImporter] = useState(false);
-  const [showCreator, setShowCreator] = useState(false);
-  const [libraryActivities, setLibraryActivities] = useState<Activity[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
@@ -218,25 +212,9 @@ export function LessonPlanBuilder() {
     }
   };
 
-  const handleImportActivities = (activities: Activity[]) => {
-    // Merge with existing activities, avoiding duplicates
-    const existingActivities = new Set(libraryActivities.map(a => `${a.activity}-${a.category}`));
-    const newActivities = activities.filter(a => !existingActivities.has(`${a.activity}-${a.category}`));
-    
-    const updatedLibrary = [...libraryActivities, ...newActivities];
-    saveLibraryActivities(updatedLibrary);
-    
-    console.log(`Imported ${newActivities.length} new activities. Total library now: ${updatedLibrary.length}`);
-  };
-
-  const handleCreateActivity = (newActivity: Activity) => {
-    // Add the new activity to the library
-    const updatedLibrary = [...libraryActivities, newActivity];
-    saveLibraryActivities(updatedLibrary);
-    console.log('New activity created:', newActivity);
-  };
-
   // Filter and sort activities for the library
+  const [libraryActivities, setLibraryActivities] = useState<Activity[]>([]);
+
   const filteredAndSortedActivities = React.useMemo(() => {
     let filtered = libraryActivities.filter(activity => {
       const matchesSearch = activity.activity.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -312,22 +290,6 @@ export function LessonPlanBuilder() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                <button
-                  onClick={() => setShowCreator(true)}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Create Activity</span>
-                </button>
-                
-                <button
-                  onClick={() => setShowImporter(true)}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                >
-                  <Upload className="h-4 w-4" />
-                  <span>Import Activities</span>
-                </button>
-
                 {currentLessonPlan && (
                   <>
                     <button
@@ -505,22 +467,6 @@ export function LessonPlanBuilder() {
                         : 'No activities available in the library'
                       }
                     </p>
-                    <div className="mt-4 flex justify-center space-x-2">
-                      <button
-                        onClick={() => setShowCreator(true)}
-                        className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 inline-flex items-center space-x-1"
-                      >
-                        <Plus className="h-3 w-3" />
-                        <span>Create</span>
-                      </button>
-                      <button
-                        onClick={() => setShowImporter(true)}
-                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 inline-flex items-center space-x-1"
-                      >
-                        <Upload className="h-3 w-3" />
-                        <span>Import</span>
-                      </button>
-                    </div>
                   </div>
                 ) : (
                   <div className={`
@@ -578,12 +524,12 @@ export function LessonPlanBuilder() {
             </div>
           )}
 
-          {currentView === 'builder' && currentLessonPlan && (
+          {currentView === 'builder' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Lesson Plan Details */}
               <div className="lg:col-span-2">
                 <LessonDropZone
-                  lessonPlan={currentLessonPlan}
+                  lessonPlan={currentLessonPlan!}
                   onActivityAdd={handleActivityAdd}
                   onActivityRemove={handleActivityRemove}
                   onActivityReorder={handleActivityReorder}
@@ -639,22 +585,6 @@ export function LessonPlanBuilder() {
                     {filteredAndSortedActivities.length === 0 ? (
                       <div className="text-center py-8">
                         <p className="text-gray-500">No matching activities found</p>
-                        <div className="mt-4 flex justify-center space-x-2">
-                          <button
-                            onClick={() => setShowCreator(true)}
-                            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 inline-flex items-center space-x-1"
-                          >
-                            <Plus className="h-3 w-3" />
-                            <span>Create</span>
-                          </button>
-                          <button
-                            onClick={() => setShowImporter(true)}
-                            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 inline-flex items-center space-x-1"
-                          >
-                            <Upload className="h-3 w-3" />
-                            <span>Import</span>
-                          </button>
-                        </div>
                       </div>
                     ) : (
                       <div className="space-y-3">
@@ -693,24 +623,6 @@ export function LessonPlanBuilder() {
           )}
         </div>
       </div>
-
-      {/* Activity Creator Modal */}
-      {showCreator && (
-        <ActivityCreator 
-          onSave={handleCreateActivity}
-          onClose={() => setShowCreator(false)}
-          categories={categories}
-          levels={levels}
-        />
-      )}
-
-      {/* Activity Importer Modal */}
-      {showImporter && (
-        <ActivityImporter 
-          onImport={handleImportActivities}
-          onClose={() => setShowImporter(false)}
-        />
-      )}
 
       {/* Activity Details Modal */}
       {selectedActivity && (
