@@ -154,7 +154,8 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
     setSelectedActivityDetails(activity);
   };
 
-  const handleEditActivity = (activity: Activity) => {
+  const handleEditActivity = (activity: Activity, e: React.MouseEvent) => {
+    e.stopPropagation();
     setSelectedActivityDetails(activity);
     setEditingActivity(activity);
   };
@@ -318,10 +319,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
               <div key={`${activity.activity}-${activity.category}-${index}`} className="relative group h-full">
                 {/* Edit button in corner */}
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEditActivity(activity);
-                  }}
+                  onClick={(e) => handleEditActivity(activity, e)}
                   className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                   title="Edit Activity"
                 >
@@ -336,10 +334,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
                   isEditing={false}
                   categoryColor={categoryColors[activity.category] || '#6B7280'}
                   viewMode={viewMode === 'grid' ? 'detailed' : viewMode === 'list' ? 'compact' : 'minimal'}
-                  onActivityClick={(activity) => {
-                    // First show details, then if user confirms, add to lesson
-                    handleViewActivityDetails(activity);
-                  }}
+                  onActivityClick={handleViewActivityDetails}
                   draggable={false}
                 />
               </div>
@@ -360,7 +355,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
             onActivitySelect(selectedActivityDetails);
             setSelectedActivityDetails(null);
           }}
-          isEditing={!!editingActivity}
+          isEditing={selectedActivityDetails === editingActivity}
           onUpdate={(updatedActivity) => {
             handleActivityUpdate(updatedActivity);
             setEditingActivity(null);
