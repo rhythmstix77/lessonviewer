@@ -22,6 +22,7 @@ import {
   ChevronUp,
   Tag
 } from 'lucide-react';
+import { useSettings } from '../contexts/SettingsContext';
 import type { Activity } from '../contexts/DataContext';
 
 interface ActivityCardProps {
@@ -31,27 +32,12 @@ interface ActivityCardProps {
   onDuplicate?: (activity: Activity) => void;
   isEditing?: boolean;
   onEditToggle?: () => void;
-  categoryColor: string;
+  categoryColor?: string;
   viewMode?: 'compact' | 'detailed' | 'minimal';
   onResourceClick?: (url: string, title: string, type: string) => void;
   onActivityClick?: (activity: Activity) => void;
   draggable?: boolean;
 }
-
-const categoryColors: Record<string, string> = {
-  'Welcome': '#F59E0B',
-  'Kodaly Songs': '#8B5CF6',
-  'Kodaly Action Songs': '#F97316',
-  'Action/Games Songs': '#F97316',
-  'Rhythm Sticks': '#D97706',
-  'Scarf Songs': '#10B981',
-  'General Game': '#3B82F6',
-  'Core Songs': '#84CC16',
-  'Parachute Games': '#EF4444',
-  'Percussion Games': '#06B6D4',
-  'Teaching Units': '#6366F1',
-  'Goodbye': '#14B8A6'
-};
 
 // Character limit for truncated description
 const DESCRIPTION_CHAR_LIMIT = 150;
@@ -69,6 +55,7 @@ export function ActivityCard({
   onActivityClick,
   draggable = false
 }: ActivityCardProps) {
+  const { getCategoryColor } = useSettings();
   const [editedActivity, setEditedActivity] = useState<Activity>(activity);
   const [showResources, setShowResources] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -152,7 +139,8 @@ export function ActivityCard({
     { label: 'Image', url: activity.imageLink, icon: Image, color: 'text-pink-600 bg-pink-50 border-pink-200', type: 'image' },
   ].filter(resource => resource.url && resource.url.trim());
 
-  const cardColor = categoryColors[activity.category] || categoryColor;
+  // Get category color from context or use provided color
+  const cardColor = getCategoryColor(activity.category) || categoryColor || '#6B7280';
 
   const handleCardClick = (e: React.MouseEvent) => {
     // Don't trigger card click if clicking on a button or link
