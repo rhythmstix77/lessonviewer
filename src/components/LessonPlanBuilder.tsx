@@ -34,7 +34,8 @@ import {
   Minimize2,
   ExternalLink,
   Play,
-  Pause
+  Pause,
+  ChevronDown
 } from 'lucide-react';
 import { ActivityCard } from './ActivityCard';
 import { LessonPlannerCalendar } from './LessonPlannerCalendar';
@@ -609,6 +610,22 @@ export function LessonPlanBuilder() {
                     <h3 className="text-lg font-semibold">Quick Add Activities</h3>
                     <p className="text-purple-100 text-sm">Drag activities to your lesson plan</p>
                     
+                    {/* Category Selector */}
+                    <div className="mt-3">
+                      <select
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
+                      >
+                        <option value="all" className="text-gray-900">All Categories</option>
+                        {categories.map(category => (
+                          <option key={category} value={category} className="text-gray-900">
+                            {category}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
                     {/* Mini search */}
                     <div className="mt-3 relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-purple-300" />
@@ -636,7 +653,7 @@ export function LessonPlanBuilder() {
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {filteredAndSortedActivities.slice(0, 20).map((activity, index) => (
+                        {filteredAndSortedActivities.map((activity, index) => (
                           <ActivityCard 
                             key={`${activity.activity}-${activity.category}-${index}`}
                             activity={activity}
@@ -660,11 +677,6 @@ export function LessonPlanBuilder() {
                             onResourceClick={(url, title, type) => setSelectedResource({url, title, type})}
                           />
                         ))}
-                        {filteredAndSortedActivities.length > 20 && (
-                          <div className="text-center text-sm text-gray-500 pt-2">
-                            + {filteredAndSortedActivities.length - 20} more activities
-                          </div>
-                        )}
                       </div>
                     )}
                   </div>
