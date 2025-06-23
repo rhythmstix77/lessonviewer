@@ -143,9 +143,10 @@ export function LessonPlanBuilder() {
       const updatedPlan = {
         ...currentLessonPlan,
         activities: [...currentLessonPlan.activities, activity],
-        duration: currentLessonPlan.duration + activity.time,
+        duration: currentLessonPlan.duration + (activity.time || 0),
       };
       setCurrentLessonPlan(updatedPlan);
+      handleUpdateLessonPlan(updatedPlan);
     }
   };
 
@@ -155,9 +156,10 @@ export function LessonPlanBuilder() {
       const updatedPlan = {
         ...currentLessonPlan,
         activities: currentLessonPlan.activities.filter((_, index) => index !== activityIndex),
-        duration: currentLessonPlan.duration - removedActivity.time,
+        duration: currentLessonPlan.duration - (removedActivity.time || 0),
       };
       setCurrentLessonPlan(updatedPlan);
+      handleUpdateLessonPlan(updatedPlan);
     }
   };
 
@@ -168,10 +170,13 @@ export function LessonPlanBuilder() {
       newActivities.splice(dragIndex, 1);
       newActivities.splice(hoverIndex, 0, draggedActivity);
       
-      setCurrentLessonPlan({
+      const updatedPlan = {
         ...currentLessonPlan,
         activities: newActivities,
-      });
+      };
+      
+      setCurrentLessonPlan(updatedPlan);
+      handleUpdateLessonPlan(updatedPlan);
     }
   };
 
@@ -500,20 +505,20 @@ export function LessonPlanBuilder() {
                         : 'No activities available in the library'
                       }
                     </p>
-                    <div className="mt-6 flex justify-center space-x-4">
+                    <div className="mt-4 flex justify-center space-x-2">
                       <button
                         onClick={() => setShowCreator(true)}
-                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 inline-flex items-center space-x-2"
+                        className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 inline-flex items-center space-x-1"
                       >
-                        <Plus className="h-4 w-4" />
-                        <span>Create Activity</span>
+                        <Plus className="h-3 w-3" />
+                        <span>Create</span>
                       </button>
                       <button
                         onClick={() => setShowImporter(true)}
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 inline-flex items-center space-x-2"
+                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 inline-flex items-center space-x-1"
                       >
-                        <Upload className="h-4 w-4" />
-                        <span>Import Activities</span>
+                        <Upload className="h-3 w-3" />
+                        <span>Import</span>
                       </button>
                     </div>
                   </div>
@@ -557,6 +562,19 @@ export function LessonPlanBuilder() {
                   </div>
                 )}
               </div>
+
+              {/* Activity Details Modal */}
+              {selectedActivity && (
+                <ActivityDetails
+                  activity={selectedActivity}
+                  onClose={() => setSelectedActivity(null)}
+                  onAddToLesson={() => {
+                    handleActivityAdd(selectedActivity);
+                    setSelectedActivity(null);
+                    setCurrentView('builder');
+                  }}
+                />
+              )}
             </div>
           )}
 
@@ -569,7 +587,13 @@ export function LessonPlanBuilder() {
                   onActivityAdd={handleActivityAdd}
                   onActivityRemove={handleActivityRemove}
                   onActivityReorder={handleActivityReorder}
-                  onNotesUpdate={(notes) => setCurrentLessonPlan(prev => prev ? { ...prev, notes } : null)}
+                  onNotesUpdate={(notes) => {
+                    if (currentLessonPlan) {
+                      const updatedPlan = { ...currentLessonPlan, notes };
+                      setCurrentLessonPlan(updatedPlan);
+                      handleUpdateLessonPlan(updatedPlan);
+                    }
+                  }}
                   isEditing={isEditing}
                   onActivityClick={(activity) => setSelectedActivity(activity)}
                 />
@@ -578,9 +602,9 @@ export function LessonPlanBuilder() {
               {/* Quick Activity Library */}
               <div className="lg:col-span-1">
                 <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden sticky top-8">
-                  <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+                  <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
                     <h3 className="text-lg font-semibold">Quick Add Activities</h3>
-                    <p className="text-purple-100 text-sm">Click or drag activities to your lesson plan</p>
+                    <p className="text-blue-100 text-sm">Click or drag activities to your lesson plan</p>
                     
                     {/* Category Selector */}
                     <div className="mt-3">
@@ -600,13 +624,13 @@ export function LessonPlanBuilder() {
                     
                     {/* Mini search */}
                     <div className="mt-3 relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-purple-300" />
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-blue-300" />
                       <input
                         type="text"
                         placeholder="Filter activities..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-purple-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
+                        className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
                       />
                     </div>
                   </div>
@@ -655,7 +679,9 @@ export function LessonPlanBuilder() {
                               }[activity.category] || '#6B7280'
                             : '#6B7280'}
                             viewMode="compact"
-                            onActivityClick={handleActivityAdd}
+                            onActivityClick={(activity) => {
+                              handleActivityAdd(activity);
+                            }}
                           />
                         ))}
                       </div>
@@ -691,6 +717,10 @@ export function LessonPlanBuilder() {
         <ActivityDetails
           activity={selectedActivity}
           onClose={() => setSelectedActivity(null)}
+          onAddToLesson={() => {
+            handleActivityAdd(selectedActivity);
+            setSelectedActivity(null);
+          }}
         />
       )}
     </DndProvider>
