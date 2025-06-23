@@ -5,7 +5,7 @@ import { ActivityDetails } from './ActivityDetails';
 import { ExportButtons } from './ExportButtons';
 import { EyfsStandardsList } from './EyfsStandardsList';
 import { EyfsStandardsSelector } from './EyfsStandardsSelector';
-import { BookOpen, X, ChevronRight, ChevronDown, ChevronUp, FileText, ExternalLink, Clock, Users } from 'lucide-react';
+import { BookOpen, X, ChevronRight, ChevronDown, ChevronUp, FileText, ExternalLink, Clock, Users, Tag } from 'lucide-react';
 import type { Activity } from '../contexts/DataContext';
 
 // Define half-term periods
@@ -29,6 +29,7 @@ const LESSON_TO_HALF_TERM: Record<string, string> = {
 };
 
 export function UnitViewer() {
+  // ALL HOOKS MUST BE AT THE TOP - BEFORE ANY CONDITIONAL RETURNS
   const { loading, lessonNumbers, allLessonsData, currentSheetInfo } = useData();
   const { getThemeForClass } = useSettings();
   const [selectedLesson, setSelectedLesson] = useState<string>('');
@@ -42,32 +43,7 @@ export function UnitViewer() {
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
 
-  // Scroll to top when a lesson is selected
-  React.useEffect(() => {
-    if (selectedLesson && topRef.current) {
-      topRef.current.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
-      });
-    }
-  }, [selectedLesson]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative mx-auto mb-6">
-            <div className="w-24 h-24 border-4 border-gray-200 rounded-full"></div>
-            <div className="absolute top-0 left-0 w-24 h-24 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Lesson Data</h2>
-          <p className="text-gray-600">Please wait while we fetch your {currentSheetInfo.display} lessons...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Group lessons by half-term
+  // Group lessons by half-term - useMemo MUST be after all other hooks
   const lessonsByHalfTerm = React.useMemo(() => {
     const grouped: Record<string, string[]> = {};
     
@@ -87,6 +63,32 @@ export function UnitViewer() {
     
     return grouped;
   }, [lessonNumbers]);
+
+  // Scroll to top when a lesson is selected
+  React.useEffect(() => {
+    if (selectedLesson && topRef.current) {
+      topRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+      });
+    }
+  }, [selectedLesson]);
+
+  // NOW we can have conditional returns - all hooks are above this point
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative mx-auto mb-6">
+            <div className="w-24 h-24 border-4 border-gray-200 rounded-full"></div>
+            <div className="absolute top-0 left-0 w-24 h-24 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading Lesson Data</h2>
+          <p className="text-gray-600">Please wait while we fetch your {currentSheetInfo.display} lessons...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleLessonSelect = (lessonNumber: string) => {
     setSelectedLesson(lessonNumber === selectedLesson ? '' : lessonNumber);
@@ -474,7 +476,7 @@ export function UnitViewer() {
                             return (
                               <div 
                                 key={lessonNum}
-                                className="bg-white rounded-xl shadow-md border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 overflow-hidden"
+                                className="bg-white rounded-xl shadow-md border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 overflow-hidden cursor-pointer"
                                 onClick={() => handleLessonSelect(lessonNum)}
                               >
                                 {/* Lesson Header */}
