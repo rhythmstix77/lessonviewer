@@ -8,7 +8,6 @@ import {
   FileText, 
   GripVertical, 
   Trash2,
-  Edit3,
   Save,
   X,
   Bold,
@@ -288,7 +287,7 @@ export function LessonDropZone({
         <EyfsStandardsSelector lessonNumber={lessonPlan.id} />
       </div>
 
-      {/* Drop Zone */}
+      {/* Activities List */}
       <div
         ref={drop}
         className={`p-6 min-h-[400px] transition-colors duration-200 ${
@@ -310,7 +309,7 @@ export function LessonDropZone({
             <p className="text-gray-600">
               {isOver 
                 ? 'Release to add this activity to your lesson plan'
-                : 'Drag activities from the library to build your lesson plan'
+                : 'Select activities from the panel to build your lesson plan'
               }
             </p>
           </div>
@@ -327,21 +326,6 @@ export function LessonDropZone({
                 onActivityClick={onActivityClick}
               />
             ))}
-            
-            {isEditing && (
-              <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors duration-200 ${
-                isOver ? 'border-blue-400 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
-              }`}>
-                <Plus className={`h-8 w-8 mx-auto mb-2 transition-colors duration-200 ${
-                  isOver ? 'text-blue-600' : 'text-gray-400'
-                }`} />
-                <p className={`font-medium transition-colors duration-200 ${
-                  isOver ? 'text-blue-600' : 'text-gray-600'
-                }`}>
-                  {isOver ? 'Drop to add activity' : 'Drag more activities here'}
-                </p>
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -353,101 +337,88 @@ export function LessonDropZone({
           <h3 className="font-medium text-gray-900">Lesson Notes</h3>
         </div>
         
-        {isEditing ? (
-          <div>
-            {isRichTextEditing ? (
-              <div>
-                {/* Rich Text Toolbar */}
-                <div className="flex items-center space-x-1 mb-2 p-2 bg-white rounded-lg border border-gray-200">
-                  <button
-                    onClick={() => execCommand('bold')}
-                    className="p-1 hover:bg-gray-100 rounded"
-                    title="Bold"
-                  >
-                    <Bold className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => execCommand('italic')}
-                    className="p-1 hover:bg-gray-100 rounded"
-                    title="Italic"
-                  >
-                    <Italic className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => execCommand('underline')}
-                    className="p-1 hover:bg-gray-100 rounded"
-                    title="Underline"
-                  >
-                    <Underline className="h-4 w-4" />
-                  </button>
-                  <div className="w-px h-6 bg-gray-300 mx-1"></div>
-                  <button
-                    onClick={() => execCommand('insertUnorderedList')}
-                    className="p-1 hover:bg-gray-100 rounded"
-                    title="Bullet List"
-                  >
-                    <List className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => execCommand('insertOrderedList')}
-                    className="p-1 hover:bg-gray-100 rounded"
-                    title="Numbered List"
-                  >
-                    <ListOrdered className="h-4 w-4" />
-                  </button>
-                </div>
-                
-                <div
-                  ref={notesRef}
-                  contentEditable
-                  className="min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none bg-white"
-                  dangerouslySetInnerHTML={{ __html: lessonPlan.notes }}
-                  onInput={(e) => {
-                    const target = e.target as HTMLDivElement;
-                    onNotesUpdate(target.innerHTML);
-                  }}
-                />
-                
-                <div className="flex justify-end mt-2">
-                  <button
-                    onClick={() => setIsRichTextEditing(false)}
-                    className="text-sm text-gray-600 hover:text-gray-900"
-                  >
-                    Switch to plain text
-                  </button>
-                </div>
+        <div>
+          {isRichTextEditing ? (
+            <div>
+              {/* Rich Text Toolbar */}
+              <div className="flex items-center space-x-1 mb-2 p-2 bg-white rounded-lg border border-gray-200">
+                <button
+                  onClick={() => execCommand('bold')}
+                  className="p-1 hover:bg-gray-100 rounded"
+                  title="Bold"
+                >
+                  <Bold className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => execCommand('italic')}
+                  className="p-1 hover:bg-gray-100 rounded"
+                  title="Italic"
+                >
+                  <Italic className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => execCommand('underline')}
+                  className="p-1 hover:bg-gray-100 rounded"
+                  title="Underline"
+                >
+                  <Underline className="h-4 w-4" />
+                </button>
+                <div className="w-px h-6 bg-gray-300 mx-1"></div>
+                <button
+                  onClick={() => execCommand('insertUnorderedList')}
+                  className="p-1 hover:bg-gray-100 rounded"
+                  title="Bullet List"
+                >
+                  <List className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => execCommand('insertOrderedList')}
+                  className="p-1 hover:bg-gray-100 rounded"
+                  title="Numbered List"
+                >
+                  <ListOrdered className="h-4 w-4" />
+                </button>
               </div>
-            ) : (
-              <div>
-                <textarea
-                  value={lessonPlan.notes.replace(/<br\s*\/?>/g, '\n').replace(/<[^>]*>/g, '')}
-                  onChange={(e) => onNotesUpdate(e.target.value)}
-                  className="w-full h-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
-                  placeholder="Add notes about this lesson plan..."
-                />
-                <div className="flex justify-end mt-2">
-                  <button
-                    onClick={() => setIsRichTextEditing(true)}
-                    className="text-sm text-gray-600 hover:text-gray-900"
-                  >
-                    Use rich text editor
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="text-gray-700">
-            {lessonPlan.notes ? (
-              <div 
-                className="prose prose-sm max-w-none"
+              
+              <div
+                ref={notesRef}
+                contentEditable
+                className="min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none bg-white"
                 dangerouslySetInnerHTML={{ __html: lessonPlan.notes }}
+                onInput={(e) => {
+                  const target = e.target as HTMLDivElement;
+                  onNotesUpdate(target.innerHTML);
+                }}
               />
-            ) : (
-              <p className="text-gray-500 italic">No notes added yet</p>
-            )}
-          </div>
-        )}
+              
+              <div className="flex justify-end mt-2">
+                <button
+                  onClick={() => setIsRichTextEditing(false)}
+                  className="text-sm text-gray-600 hover:text-gray-900"
+                >
+                  Switch to plain text
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <textarea
+                value={lessonPlan.notes.replace(/<br\s*\/?>/g, '\n').replace(/<[^>]*>/g, '')}
+                onChange={(e) => onNotesUpdate(e.target.value)}
+                className="w-full h-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+                placeholder="Add notes about this lesson plan..."
+              />
+              <div className="flex justify-end mt-2">
+                <button
+                  onClick={() => setIsRichTextEditing(true)}
+                  className="text-sm text-gray-600 hover:text-gray-900"
+                >
+                  Use rich text editor
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

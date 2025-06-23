@@ -3,7 +3,6 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { 
   Save, 
-  Edit3, 
   Clock, 
   Users, 
   Download,
@@ -13,7 +12,10 @@ import {
   Tag,
   SortAsc,
   SortDesc,
-  MoreVertical
+  MoreVertical,
+  Plus,
+  Check,
+  Filter
 } from 'lucide-react';
 import { ActivityCard } from './ActivityCard';
 import { LessonDropZone } from './LessonDropZone';
@@ -52,7 +54,6 @@ export function LessonPlanBuilder() {
   }));
   
   const [lessonPlans, setLessonPlans] = useState<LessonPlan[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
@@ -61,6 +62,7 @@ export function LessonPlanBuilder() {
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [libraryActivities, setLibraryActivities] = useState<Activity[]>([]);
+  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
 
   // Load lesson plans from localStorage
   useEffect(() => {
@@ -171,7 +173,6 @@ export function LessonPlanBuilder() {
 
   const handleSaveLessonPlan = () => {
     handleUpdateLessonPlan(currentLessonPlan);
-    setIsEditing(false);
   };
 
   const handleExportLessonPlan = () => {
@@ -259,6 +260,29 @@ export function LessonPlanBuilder() {
     }
   };
 
+  // Toggle activity selection
+  const toggleActivitySelection = (activityId: string) => {
+    if (selectedActivities.includes(activityId)) {
+      setSelectedActivities(prev => prev.filter(id => id !== activityId));
+    } else {
+      setSelectedActivities(prev => [...prev, activityId]);
+    }
+  };
+
+  // Add selected activities to lesson plan
+  const addSelectedActivities = () => {
+    const activitiesToAdd = libraryActivities.filter(activity => 
+      selectedActivities.includes(`${activity.activity}-${activity.category}`)
+    );
+    
+    activitiesToAdd.forEach(activity => {
+      handleActivityAdd(activity);
+    });
+    
+    // Clear selections after adding
+    setSelectedActivities([]);
+  };
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
@@ -287,23 +311,13 @@ export function LessonPlanBuilder() {
                   <span>Export</span>
                 </button>
                 
-                {isEditing ? (
-                  <button
-                    onClick={handleSaveLessonPlan}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    <span>Save Plan</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                  >
-                    <Edit3 className="h-4 w-4" />
-                    <span>Edit Plan</span>
-                  </button>
-                )}
+                <button
+                  onClick={handleSaveLessonPlan}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>Save Plan</span>
+                </button>
               </div>
             </div>
           </div>
@@ -322,7 +336,7 @@ export function LessonPlanBuilder() {
                   setCurrentLessonPlan(updatedPlan);
                   handleUpdateLessonPlan(updatedPlan);
                 }}
-                isEditing={isEditing}
+                isEditing={true}
                 onActivityClick={(activity) => setSelectedActivity(activity)}
               />
             </div>
@@ -332,7 +346,7 @@ export function LessonPlanBuilder() {
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden sticky top-8">
                 <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
                   <h3 className="text-lg font-semibold">Quick Add Activities</h3>
-                  <p className="text-blue-100 text-sm">Drag activities to your lesson plan</p>
+                  <p className="text-blue-100 text-sm">Select activities to add to your lesson plan</p>
                   
                   {/* Category Selector */}
                   <div className="mt-3">
@@ -361,6 +375,19 @@ export function LessonPlanBuilder() {
                       className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
                     />
                   </div>
+                  
+                  {/* Add Selected Button */}
+                  {selectedActivities.length > 0 && (
+                    <div className="mt-3">
+                      <button
+                        onClick={addSelectedActivities}
+                        className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span>Add {selectedActivities.length} Selected {selectedActivities.length === 1 ? 'Activity' : 'Activities'}</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="p-4 max-h-[600px] overflow-y-auto">
@@ -370,32 +397,73 @@ export function LessonPlanBuilder() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {filteredAndSortedActivities.map((activity, index) => (
-                        <div key={`${activity.activity}-${activity.category}-${index}`}>
-                          <ActivityCard 
-                            activity={activity}
-                            categoryColor={activity.category ? 
-                              {
-                                'Welcome': '#F59E0B',
-                                'Kodaly Songs': '#8B5CF6',
-                                'Kodaly Action Songs': '#F97316',
-                                'Action/Games Songs': '#F97316',
-                                'Rhythm Sticks': '#D97706',
-                                'Scarf Songs': '#10B981',
-                                'General Game': '#3B82F6',
-                                'Core Songs': '#84CC16',
-                                'Parachute Games': '#EF4444',
-                                'Percussion Games': '#06B6D4',
-                                'Teaching Units': '#6366F1',
-                                'Goodbye': '#14B8A6'
-                              }[activity.category] || '#6B7280'
-                            : '#6B7280'}
-                            viewMode="compact"
-                            onActivityClick={() => handleActivityAdd(activity)}
-                            draggable={true}
-                          />
-                        </div>
-                      ))}
+                      {filteredAndSortedActivities.map((activity, index) => {
+                        const activityId = `${activity.activity}-${activity.category}`;
+                        const isSelected = selectedActivities.includes(activityId);
+                        
+                        return (
+                          <div 
+                            key={`${activityId}-${index}`}
+                            className={`relative bg-white rounded-lg border-2 p-3 transition-all duration-200 hover:shadow-md ${
+                              isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                            }`}
+                            onClick={() => toggleActivitySelection(activityId)}
+                          >
+                            {/* Checkbox */}
+                            <div className="absolute top-3 right-3 z-10">
+                              <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                                isSelected ? 'bg-blue-600' : 'border-2 border-gray-300'
+                              }`}>
+                                {isSelected && <Check className="h-3 w-3 text-white" />}
+                              </div>
+                            </div>
+                            
+                            <div className="pr-6">
+                              <div className="flex items-start">
+                                <div 
+                                  className="w-1 h-full rounded-full flex-shrink-0 mr-2"
+                                  style={{ 
+                                    backgroundColor: activity.category ? 
+                                      {
+                                        'Welcome': '#F59E0B',
+                                        'Kodaly Songs': '#8B5CF6',
+                                        'Kodaly Action Songs': '#F97316',
+                                        'Action/Games Songs': '#F97316',
+                                        'Rhythm Sticks': '#D97706',
+                                        'Scarf Songs': '#10B981',
+                                        'General Game': '#3B82F6',
+                                        'Core Songs': '#84CC16',
+                                        'Parachute Games': '#EF4444',
+                                        'Percussion Games': '#06B6D4',
+                                        'Teaching Units': '#6366F1',
+                                        'Goodbye': '#14B8A6'
+                                      }[activity.category] || '#6B7280'
+                                    : '#6B7280',
+                                    minHeight: '40px'
+                                  }}
+                                />
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-gray-900 text-sm">{activity.activity}</h4>
+                                  <div className="flex items-center space-x-2 mt-1">
+                                    <span className="text-xs text-gray-500">{activity.category}</span>
+                                    {activity.level && (
+                                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                        {activity.level}
+                                      </span>
+                                    )}
+                                    {activity.time > 0 && (
+                                      <span className="text-xs text-gray-500 flex items-center">
+                                        <Clock className="h-3 w-3 mr-1" />
+                                        {activity.time}m
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
