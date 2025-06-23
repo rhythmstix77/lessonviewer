@@ -586,7 +586,7 @@ export function LessonPlanBuilder() {
                     {filteredAndSortedActivities.map((activity, index) => (
                       <div 
                         key={`${activity.activity}-${activity.category}-${index}`}
-                        onClick={() => onActivitySelect(activity)}
+                        onClick={() => handleActivityAdd(activity)}
                         className="cursor-pointer"
                       >
                         <ActivityCard 
@@ -712,7 +712,7 @@ export function LessonPlanBuilder() {
                               }[activity.category] || '#6B7280'
                             : '#6B7280'}
                             viewMode="compact"
-                            onResourceClick={(url, title, type) => setSelectedResource({url, title, type})}
+                            onActivityClick={handleActivityAdd}
                           />
                         ))}
                       </div>
