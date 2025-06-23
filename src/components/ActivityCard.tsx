@@ -77,7 +77,7 @@ export function ActivityCard({
   // Only set up drag if draggable is true
   const dragRef = useRef<HTMLDivElement>(null);
   
-  React.useEffect(() => {
+  useEffect(() => {
     setEditedActivity(activity);
   }, [activity]);
 

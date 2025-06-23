@@ -171,9 +171,33 @@ export function DataProvider({ children }: DataProviderProps) {
   const loadEyfsStatements = async () => {
     try {
       // Try to load from server
-      const response = await eyfsApi.getBySheet(currentSheetInfo.sheet);
-      if (response && response.allStatements) {
-        setAllEyfsStatements(response.allStatements);
+      try {
+        const response = await eyfsApi.getBySheet(currentSheetInfo.sheet);
+        if (response && response.allStatements) {
+          setAllEyfsStatements(response.allStatements);
+          return;
+        }
+      } catch (serverError) {
+        console.warn('Failed to load EYFS statements from server:', serverError);
+      }
+      
+      // Fallback to localStorage
+      const savedStandards = localStorage.getItem(`eyfs-standards-${currentSheetInfo.sheet}`);
+      if (savedStandards) {
+        try {
+          const parsedStandards = JSON.parse(savedStandards);
+          // Convert from object format to flat array
+          const flatStandards: string[] = [];
+          Object.entries(parsedStandards).forEach(([area, details]) => {
+            (details as string[]).forEach(detail => {
+              flatStandards.push(`${area}: ${detail}`);
+            });
+          });
+          setAllEyfsStatements(flatStandards.length > 0 ? flatStandards : DEFAULT_EYFS_STATEMENTS);
+        } catch (error) {
+          console.error('Error parsing saved EYFS standards:', error);
+          setAllEyfsStatements(DEFAULT_EYFS_STATEMENTS);
+        }
       } else {
         // Use default standards if none saved
         setAllEyfsStatements(DEFAULT_EYFS_STATEMENTS);
@@ -240,7 +264,7 @@ export function DataProvider({ children }: DataProviderProps) {
       const sheetData = SAMPLE_DATA[currentSheetInfo.sheet as keyof typeof SAMPLE_DATA];
       
       if (sheetData && sheetData.length > 0) {
-        processSheetData(sheetData);
+        await processSheetData(sheetData);
         console.log(`Successfully loaded sample data for ${currentSheetInfo.sheet}`);
       } else {
         throw new Error(`No sample data available for ${currentSheetInfo.sheet}`);
