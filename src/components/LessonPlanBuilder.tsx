@@ -36,7 +36,21 @@ interface LessonPlan {
 
 export function LessonPlanBuilder() {
   const { currentSheetInfo, allLessonsData } = useData();
-  const [currentLessonPlan, setCurrentLessonPlan] = useState<LessonPlan | null>(null);
+  
+  // Initialize currentLessonPlan with a default value instead of null
+  const [currentLessonPlan, setCurrentLessonPlan] = useState<LessonPlan>(() => ({
+    id: `plan-${Date.now()}`,
+    date: new Date(),
+    week: 1,
+    className: currentSheetInfo.sheet,
+    activities: [],
+    duration: 0,
+    notes: '',
+    status: 'planned',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }));
+  
   const [lessonPlans, setLessonPlans] = useState<LessonPlan[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,6 +60,7 @@ export function LessonPlanBuilder() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [libraryActivities, setLibraryActivities] = useState<Activity[]>([]);
 
   // Load lesson plans from localStorage
   useEffect(() => {
@@ -58,23 +73,6 @@ export function LessonPlanBuilder() {
         updatedAt: new Date(plan.updatedAt),
       }));
       setLessonPlans(plans);
-    }
-
-    // Create a default lesson plan if none exists
-    if (!currentLessonPlan) {
-      const newPlan: LessonPlan = {
-        id: `plan-${Date.now()}`,
-        date: new Date(),
-        week: 1,
-        className: currentSheetInfo.sheet,
-        activities: [],
-        duration: 0,
-        notes: '',
-        status: 'planned',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      setCurrentLessonPlan(newPlan);
     }
 
     // Load library activities
@@ -126,88 +124,76 @@ export function LessonPlanBuilder() {
   };
 
   const handleActivityAdd = (activity: Activity) => {
-    if (currentLessonPlan) {
-      const updatedPlan = {
-        ...currentLessonPlan,
-        activities: [...currentLessonPlan.activities, activity],
-        duration: currentLessonPlan.duration + (activity.time || 0),
-      };
-      setCurrentLessonPlan(updatedPlan);
-      handleUpdateLessonPlan(updatedPlan);
-    }
+    const updatedPlan = {
+      ...currentLessonPlan,
+      activities: [...currentLessonPlan.activities, activity],
+      duration: currentLessonPlan.duration + (activity.time || 0),
+    };
+    setCurrentLessonPlan(updatedPlan);
+    handleUpdateLessonPlan(updatedPlan);
   };
 
   const handleActivityRemove = (activityIndex: number) => {
-    if (currentLessonPlan) {
-      const removedActivity = currentLessonPlan.activities[activityIndex];
-      const updatedPlan = {
-        ...currentLessonPlan,
-        activities: currentLessonPlan.activities.filter((_, index) => index !== activityIndex),
-        duration: currentLessonPlan.duration - (removedActivity.time || 0),
-      };
-      setCurrentLessonPlan(updatedPlan);
-      handleUpdateLessonPlan(updatedPlan);
-    }
+    const removedActivity = currentLessonPlan.activities[activityIndex];
+    const updatedPlan = {
+      ...currentLessonPlan,
+      activities: currentLessonPlan.activities.filter((_, index) => index !== activityIndex),
+      duration: currentLessonPlan.duration - (removedActivity.time || 0),
+    };
+    setCurrentLessonPlan(updatedPlan);
+    handleUpdateLessonPlan(updatedPlan);
   };
 
   const handleActivityReorder = (dragIndex: number, hoverIndex: number) => {
-    if (currentLessonPlan) {
-      const draggedActivity = currentLessonPlan.activities[dragIndex];
-      const newActivities = [...currentLessonPlan.activities];
-      newActivities.splice(dragIndex, 1);
-      newActivities.splice(hoverIndex, 0, draggedActivity);
-      
-      const updatedPlan = {
-        ...currentLessonPlan,
-        activities: newActivities,
-      };
-      
-      setCurrentLessonPlan(updatedPlan);
-      handleUpdateLessonPlan(updatedPlan);
-    }
+    const draggedActivity = currentLessonPlan.activities[dragIndex];
+    const newActivities = [...currentLessonPlan.activities];
+    newActivities.splice(dragIndex, 1);
+    newActivities.splice(hoverIndex, 0, draggedActivity);
+    
+    const updatedPlan = {
+      ...currentLessonPlan,
+      activities: newActivities,
+    };
+    
+    setCurrentLessonPlan(updatedPlan);
+    handleUpdateLessonPlan(updatedPlan);
   };
 
   const handleSaveLessonPlan = () => {
-    if (currentLessonPlan) {
-      handleUpdateLessonPlan(currentLessonPlan);
-      setIsEditing(false);
-    }
+    handleUpdateLessonPlan(currentLessonPlan);
+    setIsEditing(false);
   };
 
   const handleExportLessonPlan = () => {
-    if (currentLessonPlan) {
-      // Create a simple text export
-      const exportData = {
-        date: currentLessonPlan.date.toLocaleDateString(),
-        week: currentLessonPlan.week,
-        className: currentLessonPlan.className,
-        duration: currentLessonPlan.duration,
-        activities: currentLessonPlan.activities.map(activity => ({
-          name: activity.activity,
-          category: activity.category,
-          time: activity.time,
-          description: activity.description,
-          level: activity.level,
-        })),
-        notes: currentLessonPlan.notes,
-      };
+    // Create a simple text export
+    const exportData = {
+      date: currentLessonPlan.date.toLocaleDateString(),
+      week: currentLessonPlan.week,
+      className: currentLessonPlan.className,
+      duration: currentLessonPlan.duration,
+      activities: currentLessonPlan.activities.map(activity => ({
+        name: activity.activity,
+        category: activity.category,
+        time: activity.time,
+        description: activity.description,
+        level: activity.level,
+      })),
+      notes: currentLessonPlan.notes,
+    };
 
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `lesson-plan-${currentLessonPlan.date.toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `lesson-plan-${currentLessonPlan.date.toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   // Filter and sort activities for the library
-  const [libraryActivities, setLibraryActivities] = useState<Activity[]>([]);
-
   const filteredAndSortedActivities = React.useMemo(() => {
     let filtered = libraryActivities.filter(activity => {
       const matchesSearch = activity.activity.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -283,34 +269,30 @@ export function LessonPlanBuilder() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                {currentLessonPlan && (
-                  <>
-                    <button
-                      onClick={handleExportLessonPlan}
-                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                    >
-                      <Download className="h-4 w-4" />
-                      <span>Export</span>
-                    </button>
-                    
-                    {isEditing ? (
-                      <button
-                        onClick={handleSaveLessonPlan}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                      >
-                        <Save className="h-4 w-4" />
-                        <span>Save Plan</span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => setIsEditing(true)}
-                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                        <span>Edit Plan</span>
-                      </button>
-                    )}
-                  </>
+                <button
+                  onClick={handleExportLessonPlan}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Export</span>
+                </button>
+                
+                {isEditing ? (
+                  <button
+                    onClick={handleSaveLessonPlan}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    <span>Save Plan</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                    <span>Edit Plan</span>
+                  </button>
                 )}
               </div>
             </div>
@@ -321,16 +303,14 @@ export function LessonPlanBuilder() {
             {/* Lesson Plan Details */}
             <div className="lg:col-span-2">
               <LessonDropZone
-                lessonPlan={currentLessonPlan!}
+                lessonPlan={currentLessonPlan}
                 onActivityAdd={handleActivityAdd}
                 onActivityRemove={handleActivityRemove}
                 onActivityReorder={handleActivityReorder}
                 onNotesUpdate={(notes) => {
-                  if (currentLessonPlan) {
-                    const updatedPlan = { ...currentLessonPlan, notes };
-                    setCurrentLessonPlan(updatedPlan);
-                    handleUpdateLessonPlan(updatedPlan);
-                  }
+                  const updatedPlan = { ...currentLessonPlan, notes };
+                  setCurrentLessonPlan(updatedPlan);
+                  handleUpdateLessonPlan(updatedPlan);
                 }}
                 isEditing={isEditing}
                 onActivityClick={(activity) => setSelectedActivity(activity)}
