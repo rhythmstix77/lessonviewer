@@ -31,7 +31,6 @@ export function Dashboard() {
   const [activeTab, setActiveTab] = useState('unit-viewer');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [lessonPlans, setLessonPlans] = useState<any[]>([]);
-  const [showUnitManager, setShowUnitManager] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
   
   // Get theme colors for current class
@@ -137,7 +136,6 @@ export function Dashboard() {
     
     // Switch to calendar view
     setActiveTab('calendar');
-    setShowUnitManager(false);
   };
 
   return (
@@ -162,6 +160,16 @@ export function Dashboard() {
               </TabsTrigger>
               
               <TabsTrigger 
+                value="unit-manager"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200"
+              >
+                <div className="flex items-center space-x-2">
+                  <FolderOpen className="h-5 w-5" />
+                  <span>Unit Manager</span>
+                </div>
+              </TabsTrigger>
+              
+              <TabsTrigger 
                 value="calendar"
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-600 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200"
               >
@@ -173,7 +181,7 @@ export function Dashboard() {
               
               <TabsTrigger 
                 value="activity-library"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-rose-600 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200"
               >
                 <div className="flex items-center space-x-2">
                   <BookOpen className="h-5 w-5" />
@@ -192,21 +200,17 @@ export function Dashboard() {
               </TabsTrigger>
             </TabsList>
 
-            {/* Manage Units Button - Only shown on Activity Library tab */}
-            {activeTab === 'activity-library' && (
-              <div className="mt-4 flex justify-end">
-                <button
-                  onClick={() => setShowUnitManager(true)}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2 whitespace-nowrap"
-                >
-                  <FolderOpen className="h-5 w-5" />
-                  <span>Manage Units</span>
-                </button>
-              </div>
-            )}
-
             <TabsContent value="unit-viewer" className="mt-6">
               <UnitViewer />
+            </TabsContent>
+
+            <TabsContent value="unit-manager" className="mt-6">
+              <UnitManager 
+                isOpen={true} 
+                onClose={() => {}} 
+                onAddToCalendar={handleAddUnitToCalendar}
+                embedded={true}
+              />
             </TabsContent>
 
             <TabsContent value="calendar" className="mt-6">
@@ -236,13 +240,6 @@ export function Dashboard() {
           </Tabs>
         </div>
       </div>
-
-      {/* Unit Manager Modal */}
-      <UnitManager 
-        isOpen={showUnitManager} 
-        onClose={() => setShowUnitManager(false)} 
-        onAddToCalendar={handleAddUnitToCalendar}
-      />
     </DndProvider>
   );
 }
