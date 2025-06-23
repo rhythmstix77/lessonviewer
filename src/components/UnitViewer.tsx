@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { LessonCard } from './LessonCard';
 import { ActivityDetails } from './ActivityDetails';
 import { ExportButtons } from './ExportButtons';
-import { LoadingSpinner } from './LoadingSpinner';
 import { EyfsStandardsList } from './EyfsStandardsList';
 import { EyfsStandardsSelector } from './EyfsStandardsSelector';
-import { BookOpen, X, GraduationCap, Tag, ChevronRight, ChevronLeft, Calendar, FileText } from 'lucide-react';
+import { BookOpen, X, GraduationCap, Tag, ChevronRight, ChevronDown, ChevronUp, FileText, ExternalLink } from 'lucide-react';
 import type { Activity } from '../contexts/DataContext';
 
 // Define half-term periods
@@ -20,7 +18,7 @@ const HALF_TERMS = [
   { id: 'SM2', name: 'Summer 2', months: 'Jun-Jul' },
 ];
 
-// Map lesson numbers to half-terms (this would be configurable in a real app)
+// Map lesson numbers to half-terms
 const LESSON_TO_HALF_TERM: Record<string, string> = {
   '1': 'A1', '2': 'A1', '3': 'A1', '4': 'A1', '5': 'A1', '6': 'A1',
   '7': 'A2', '8': 'A2', '9': 'A2', '10': 'A2', '11': 'A2', '12': 'A2',
@@ -32,12 +30,11 @@ const LESSON_TO_HALF_TERM: Record<string, string> = {
 
 export function UnitViewer() {
   const { loading, lessonNumbers, allLessonsData, currentSheetInfo } = useData();
-  const { settings, getThemeForClass } = useSettings();
+  const { getThemeForClass } = useSettings();
   const [selectedLesson, setSelectedLesson] = useState<string>('');
-  const [previewLesson, setPreviewLesson] = useState<string>('');
+  const [expandedHalfTerms, setExpandedHalfTerms] = useState<string[]>([]);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [showEyfsSelector, setShowEyfsSelector] = useState(false);
-  const [selectedHalfTerm, setSelectedHalfTerm] = useState<string | null>(null);
   
   // Ref for scrolling to top when lesson is selected
   const topRef = React.useRef<HTMLDivElement>(null);
@@ -93,20 +90,18 @@ export function UnitViewer() {
 
   const handleLessonSelect = (lessonNumber: string) => {
     setSelectedLesson(lessonNumber === selectedLesson ? '' : lessonNumber);
-    setPreviewLesson('');
-  };
-
-  const handleLessonPreview = (lessonNumber: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setPreviewLesson(lessonNumber === previewLesson ? '' : lessonNumber);
   };
 
   const handleCloseLessonView = () => {
     setSelectedLesson('');
   };
 
-  const handleHalfTermSelect = (halfTermId: string) => {
-    setSelectedHalfTerm(halfTermId === selectedHalfTerm ? null : halfTermId);
+  const toggleHalfTerm = (halfTermId: string) => {
+    setExpandedHalfTerms(prev => 
+      prev.includes(halfTermId) 
+        ? prev.filter(id => id !== halfTermId)
+        : [...prev, halfTermId]
+    );
   };
 
   // If a lesson is selected, show full-width expanded view
@@ -268,9 +263,11 @@ export function UnitViewer() {
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                    onClick={(e) => e.stopPropagation()}
                                   >
                                     <span className="w-2 h-2 bg-red-500 rounded-full mr-1"></span>
                                     Video Link
+                                    <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
                                   </a>
                                 )}
                                 {activity.musicLink && (
@@ -279,9 +276,11 @@ export function UnitViewer() {
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                    onClick={(e) => e.stopPropagation()}
                                   >
                                     <span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
                                     Music Link
+                                    <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
                                   </a>
                                 )}
                                 {activity.backingLink && (
@@ -290,9 +289,11 @@ export function UnitViewer() {
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                    onClick={(e) => e.stopPropagation()}
                                   >
                                     <span className="w-2 h-2 bg-blue-500 rounded-full mr-1"></span>
                                     Backing Track
+                                    <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
                                   </a>
                                 )}
                                 {activity.resourceLink && (
@@ -301,9 +302,11 @@ export function UnitViewer() {
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                    onClick={(e) => e.stopPropagation()}
                                   >
                                     <span className="w-2 h-2 bg-purple-500 rounded-full mr-1"></span>
                                     Resource
+                                    <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
                                   </a>
                                 )}
                                 {activity.link && (
@@ -312,9 +315,11 @@ export function UnitViewer() {
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                    onClick={(e) => e.stopPropagation()}
                                   >
                                     <span className="w-2 h-2 bg-gray-500 rounded-full mr-1"></span>
                                     Additional Link
+                                    <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
                                   </a>
                                 )}
                                 {activity.vocalsLink && (
@@ -323,9 +328,11 @@ export function UnitViewer() {
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                    onClick={(e) => e.stopPropagation()}
                                   >
                                     <span className="w-2 h-2 bg-orange-500 rounded-full mr-1"></span>
                                     Vocals
+                                    <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
                                   </a>
                                 )}
                                 {activity.imageLink && (
@@ -334,9 +341,11 @@ export function UnitViewer() {
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                    onClick={(e) => e.stopPropagation()}
                                   >
                                     <span className="w-2 h-2 bg-pink-500 rounded-full mr-1"></span>
                                     Image
+                                    <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
                                   </a>
                                 )}
                               </div>
@@ -421,23 +430,24 @@ export function UnitViewer() {
           {HALF_TERMS.map((halfTerm) => {
             const lessonsInTerm = lessonsByHalfTerm[halfTerm.id] || [];
             const hasLessons = lessonsInTerm.length > 0;
+            const isExpanded = expandedHalfTerms.includes(halfTerm.id);
             
             return (
               <div 
                 key={halfTerm.id}
-                className={`bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl cursor-pointer overflow-hidden ${
-                  selectedHalfTerm === halfTerm.id 
+                className={`bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl overflow-hidden ${
+                  isExpanded 
                     ? 'ring-4 ring-opacity-30 border-blue-500 ring-blue-500' 
                     : 'border-gray-200 hover:border-gray-300 hover:scale-[1.02]'
                 } ${!hasLessons ? 'opacity-60' : ''}`}
-                onClick={() => hasLessons && handleHalfTermSelect(halfTerm.id)}
               >
                 {/* Colorful Header */}
                 <div 
-                  className="p-6 text-white relative overflow-hidden"
+                  className="p-6 text-white relative overflow-hidden cursor-pointer"
                   style={{ 
                     background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.secondary} 100%)` 
                   }}
+                  onClick={() => hasLessons && toggleHalfTerm(halfTerm.id)}
                 >
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white bg-opacity-10 rounded-full -translate-y-16 translate-x-16"></div>
                   <div className="absolute bottom-0 left-0 w-24 h-24 bg-white bg-opacity-10 rounded-full translate-y-12 -translate-x-12"></div>
@@ -447,11 +457,11 @@ export function UnitViewer() {
                       <h3 className="text-2xl font-bold">
                         {halfTerm.name}
                       </h3>
-                      <ChevronRight 
-                        className={`h-6 w-6 transition-transform duration-300 ${
-                          selectedHalfTerm === halfTerm.id ? 'rotate-90' : ''
-                        }`} 
-                      />
+                      {isExpanded ? (
+                        <ChevronUp className="h-6 w-6 transition-transform duration-300" />
+                      ) : (
+                        <ChevronDown className="h-6 w-6 transition-transform duration-300" />
+                      )}
                     </div>
                     
                     <p className="text-white text-opacity-90 text-sm font-medium">
@@ -460,7 +470,7 @@ export function UnitViewer() {
 
                     <div className="flex items-center space-x-6 text-white text-opacity-90 mt-2">
                       <div className="flex items-center space-x-2">
-                        <Calendar className="h-5 w-5" />
+                        <BookOpen className="h-5 w-5" />
                         <span className="font-medium">{lessonsInTerm.length} units</span>
                       </div>
                     </div>
@@ -468,7 +478,7 @@ export function UnitViewer() {
                 </div>
 
                 {/* Expanded Content - Lessons in this half-term */}
-                {selectedHalfTerm === halfTerm.id && lessonsInTerm.length > 0 && (
+                {isExpanded && lessonsInTerm.length > 0 && (
                   <div className="p-4 border-t border-gray-200">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {lessonsInTerm.map((lessonNum) => {
@@ -479,10 +489,7 @@ export function UnitViewer() {
                           <div 
                             key={lessonNum}
                             className="bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 p-4 cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleLessonSelect(lessonNum);
-                            }}
+                            onClick={() => handleLessonSelect(lessonNum)}
                           >
                             <div className="flex justify-between items-start">
                               <div>
@@ -491,17 +498,7 @@ export function UnitViewer() {
                                   {lessonData.totalTime} mins • {lessonData.categoryOrder.length} categories
                                 </p>
                               </div>
-                              <button
-                                onClick={(e) => handleLessonPreview(lessonNum, e)}
-                                className="p-1 bg-white rounded-full border border-gray-200 hover:border-blue-300 transition-all duration-200"
-                                title="Preview Unit"
-                              >
-                                {previewLesson === lessonNum ? (
-                                  <ChevronLeft className="h-4 w-4 text-blue-600" />
-                                ) : (
-                                  <ChevronRight className="h-4 w-4 text-blue-600" />
-                                )}
-                              </button>
+                              <ChevronRight className="h-5 w-5 text-gray-400" />
                             </div>
                             
                             {/* Categories Preview */}
@@ -520,51 +517,6 @@ export function UnitViewer() {
                                 </span>
                               )}
                             </div>
-                            
-                            {/* Preview Popup */}
-                            {previewLesson === lessonNum && (
-                              <div 
-                                className="absolute z-10 bg-white rounded-lg shadow-xl border border-blue-200 p-3 w-64 right-0 mt-2"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <div className="flex justify-between items-center mb-2 pb-1 border-b border-gray-100">
-                                  <h5 className="font-medium text-sm">Unit {lessonNum} Preview</h5>
-                                  <button 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setPreviewLesson('');
-                                    }}
-                                    className="text-gray-400 hover:text-gray-600"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                </div>
-                                <div className="max-h-40 overflow-y-auto text-xs">
-                                  {lessonData.categoryOrder.map((category) => (
-                                    <div key={category} className="mb-1.5">
-                                      <p className="font-medium text-gray-700">{category}</p>
-                                      <ul className="pl-2 text-gray-600">
-                                        {lessonData.grouped[category].slice(0, 2).map((activity, idx) => (
-                                          <li key={idx} className="truncate">• {activity.activity}</li>
-                                        ))}
-                                        {lessonData.grouped[category].length > 2 && (
-                                          <li className="text-gray-400">+ {lessonData.grouped[category].length - 2} more</li>
-                                        )}
-                                      </ul>
-                                    </div>
-                                  ))}
-                                </div>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleLessonSelect(lessonNum);
-                                  }}
-                                  className="w-full mt-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded"
-                                >
-                                  View Full Unit
-                                </button>
-                              </div>
-                            )}
                           </div>
                         );
                       })}

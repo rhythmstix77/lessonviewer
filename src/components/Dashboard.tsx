@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/Tabs';
-import { UnitViewer } from './UnitViewer';
-import { LessonPlanBuilder } from './LessonPlanBuilder';
-import { LessonPlannerCalendar } from './LessonPlannerCalendar';
-import { ActivityLibrary } from './ActivityLibrary';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/Tabs";
+import { UnitViewer } from "./UnitViewer";
+import { LessonPlanBuilder } from "./LessonPlanBuilder";
+import { LessonPlannerCalendar } from "./LessonPlannerCalendar";
+import { ActivityLibrary } from "./ActivityLibrary";
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Calendar, BookOpen, Edit3, GraduationCap } from 'lucide-react';
