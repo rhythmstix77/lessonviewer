@@ -28,6 +28,8 @@ interface ActivityLibraryProps {
   onActivitySelect: (activity: Activity) => void;
   selectedActivities: Activity[];
   className: string;
+  selectedCategory?: string;
+  onCategoryChange?: (category: string) => void;
 }
 
 const categoryColors: Record<string, string> = {
@@ -45,10 +47,16 @@ const categoryColors: Record<string, string> = {
   'Goodbye': '#14B8A6'
 };
 
-export function ActivityLibrary({ onActivitySelect, selectedActivities, className }: ActivityLibraryProps) {
+export function ActivityLibrary({ 
+  onActivitySelect, 
+  selectedActivities, 
+  className,
+  selectedCategory = 'all',
+  onCategoryChange
+}: ActivityLibraryProps) {
   const { allLessonsData } = useData();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [localSelectedCategory, setLocalSelectedCategory] = useState(selectedCategory);
   const [selectedLevel, setSelectedLevel] = useState('all');
   const [sortBy, setSortBy] = useState<'name' | 'category' | 'time' | 'level'>('category');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -59,6 +67,19 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
   const [showCreator, setShowCreator] = useState(false);
   const [libraryActivities, setLibraryActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Sync local category with prop
+  useEffect(() => {
+    setLocalSelectedCategory(selectedCategory);
+  }, [selectedCategory]);
+
+  // Handle local category change
+  const handleCategoryChange = (category: string) => {
+    setLocalSelectedCategory(category);
+    if (onCategoryChange) {
+      onCategoryChange(category);
+    }
+  };
 
   // Load activities from server or extract from lessons data
   useEffect(() => {
@@ -136,7 +157,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
     let filtered = libraryActivities.filter(activity => {
       const matchesSearch = activity.activity.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            activity.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = selectedCategory === 'all' || activity.category === selectedCategory;
+      const matchesCategory = localSelectedCategory === 'all' || activity.category === localSelectedCategory;
       const matchesLevel = selectedLevel === 'all' || activity.level === selectedLevel;
       
       return matchesSearch && matchesCategory && matchesLevel;
@@ -165,7 +186,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
     });
 
     return filtered;
-  }, [libraryActivities, searchQuery, selectedCategory, selectedLevel, sortBy, sortOrder]);
+  }, [libraryActivities, searchQuery, localSelectedCategory, selectedLevel, sortBy, sortOrder]);
 
   const handleActivityUpdate = async (updatedActivity: Activity) => {
     try {
@@ -381,39 +402,6 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
 
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-      {/* Category List */}
-      <div className="p-4 border-b border-gray-200 bg-gray-50 overflow-x-auto">
-        <div className="flex space-x-2 min-w-max">
-          <button
-            onClick={() => setSelectedCategory('all')}
-            className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
-              selectedCategory === 'all' 
-                ? 'bg-gray-800 text-white' 
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <span>All Categories</span>
-          </button>
-          
-          {categories.map(category => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category === selectedCategory ? 'all' : category)}
-              className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200`}
-              style={{
-                backgroundColor: category === selectedCategory 
-                  ? categoryColors[category] || '#6B7280'
-                  : 'transparent',
-                color: category === selectedCategory ? 'white' : 'inherit',
-                borderLeft: `4px solid ${categoryColors[category] || '#6B7280'}`
-              }}
-            >
-              <span>{category}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Header */}
       <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
         <div className="flex items-center justify-between mb-4">
@@ -458,19 +446,6 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
               className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-purple-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
             />
           </div>
-          
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
-          >
-            <option value="all" className="text-gray-900">All Categories</option>
-            {categories.map(category => (
-              <option key={category} value={category} className="text-gray-900">
-                {category}
-              </option>
-            ))}
-          </select>
           
           <select
             value={selectedLevel}
@@ -547,7 +522,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
             <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No activities found</h3>
             <p className="text-gray-600">
-              {searchQuery || selectedCategory !== 'all' || selectedLevel !== 'all'
+              {searchQuery || localSelectedCategory !== 'all' || selectedLevel !== 'all'
                 ? 'Try adjusting your search or filters'
                 : 'No activities available in the library'
               }

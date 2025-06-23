@@ -5,6 +5,7 @@ import { LessonPlanBuilder } from "./LessonPlanBuilder";
 import { LessonPlannerCalendar } from "./LessonPlannerCalendar";
 import { ActivityLibrary } from "./ActivityLibrary";
 import { UnitManager } from "./UnitManager";
+import { CategoryList } from "./CategoryList";
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Calendar, BookOpen, Edit3, GraduationCap, FolderOpen } from 'lucide-react';
@@ -31,6 +32,7 @@ export function Dashboard() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [lessonPlans, setLessonPlans] = useState<any[]>([]);
   const [showUnitManager, setShowUnitManager] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
   
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
@@ -190,11 +192,17 @@ export function Dashboard() {
               </TabsTrigger>
             </TabsList>
 
-            {/* Unit Manager Button */}
-            <div className="mt-4 flex justify-end">
+            {/* Category List and Unit Manager Button */}
+            <div className="mt-4 flex flex-col md:flex-row gap-4 items-center">
+              <CategoryList 
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
+                className="flex-1"
+              />
+              
               <button
                 onClick={() => setShowUnitManager(true)}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2 whitespace-nowrap"
               >
                 <FolderOpen className="h-5 w-5" />
                 <span>Manage Units</span>
@@ -221,6 +229,8 @@ export function Dashboard() {
                 onActivitySelect={handleActivityAdd}
                 selectedActivities={[]}
                 className={currentSheetInfo.sheet}
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
               />
             </TabsContent>
 
