@@ -16,7 +16,9 @@ import {
   Plus,
   Check,
   Filter,
-  Edit3
+  Edit3,
+  FolderOpen,
+  AlertCircle
 } from 'lucide-react';
 import { ActivityCard } from './ActivityCard';
 import { LessonDropZone } from './LessonDropZone';
@@ -33,6 +35,18 @@ interface LessonPlan {
   duration: number;
   notes: string;
   status: 'planned' | 'completed' | 'cancelled';
+  createdAt: Date;
+  updatedAt: Date;
+  unitId?: string;
+  unitName?: string;
+}
+
+interface Unit {
+  id: string;
+  name: string;
+  description: string;
+  lessonNumbers: string[];
+  color: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -64,6 +78,10 @@ export function LessonPlanBuilder() {
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [libraryActivities, setLibraryActivities] = useState<Activity[]>([]);
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [selectedUnit, setSelectedUnit] = useState<string>('');
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [showAddToUnitModal, setShowAddToUnitModal] = useState(false);
 
   // Load lesson plans from localStorage
   useEffect(() => {
@@ -99,6 +117,24 @@ export function LessonPlanBuilder() {
       setLibraryActivities(uniqueActivities);
       localStorage.setItem('library-activities', JSON.stringify(uniqueActivities));
     }
+
+    // Load units
+    const savedUnits = localStorage.getItem(`units-${currentSheetInfo.sheet}`);
+    if (savedUnits) {
+      try {
+        const parsedUnits = JSON.parse(savedUnits);
+        // Convert date strings back to Date objects
+        const unitsWithDates = parsedUnits.map((unit: any) => ({
+          ...unit,
+          createdAt: new Date(unit.createdAt),
+          updatedAt: new Date(unit.updatedAt)
+        }));
+        setUnits(unitsWithDates);
+      } catch (error) {
+        console.error('Failed to parse saved units:', error);
+        setUnits([]);
+      }
+    }
   }, [allLessonsData, currentSheetInfo.sheet]);
 
   // Save lesson plans to localStorage
@@ -114,16 +150,26 @@ export function LessonPlanBuilder() {
   };
 
   const handleUpdateLessonPlan = (updatedPlan: LessonPlan) => {
-    const updatedPlans = lessonPlans.map(plan => 
-      plan.id === updatedPlan.id ? { ...updatedPlan, updatedAt: new Date() } : plan
-    );
-    
-    if (!lessonPlans.find(plan => plan.id === updatedPlan.id)) {
-      updatedPlans.push({ ...updatedPlan, updatedAt: new Date() });
+    try {
+      const updatedPlans = lessonPlans.map(plan => 
+        plan.id === updatedPlan.id ? { ...updatedPlan, updatedAt: new Date() } : plan
+      );
+      
+      if (!lessonPlans.find(plan => plan.id === updatedPlan.id)) {
+        updatedPlans.push({ ...updatedPlan, updatedAt: new Date() });
+      }
+      
+      saveLessonPlans(updatedPlans);
+      setCurrentLessonPlan(updatedPlan);
+      setSaveStatus('success');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+      return true;
+    } catch (error) {
+      console.error('Failed to update lesson plan:', error);
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+      return false;
     }
-    
-    saveLessonPlans(updatedPlans);
-    setCurrentLessonPlan(updatedPlan);
   };
 
   const handleActivityAdd = (activity: Activity) => {
@@ -136,6 +182,7 @@ export function LessonPlanBuilder() {
       _uniqueId: Date.now() + Math.random().toString(36).substring(2, 9)
     };
     
+    // Update the lesson plan
     const updatedPlan = {
       ...currentLessonPlan,
       activities: [...currentLessonPlan.activities, uniqueActivity],
@@ -143,7 +190,6 @@ export function LessonPlanBuilder() {
     };
     
     setCurrentLessonPlan(updatedPlan);
-    handleUpdateLessonPlan(updatedPlan);
   };
 
   const handleActivityRemove = (activityIndex: number) => {
@@ -154,7 +200,6 @@ export function LessonPlanBuilder() {
       duration: currentLessonPlan.duration - (removedActivity.time || 0),
     };
     setCurrentLessonPlan(updatedPlan);
-    handleUpdateLessonPlan(updatedPlan);
   };
 
   const handleActivityReorder = (dragIndex: number, hoverIndex: number) => {
@@ -169,11 +214,16 @@ export function LessonPlanBuilder() {
     };
     
     setCurrentLessonPlan(updatedPlan);
-    handleUpdateLessonPlan(updatedPlan);
   };
 
   const handleSaveLessonPlan = () => {
-    handleUpdateLessonPlan(currentLessonPlan);
+    const success = handleUpdateLessonPlan(currentLessonPlan);
+    if (success) {
+      // Create a new empty lesson plan after saving
+      if (showAddToUnitModal) {
+        setShowAddToUnitModal(false);
+      }
+    }
   };
 
   const handleExportLessonPlan = () => {
@@ -303,10 +353,72 @@ export function LessonPlanBuilder() {
     };
     
     setCurrentLessonPlan(updatedPlan);
-    handleUpdateLessonPlan(updatedPlan);
     
     // Clear selections after adding
     setSelectedActivities([]);
+  };
+
+  // Add current lesson plan to a unit
+  const handleAddToUnit = () => {
+    if (!selectedUnit) return;
+
+    // Find the selected unit
+    const unit = units.find(u => u.id === selectedUnit);
+    if (!unit) return;
+
+    // Update the current lesson plan with unit information
+    const updatedPlan = {
+      ...currentLessonPlan,
+      unitId: unit.id,
+      unitName: unit.name
+    };
+
+    // Save the updated plan
+    const success = handleUpdateLessonPlan(updatedPlan);
+    
+    if (success) {
+      // Update the unit with the new lesson plan
+      const updatedUnit = {
+        ...unit,
+        lessonNumbers: [...unit.lessonNumbers, currentLessonPlan.id],
+        updatedAt: new Date()
+      };
+
+      // Save the updated unit
+      const updatedUnits = units.map(u => u.id === unit.id ? updatedUnit : u);
+      localStorage.setItem(`units-${currentSheetInfo.sheet}`, JSON.stringify(updatedUnits));
+      setUnits(updatedUnits);
+
+      // Close the modal
+      setShowAddToUnitModal(false);
+    }
+  };
+
+  // Create a new lesson plan after saving the current one
+  const handleCreateNewAfterSave = () => {
+    // First save the current plan
+    const success = handleUpdateLessonPlan(currentLessonPlan);
+    
+    if (success) {
+      // Create a new empty plan
+      const newPlan: LessonPlan = {
+        id: `plan-${Date.now()}`,
+        date: new Date(),
+        week: currentLessonPlan.week + 1, // Increment week number
+        className: currentSheetInfo.sheet,
+        activities: [],
+        duration: 0,
+        notes: '',
+        status: 'planned',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        // Preserve unit information if it exists
+        unitId: currentLessonPlan.unitId,
+        unitName: currentLessonPlan.unitName
+      };
+      
+      setCurrentLessonPlan(newPlan);
+    }
   };
 
   return (
@@ -330,6 +442,14 @@ export function LessonPlanBuilder() {
 
               <div className="flex flex-wrap items-center gap-3">
                 <button
+                  onClick={() => setShowAddToUnitModal(true)}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                >
+                  <FolderOpen className="h-4 w-4" />
+                  <span>Add to Unit</span>
+                </button>
+                
+                <button
                   onClick={handleExportLessonPlan}
                   className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
                 >
@@ -344,8 +464,36 @@ export function LessonPlanBuilder() {
                   <Save className="h-4 w-4" />
                   <span>Save Plan</span>
                 </button>
+                
+                <button
+                  onClick={handleCreateNewAfterSave}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Save & Create New</span>
+                </button>
               </div>
             </div>
+            
+            {/* Save Status Message */}
+            {saveStatus !== 'idle' && (
+              <div className={`mb-4 p-3 rounded-lg flex items-center space-x-2 ${
+                saveStatus === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+                'bg-red-50 text-red-700 border border-red-200'
+              }`}>
+                {saveStatus === 'success' ? (
+                  <>
+                    <Check className="h-5 w-5 text-green-600" />
+                    <span>Lesson plan saved successfully!</span>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="h-5 w-5 text-red-600" />
+                    <span>Failed to save lesson plan. Please try again.</span>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Main Content */}
@@ -360,7 +508,6 @@ export function LessonPlanBuilder() {
                 onNotesUpdate={(notes) => {
                   const updatedPlan = { ...currentLessonPlan, notes };
                   setCurrentLessonPlan(updatedPlan);
-                  handleUpdateLessonPlan(updatedPlan);
                 }}
                 isEditing={true}
                 onActivityClick={(activity) => setSelectedActivity(activity)}
@@ -509,6 +656,70 @@ export function LessonPlanBuilder() {
             setSelectedActivity(null);
           }}
         />
+      )}
+
+      {/* Add to Unit Modal */}
+      {showAddToUnitModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Add to Unit</h3>
+            
+            {units.length === 0 ? (
+              <div className="text-center py-6">
+                <FolderOpen className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-600 mb-4">No units available. Create a unit first in the Unit Manager.</p>
+                <button
+                  onClick={() => setShowAddToUnitModal(false)}
+                  className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg"
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Unit
+                  </label>
+                  <select
+                    value={selectedUnit}
+                    onChange={(e) => setSelectedUnit(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="">Select a unit</option>
+                    {units.map(unit => (
+                      <option key={unit.id} value={unit.id}>{unit.name}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                {selectedUnit && (
+                  <div className="mb-4 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                    <p className="text-sm text-indigo-800">
+                      This lesson plan will be added to the selected unit and will appear in the Unit Viewer.
+                    </p>
+                  </div>
+                )}
+                
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setShowAddToUnitModal(false)}
+                    className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium rounded-lg transition-colors duration-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAddToUnit}
+                    disabled={!selectedUnit}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium rounded-lg transition-colors duration-200"
+                  >
+                    Add to Unit
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </DndProvider>
   );
