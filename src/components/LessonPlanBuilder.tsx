@@ -2,16 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { 
-  Plus, 
   Save, 
   Edit3, 
-  Trash2, 
   Clock, 
   Users, 
-  BookOpen,
   Download,
-  Upload,
-  Filter,
   Search,
   Grid3X3,
   List,
@@ -41,8 +36,6 @@ interface LessonPlan {
 
 export function LessonPlanBuilder() {
   const { currentSheetInfo, allLessonsData } = useData();
-  const [currentView, setCurrentView] = useState<'library' | 'builder'>('builder');
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [currentLessonPlan, setCurrentLessonPlan] = useState<LessonPlan | null>(null);
   const [lessonPlans, setLessonPlans] = useState<LessonPlan[]>([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -321,166 +314,75 @@ export function LessonPlanBuilder() {
                 )}
               </div>
             </div>
-
-            {/* View Navigation */}
-            <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg w-fit">
-              <button
-                onClick={() => setCurrentView('builder')}
-                className={`px-4 py-2 rounded-md font-medium transition-colors duration-200 flex items-center space-x-2 ${
-                  currentView === 'builder' 
-                    ? 'bg-white text-green-600 shadow-sm' 
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <Edit3 className="h-4 w-4" />
-                <span>Plan Builder</span>
-              </button>
-              <button
-                onClick={() => setCurrentView('library')}
-                className={`px-4 py-2 rounded-md font-medium transition-colors duration-200 flex items-center space-x-2 ${
-                  currentView === 'library' 
-                    ? 'bg-white text-purple-600 shadow-sm' 
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <BookOpen className="h-4 w-4" />
-                <span>Activity Library</span>
-              </button>
-            </div>
           </div>
 
           {/* Main Content */}
-          {currentView === 'library' && (
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-              {/* Library Header */}
-              <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <BookOpen className="h-6 w-6" />
-                    <div>
-                      <h2 className="text-xl font-bold">Activity Library</h2>
-                      <p className="text-purple-100 text-sm">
-                        {filteredAndSortedActivities.length} of {libraryActivities.length} activities
-                      </p>
-                    </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Lesson Plan Details */}
+            <div className="lg:col-span-2">
+              <LessonDropZone
+                lessonPlan={currentLessonPlan!}
+                onActivityAdd={handleActivityAdd}
+                onActivityRemove={handleActivityRemove}
+                onActivityReorder={handleActivityReorder}
+                onNotesUpdate={(notes) => {
+                  if (currentLessonPlan) {
+                    const updatedPlan = { ...currentLessonPlan, notes };
+                    setCurrentLessonPlan(updatedPlan);
+                    handleUpdateLessonPlan(updatedPlan);
+                  }
+                }}
+                isEditing={isEditing}
+                onActivityClick={(activity) => setSelectedActivity(activity)}
+              />
+            </div>
+
+            {/* Quick Activity Library */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden sticky top-8">
+                <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
+                  <h3 className="text-lg font-semibold">Quick Add Activities</h3>
+                  <p className="text-blue-100 text-sm">Click or drag activities to your lesson plan</p>
+                  
+                  {/* Category Selector */}
+                  <div className="mt-3">
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
+                    >
+                      <option value="all" className="text-gray-900">All Categories</option>
+                      {categories.map(category => (
+                        <option key={category} value={category} className="text-gray-900">
+                          {category}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => setViewMode('grid')}
-                      className={`p-2 rounded-lg transition-colors duration-200 ${
-                        viewMode === 'grid' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
-                      }`}
-                    >
-                      <Grid3X3 className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => setViewMode('list')}
-                      className={`p-2 rounded-lg transition-colors duration-200 ${
-                        viewMode === 'list' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
-                      }`}
-                    >
-                      <List className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => setViewMode('compact')}
-                      className={`p-2 rounded-lg transition-colors duration-200 ${
-                        viewMode === 'compact' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
-                      }`}
-                    >
-                      <MoreVertical className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Search and Filters */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-purple-300" />
+                  {/* Mini search */}
+                  <div className="mt-3 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-blue-300" />
                     <input
                       type="text"
-                      placeholder="Search activities..."
+                      placeholder="Filter activities..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-purple-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
+                      className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
                     />
                   </div>
-                  
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
-                  >
-                    <option value="all" className="text-gray-900">All Categories</option>
-                    {categories.map(category => (
-                      <option key={category} value={category} className="text-gray-900">
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                  
-                  <select
-                    value={selectedLevel}
-                    onChange={(e) => setSelectedLevel(e.target.value)}
-                    className="px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
-                  >
-                    <option value="all" className="text-gray-900">All Levels</option>
-                    {levels.map(level => (
-                      <option key={level} value={level} className="text-gray-900">
-                        {level}
-                      </option>
-                    ))}
-                  </select>
-                  
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => toggleSort('category')}
-                      className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors duration-200 ${
-                        sortBy === 'category' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
-                      }`}
-                    >
-                      <Tag className="h-4 w-4" />
-                      {sortBy === 'category' && (sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />)}
-                    </button>
-                    <button
-                      onClick={() => toggleSort('time')}
-                      className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors duration-200 ${
-                        sortBy === 'time' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
-                      }`}
-                    >
-                      <Clock className="h-4 w-4" />
-                      {sortBy === 'time' && (sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />)}
-                    </button>
-                  </div>
                 </div>
-              </div>
-
-              {/* Activity Grid */}
-              <div className="p-6">
-                {filteredAndSortedActivities.length === 0 ? (
-                  <div className="text-center py-12">
-                    <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No activities found</h3>
-                    <p className="text-gray-600">
-                      {searchQuery || selectedCategory !== 'all' || selectedLevel !== 'all'
-                        ? 'Try adjusting your search or filters'
-                        : 'No activities available in the library'
-                      }
-                    </p>
-                  </div>
-                ) : (
-                  <div className={`
-                    ${viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' :
-                      viewMode === 'list' ? 'space-y-4' :
-                      'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'
-                    }
-                  `}>
-                    {filteredAndSortedActivities.map((activity, index) => (
-                      <div 
-                        key={`${activity.activity}-${activity.category}-${index}`}
-                        className="cursor-pointer"
-                      >
+                
+                <div className="p-4 max-h-[600px] overflow-y-auto">
+                  {filteredAndSortedActivities.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">No matching activities found</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {filteredAndSortedActivities.map((activity, index) => (
                         <ActivityCard 
+                          key={`${activity.activity}-${activity.category}-${index}`}
                           activity={activity}
                           categoryColor={activity.category ? 
                             {
@@ -498,129 +400,18 @@ export function LessonPlanBuilder() {
                               'Goodbye': '#14B8A6'
                             }[activity.category] || '#6B7280'
                           : '#6B7280'}
-                          viewMode={viewMode}
+                          viewMode="compact"
                           onActivityClick={(activity) => {
-                            setSelectedActivity(activity);
+                            handleActivityAdd(activity);
                           }}
                         />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Activity Details Modal */}
-              {selectedActivity && (
-                <ActivityDetails
-                  activity={selectedActivity}
-                  onClose={() => setSelectedActivity(null)}
-                  onAddToLesson={() => {
-                    handleActivityAdd(selectedActivity);
-                    setSelectedActivity(null);
-                    setCurrentView('builder');
-                  }}
-                />
-              )}
-            </div>
-          )}
-
-          {currentView === 'builder' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Lesson Plan Details */}
-              <div className="lg:col-span-2">
-                <LessonDropZone
-                  lessonPlan={currentLessonPlan!}
-                  onActivityAdd={handleActivityAdd}
-                  onActivityRemove={handleActivityRemove}
-                  onActivityReorder={handleActivityReorder}
-                  onNotesUpdate={(notes) => {
-                    if (currentLessonPlan) {
-                      const updatedPlan = { ...currentLessonPlan, notes };
-                      setCurrentLessonPlan(updatedPlan);
-                      handleUpdateLessonPlan(updatedPlan);
-                    }
-                  }}
-                  isEditing={isEditing}
-                  onActivityClick={(activity) => setSelectedActivity(activity)}
-                />
-              </div>
-
-              {/* Quick Activity Library */}
-              <div className="lg:col-span-1">
-                <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden sticky top-8">
-                  <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
-                    <h3 className="text-lg font-semibold">Quick Add Activities</h3>
-                    <p className="text-blue-100 text-sm">Click or drag activities to your lesson plan</p>
-                    
-                    {/* Category Selector */}
-                    <div className="mt-3">
-                      <select
-                        value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
-                      >
-                        <option value="all" className="text-gray-900">All Categories</option>
-                        {categories.map(category => (
-                          <option key={category} value={category} className="text-gray-900">
-                            {category}
-                          </option>
-                        ))}
-                      </select>
+                      ))}
                     </div>
-                    
-                    {/* Mini search */}
-                    <div className="mt-3 relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-blue-300" />
-                      <input
-                        type="text"
-                        placeholder="Filter activities..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="p-4 max-h-[600px] overflow-y-auto">
-                    {filteredAndSortedActivities.length === 0 ? (
-                      <div className="text-center py-8">
-                        <p className="text-gray-500">No matching activities found</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {filteredAndSortedActivities.map((activity, index) => (
-                          <ActivityCard 
-                            key={`${activity.activity}-${activity.category}-${index}`}
-                            activity={activity}
-                            categoryColor={activity.category ? 
-                              {
-                                'Welcome': '#F59E0B',
-                                'Kodaly Songs': '#8B5CF6',
-                                'Kodaly Action Songs': '#F97316',
-                                'Action/Games Songs': '#F97316',
-                                'Rhythm Sticks': '#D97706',
-                                'Scarf Songs': '#10B981',
-                                'General Game': '#3B82F6',
-                                'Core Songs': '#84CC16',
-                                'Parachute Games': '#EF4444',
-                                'Percussion Games': '#06B6D4',
-                                'Teaching Units': '#6366F1',
-                                'Goodbye': '#14B8A6'
-                              }[activity.category] || '#6B7280'
-                            : '#6B7280'}
-                            viewMode="compact"
-                            onActivityClick={(activity) => {
-                              handleActivityAdd(activity);
-                            }}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
 

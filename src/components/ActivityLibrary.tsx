@@ -11,10 +11,16 @@ import {
   SortAsc,
   SortDesc,
   Eye,
-  MoreVertical
+  MoreVertical,
+  Upload,
+  Download,
+  Edit3,
+  Lock
 } from 'lucide-react';
 import { ActivityCard } from './ActivityCard';
 import { ActivityDetails } from './ActivityDetails';
+import { ActivityImporter } from './ActivityImporter';
+import { ActivityCreator } from './ActivityCreator';
 import { useData } from '../contexts/DataContext';
 import type { Activity } from '../contexts/DataContext';
 
@@ -49,6 +55,10 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
   const [editingActivity, setEditingActivity] = useState<string | null>(null);
   const [selectedActivityDetails, setSelectedActivityDetails] = useState<Activity | null>(null);
+  const [showImporter, setShowImporter] = useState(false);
+  const [showCreator, setShowCreator] = useState(false);
+  const [editPassword, setEditPassword] = useState('');
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState<{activity: Activity, index: number} | null>(null);
 
   // Extract all activities from all lessons
   const allActivities = useMemo(() => {
@@ -146,6 +156,32 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
     setSelectedActivityDetails(activity);
   };
 
+  const handleEditActivity = (activity: Activity, index: number) => {
+    setShowPasswordPrompt({activity, index});
+  };
+
+  const handlePasswordSubmit = () => {
+    if (showPasswordPrompt && editPassword === 'behvij-3Fuvpa-meqtev') {
+      setEditingActivity(`${showPasswordPrompt.activity.activity}-${showPasswordPrompt.activity.category}`);
+      setShowPasswordPrompt(null);
+      setEditPassword('');
+    } else {
+      alert('Incorrect password');
+    }
+  };
+
+  const handleImportActivities = (activities: Activity[]) => {
+    // In a real implementation, this would add the activities to your data store
+    console.log('Import activities:', activities);
+    setShowImporter(false);
+  };
+
+  const handleCreateActivity = (newActivity: Activity) => {
+    // In a real implementation, this would add the new activity to your data store
+    console.log('Create activity:', newActivity);
+    setShowCreator(false);
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
       {/* Header */}
@@ -161,31 +197,49 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
             </div>
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-lg transition-colors duration-200 ${
-                viewMode === 'grid' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
-              }`}
+              onClick={() => setShowCreator(true)}
+              className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200 flex items-center space-x-2"
             >
-              <Grid3X3 className="h-5 w-5" />
+              <Plus className="h-4 w-4" />
+              <span>Create Activity</span>
             </button>
+            
             <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 rounded-lg transition-colors duration-200 ${
-                viewMode === 'list' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
-              }`}
+              onClick={() => setShowImporter(true)}
+              className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200 flex items-center space-x-2"
             >
-              <List className="h-5 w-5" />
+              <Upload className="h-4 w-4" />
+              <span>Import/Export</span>
             </button>
-            <button
-              onClick={() => setViewMode('compact')}
-              className={`p-2 rounded-lg transition-colors duration-200 ${
-                viewMode === 'compact' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
-              }`}
-            >
-              <MoreVertical className="h-5 w-5" />
-            </button>
+            
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-lg transition-colors duration-200 ${
+                  viewMode === 'grid' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
+                }`}
+              >
+                <Grid3X3 className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-lg transition-colors duration-200 ${
+                  viewMode === 'list' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
+                }`}
+              >
+                <List className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setViewMode('compact')}
+                className={`p-2 rounded-lg transition-colors duration-200 ${
+                  viewMode === 'compact' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
+                }`}
+              >
+                <MoreVertical className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -272,7 +326,16 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
             }
           `}>
             {filteredAndSortedActivities.map((activity, index) => (
-              <div key={`${activity.activity}-${activity.category}-${index}`}>
+              <div key={`${activity.activity}-${activity.category}-${index}`} className="relative group">
+                {/* Edit button in corner */}
+                <button
+                  onClick={() => handleEditActivity(activity, index)}
+                  className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  title="Edit Activity"
+                >
+                  <Edit3 className="h-3.5 w-3.5 text-gray-600" />
+                </button>
+                
                 <ActivityCard
                   activity={activity}
                   onUpdate={handleActivityUpdate}
@@ -307,6 +370,66 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
             setSelectedActivityDetails(null);
           }}
         />
+      )}
+
+      {/* Activity Creator Modal */}
+      {showCreator && (
+        <ActivityCreator 
+          onSave={handleCreateActivity}
+          onClose={() => setShowCreator(false)}
+          categories={categories}
+          levels={levels}
+        />
+      )}
+
+      {/* Activity Importer Modal */}
+      {showImporter && (
+        <ActivityImporter 
+          onImport={handleImportActivities}
+          onClose={() => setShowImporter(false)}
+        />
+      )}
+
+      {/* Password Prompt Modal */}
+      {showPasswordPrompt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-lg p-6 max-w-md w-full">
+            <div className="flex items-center space-x-2 mb-4">
+              <Lock className="h-5 w-5 text-blue-600" />
+              <h3 className="text-lg font-semibold text-gray-900">Admin Access Required</h3>
+            </div>
+            
+            <p className="text-gray-600 mb-4">
+              Please enter the admin password to edit this activity.
+            </p>
+            
+            <input
+              type="password"
+              value={editPassword}
+              onChange={(e) => setEditPassword(e.target.value)}
+              placeholder="Enter password"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-4"
+            />
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowPasswordPrompt(null);
+                  setEditPassword('');
+                }}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium rounded-lg transition-colors duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePasswordSubmit}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
