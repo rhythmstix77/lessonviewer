@@ -15,7 +15,8 @@ import {
   MoreVertical,
   Plus,
   Check,
-  Filter
+  Filter,
+  Edit3
 } from 'lucide-react';
 import { ActivityCard } from './ActivityCard';
 import { LessonDropZone } from './LessonDropZone';
