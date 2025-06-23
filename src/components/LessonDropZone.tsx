@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { useDrop, useDrag } from 'react-dnd';
+import { useDrop } from 'react-dnd';
 import { 
   Plus, 
   Clock, 
@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import type { Activity } from '../contexts/DataContext';
 import { EyfsStandardsSelector } from './EyfsStandardsSelector';
+import { useDrag } from 'react-dnd';
 
 interface LessonPlan {
   id: string;
@@ -222,7 +223,7 @@ export function LessonDropZone({
   isEditing,
   onActivityClick
 }: LessonDropZoneProps) {
-  // Fix: Use the correct drag type 'activity' instead of a different type
+  // Fix: Use the correct drag type 'activity' to match ActivityCard
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'activity',
     drop: (item: { activity: Activity }) => {
@@ -317,7 +318,7 @@ export function LessonDropZone({
           <div className="space-y-4">
             {lessonPlan.activities.map((activity, index) => (
               <DraggableActivity
-                key={`${activity.activity}-${index}`}
+                key={`${activity.activity}-${index}-${activity._uniqueId || ''}`}
                 activity={activity}
                 index={index}
                 onRemove={() => onActivityRemove(index)}

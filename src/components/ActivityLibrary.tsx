@@ -327,15 +327,6 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
           `}>
             {filteredAndSortedActivities.map((activity, index) => (
               <div key={`${activity.activity}-${activity.category}-${index}`} className="relative group">
-                {/* Edit button in corner */}
-                <button
-                  onClick={() => handleEditActivity(activity, index)}
-                  className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                  title="Edit Activity"
-                >
-                  <Edit3 className="h-3.5 w-3.5 text-gray-600" />
-                </button>
-                
                 <ActivityCard
                   activity={activity}
                   onUpdate={handleActivityUpdate}
@@ -353,7 +344,17 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
                     // First show details, then if user confirms, add to lesson
                     handleViewActivityDetails(activity);
                   }}
+                  draggable={false}
                 />
+                
+                {/* Edit button in corner */}
+                <button
+                  onClick={() => handleEditActivity(activity, index)}
+                  className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  title="Edit Activity"
+                >
+                  <Edit3 className="h-3.5 w-3.5 text-gray-600" />
+                </button>
               </div>
             ))}
           </div>

@@ -19,6 +19,7 @@ export interface Activity {
   unitName: string;
   lessonNumber: string;
   eyfsStandards?: string[];
+  _uniqueId?: string; // Added for drag and drop uniqueness
 }
 
 export interface LessonData {

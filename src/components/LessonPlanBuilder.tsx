@@ -392,6 +392,7 @@ export function LessonPlanBuilder() {
                             : '#6B7280'}
                             viewMode="compact"
                             onActivityClick={() => handleActivityAdd(activity)}
+                            draggable={true}
                           />
                         </div>
                       ))}

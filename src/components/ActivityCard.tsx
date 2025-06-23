@@ -26,7 +26,6 @@ import {
   ChevronUp,
   Tag
 } from 'lucide-react';
-import { useDrag } from 'react-dnd';
 import type { Activity } from '../contexts/DataContext';
 
 interface ActivityCardProps {
@@ -40,6 +39,7 @@ interface ActivityCardProps {
   viewMode?: 'compact' | 'detailed' | 'minimal';
   onResourceClick?: (url: string, title: string, type: string) => void;
   onActivityClick?: (activity: Activity) => void;
+  draggable?: boolean;
 }
 
 const categoryColors: Record<string, string> = {
@@ -70,7 +70,8 @@ export function ActivityCard({
   categoryColor,
   viewMode = 'detailed',
   onResourceClick,
-  onActivityClick
+  onActivityClick,
+  draggable = false
 }: ActivityCardProps) {
   const [editedActivity, setEditedActivity] = useState<Activity>(activity);
   const [showResources, setShowResources] = useState(false);
@@ -78,15 +79,9 @@ export function ActivityCard({
   const [isExpanded, setIsExpanded] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
 
-  // Fix: Use the correct drag type 'activity' instead of 'lesson-activity'
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: 'activity',
-    item: { activity },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  }));
-
+  // Only set up drag if draggable is true
+  const dragRef = useRef<HTMLDivElement>(null);
+  
   React.useEffect(() => {
     setEditedActivity(activity);
   }, [activity]);
@@ -179,10 +174,8 @@ export function ActivityCard({
   if (viewMode === 'minimal') {
     return (
       <div
-        ref={drag}
-        className={`bg-white rounded-lg shadow-sm border-l-4 p-3 transition-all duration-200 hover:shadow-md cursor-move ${
-          isDragging ? 'opacity-50 scale-95' : 'hover:scale-[1.02]'
-        }`}
+        ref={dragRef}
+        className={`bg-white rounded-lg shadow-sm border-l-4 p-3 transition-all duration-200 hover:shadow-md ${draggable ? 'cursor-move' : 'cursor-pointer'}`}
         style={{ borderLeftColor: cardColor }}
         onClick={handleCardClick}
       >
@@ -204,10 +197,8 @@ export function ActivityCard({
   if (viewMode === 'compact') {
     return (
       <div
-        ref={drag}
-        className={`bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl cursor-move ${
-          isDragging ? 'opacity-50 scale-95' : 'hover:scale-[1.02]'
-        } ${isEditing ? 'ring-4 ring-blue-300' : 'border-gray-200 hover:border-gray-300'}`}
+        ref={dragRef}
+        className={`bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl ${draggable ? 'cursor-move' : 'cursor-pointer'} ${isEditing ? 'ring-4 ring-blue-300' : 'border-gray-200 hover:border-gray-300'}`}
         style={{ borderLeftColor: cardColor, borderLeftWidth: '6px' }}
         onClick={handleCardClick}
       >
@@ -273,10 +264,8 @@ export function ActivityCard({
   // Detailed view (default)
   return (
     <div
-      ref={drag}
-      className={`bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl cursor-move overflow-hidden ${
-        isDragging ? 'opacity-50 scale-95' : 'hover:scale-[1.02]'
-      } ${isEditing ? 'ring-4 ring-blue-300' : 'border-gray-200 hover:border-gray-300'}`}
+      ref={dragRef}
+      className={`bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl ${draggable ? 'cursor-move' : 'cursor-pointer'} overflow-hidden ${isEditing ? 'ring-4 ring-blue-300' : 'border-gray-200 hover:border-gray-300'}`}
       style={{ borderLeftColor: cardColor, borderLeftWidth: '6px' }}
       onClick={handleCardClick}
     >
@@ -336,7 +325,7 @@ export function ActivityCard({
                   </button>
 
                   {showMenu && (
-                    <div className="absolute top-full right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 py-2 min-w-[150px] z-50">
+                    <div className="absolute top-full right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 py-2 min-w-[180px] z-50">
                       {onEditToggle && (
                         <button
                           onClick={(e) => {
