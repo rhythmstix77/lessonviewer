@@ -1,368 +1,98 @@
-import { supabase, TABLES, isSupabaseConfigured } from './supabase';
-import type { Activity } from '../contexts/DataContext';
+import axios from 'axios';
+
+// API base URL - change this to your production server URL when deploying
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+
+// Create axios instance with base URL
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
 
 // API endpoints for activities
 export const activitiesApi = {
   getAll: async () => {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Supabase is not configured. Please connect to Supabase first.');
-    }
-    
-    const { data, error } = await supabase
-      .from(TABLES.ACTIVITIES)
-      .select('*');
-      
-    if (error) {
-      console.error('Error fetching activities:', error);
-      throw error;
-    }
-    
-    return data || [];
+    const response = await api.get('/activities');
+    return response.data;
   },
   
-  create: async (activity: Activity) => {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Supabase is not configured. Please connect to Supabase first.');
-    }
-    
-    const { data, error } = await supabase
-      .from(TABLES.ACTIVITIES)
-      .insert([activity])
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error creating activity:', error);
-      throw error;
-    }
-    
-    return data;
+  create: async (activity) => {
+    const response = await api.post('/activities', activity);
+    return response.data;
   },
   
-  update: async (id: string, activity: Activity) => {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Supabase is not configured. Please connect to Supabase first.');
-    }
-    
-    const { data, error } = await supabase
-      .from(TABLES.ACTIVITIES)
-      .update(activity)
-      .eq('_id', id)
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error updating activity:', error);
-      throw error;
-    }
-    
-    return data;
+  update: async (id, activity) => {
+    const response = await api.put(`/activities/${id}`, activity);
+    return response.data;
   },
   
-  delete: async (id: string) => {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Supabase is not configured. Please connect to Supabase first.');
-    }
-    
-    const { error } = await supabase
-      .from(TABLES.ACTIVITIES)
-      .delete()
-      .eq('_id', id);
-      
-    if (error) {
-      console.error('Error deleting activity:', error);
-      throw error;
-    }
-    
-    return { success: true };
+  delete: async (id) => {
+    const response = await api.delete(`/activities/${id}`);
+    return response.data;
   },
   
-  import: async (activities: Activity[]) => {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Supabase is not configured. Please connect to Supabase first.');
-    }
-    
-    const { data, error } = await supabase
-      .from(TABLES.ACTIVITIES)
-      .insert(activities);
-      
-    if (error) {
-      console.error('Error importing activities:', error);
-      throw error;
-    }
-    
-    return { success: true };
+  import: async (activities) => {
+    const response = await api.post('/import', { activities });
+    return response.data;
   }
 };
 
 // API endpoints for lessons
 export const lessonsApi = {
-  getBySheet: async (sheet: string) => {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Supabase is not configured. Please connect to Supabase first.');
-    }
-    
-    const { data, error } = await supabase
-      .from(TABLES.LESSONS)
-      .select('*')
-      .eq('sheet', sheet)
-      .single();
-      
-    if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned" error
-      console.error('Error fetching lessons:', error);
-      throw error;
-    }
-    
-    return data || {};
+  getBySheet: async (sheet) => {
+    const response = await api.get(`/lessons/${sheet}`);
+    return response.data;
   },
   
-  updateSheet: async (sheet: string, data: any) => {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Supabase is not configured. Please connect to Supabase first.');
-    }
-    
-    // Check if record exists
-    const { data: existingData, error: checkError } = await supabase
-      .from(TABLES.LESSONS)
-      .select('id')
-      .eq('sheet', sheet)
-      .maybeSingle();
-      
-    if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Error checking for existing lesson data:', checkError);
-      throw checkError;
-    }
-    
-    if (existingData) {
-      // Update existing record
-      const { data: updatedData, error } = await supabase
-        .from(TABLES.LESSONS)
-        .update({ ...data, updated_at: new Date() })
-        .eq('sheet', sheet)
-        .select()
-        .single();
-        
-      if (error) {
-        console.error('Error updating lesson data:', error);
-        throw error;
-      }
-      
-      return updatedData;
-    } else {
-      // Insert new record
-      const { data: newData, error } = await supabase
-        .from(TABLES.LESSONS)
-        .insert([{ sheet, ...data, created_at: new Date(), updated_at: new Date() }])
-        .select()
-        .single();
-        
-      if (error) {
-        console.error('Error creating lesson data:', error);
-        throw error;
-      }
-      
-      return newData;
-    }
+  updateSheet: async (sheet, data) => {
+    const response = await api.post(`/lessons/${sheet}`, data);
+    return response.data;
   }
 };
 
 // API endpoints for lesson plans
 export const lessonPlansApi = {
   getAll: async () => {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Supabase is not configured. Please connect to Supabase first.');
-    }
-    
-    const { data, error } = await supabase
-      .from(TABLES.LESSON_PLANS)
-      .select('*');
-      
-    if (error) {
-      console.error('Error fetching lesson plans:', error);
-      throw error;
-    }
-    
-    return data || [];
+    const response = await api.get('/lessonPlans');
+    return response.data;
   },
   
-  create: async (plan: any) => {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Supabase is not configured. Please connect to Supabase first.');
-    }
-    
-    const { data, error } = await supabase
-      .from(TABLES.LESSON_PLANS)
-      .insert([{ ...plan, created_at: new Date(), updated_at: new Date() }])
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error creating lesson plan:', error);
-      throw error;
-    }
-    
-    return data;
+  create: async (plan) => {
+    const response = await api.post('/lessonPlans', plan);
+    return response.data;
   },
   
-  update: async (id: string, plan: any) => {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Supabase is not configured. Please connect to Supabase first.');
-    }
-    
-    const { data, error } = await supabase
-      .from(TABLES.LESSON_PLANS)
-      .update({ ...plan, updated_at: new Date() })
-      .eq('id', id)
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error updating lesson plan:', error);
-      throw error;
-    }
-    
-    return data;
+  update: async (id, plan) => {
+    const response = await api.put(`/lessonPlans/${id}`, plan);
+    return response.data;
   }
 };
 
 // API endpoints for EYFS standards
 export const eyfsApi = {
-  getBySheet: async (sheet: string) => {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Supabase is not configured. Please connect to Supabase first.');
-    }
-    
-    const { data, error } = await supabase
-      .from(TABLES.EYFS_STATEMENTS)
-      .select('*')
-      .eq('sheet', sheet)
-      .single();
-      
-    if (error && error.code !== 'PGRST116') {
-      console.error('Error fetching EYFS standards:', error);
-      throw error;
-    }
-    
-    return data || {};
+  getBySheet: async (sheet) => {
+    const response = await api.get(`/eyfs/${sheet}`);
+    return response.data;
   },
   
-  updateSheet: async (sheet: string, data: any) => {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Supabase is not configured. Please connect to Supabase first.');
-    }
-    
-    // Check if record exists
-    const { data: existingData, error: checkError } = await supabase
-      .from(TABLES.EYFS_STATEMENTS)
-      .select('id')
-      .eq('sheet', sheet)
-      .maybeSingle();
-      
-    if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Error checking for existing EYFS data:', checkError);
-      throw checkError;
-    }
-    
-    if (existingData) {
-      // Update existing record
-      const { data: updatedData, error } = await supabase
-        .from(TABLES.EYFS_STATEMENTS)
-        .update({ ...data, updated_at: new Date() })
-        .eq('sheet', sheet)
-        .select()
-        .single();
-        
-      if (error) {
-        console.error('Error updating EYFS data:', error);
-        throw error;
-      }
-      
-      return updatedData;
-    } else {
-      // Insert new record
-      const { data: newData, error } = await supabase
-        .from(TABLES.EYFS_STATEMENTS)
-        .insert([{ sheet, ...data, created_at: new Date(), updated_at: new Date() }])
-        .select()
-        .single();
-        
-      if (error) {
-        console.error('Error creating EYFS data:', error);
-        throw error;
-      }
-      
-      return newData;
-    }
+  updateSheet: async (sheet, data) => {
+    const response = await api.post(`/eyfs/${sheet}`, data);
+    return response.data;
   }
 };
 
 // Export/Import all data
 export const dataApi = {
   exportAll: async () => {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Supabase is not configured. Please connect to Supabase first.');
-    }
-    
-    // Get all data from all tables
-    const [activities, lessons, lessonPlans, eyfsStatements] = await Promise.all([
-      supabase.from(TABLES.ACTIVITIES).select('*'),
-      supabase.from(TABLES.LESSONS).select('*'),
-      supabase.from(TABLES.LESSON_PLANS).select('*'),
-      supabase.from(TABLES.EYFS_STATEMENTS).select('*')
-    ]);
-    
-    if (activities.error) throw activities.error;
-    if (lessons.error) throw lessons.error;
-    if (lessonPlans.error) throw lessonPlans.error;
-    if (eyfsStatements.error) throw eyfsStatements.error;
-    
-    return {
-      activities: activities.data || [],
-      lessons: lessons.data || [],
-      lessonPlans: lessonPlans.data || [],
-      eyfs: eyfsStatements.data || []
-    };
+    const response = await api.get('/export');
+    return response.data;
   },
   
-  importAll: async (data: any) => {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Supabase is not configured. Please connect to Supabase first.');
-    }
-    
-    // Import data to all tables
-    const promises = [];
-    
-    if (data.activities && data.activities.length > 0) {
-      promises.push(
-        supabase.from(TABLES.ACTIVITIES).insert(data.activities)
-      );
-    }
-    
-    if (data.lessons) {
-      for (const sheet in data.lessons) {
-        promises.push(
-          lessonsApi.updateSheet(sheet, data.lessons[sheet])
-        );
-      }
-    }
-    
-    if (data.lessonPlans && data.lessonPlans.length > 0) {
-      promises.push(
-        supabase.from(TABLES.LESSON_PLANS).insert(data.lessonPlans)
-      );
-    }
-    
-    if (data.eyfs) {
-      for (const sheet in data.eyfs) {
-        promises.push(
-          eyfsApi.updateSheet(sheet, data.eyfs[sheet])
-        );
-      }
-    }
-    
-    await Promise.all(promises);
-    
-    return { success: true };
+  importAll: async (data) => {
+    const response = await api.post('/import', data);
+    return response.data;
   }
 };
 
