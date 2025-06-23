@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/Tabs';
-import { LessonViewer } from './LessonViewer';
+import { UnitViewer } from './UnitViewer';
 import { LessonPlanBuilder } from './LessonPlanBuilder';
 import { LessonPlannerCalendar } from './LessonPlannerCalendar';
 import { ActivityLibrary } from './ActivityLibrary';
@@ -14,7 +14,7 @@ import type { Activity } from '../contexts/DataContext';
 export function Dashboard() {
   const { currentSheetInfo } = useData();
   const { getThemeForClass } = useSettings();
-  const [activeTab, setActiveTab] = useState('lesson-viewer');
+  const [activeTab, setActiveTab] = useState('unit-viewer');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [lessonPlans, setLessonPlans] = useState<any[]>([]);
   
@@ -95,7 +95,7 @@ export function Dashboard() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
             <TabsList className="bg-white shadow-md rounded-xl p-1 border border-gray-200">
               <TabsTrigger 
-                value="lesson-viewer"
+                value="unit-viewer"
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200"
                 style={{ 
                   '--tw-gradient-from': theme.primary,
@@ -104,7 +104,7 @@ export function Dashboard() {
               >
                 <div className="flex items-center space-x-2">
                   <GraduationCap className="h-5 w-5" />
-                  <span>Lesson Viewer</span>
+                  <span>Unit Viewer</span>
                 </div>
               </TabsTrigger>
               
@@ -139,8 +139,8 @@ export function Dashboard() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="lesson-viewer" className="mt-6">
-              <LessonViewer />
+            <TabsContent value="unit-viewer" className="mt-6">
+              <UnitViewer />
             </TabsContent>
 
             <TabsContent value="calendar" className="mt-6">
