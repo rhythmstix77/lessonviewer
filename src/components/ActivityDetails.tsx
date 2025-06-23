@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Clock, Video, Music, FileText, Link as LinkIcon, Image, Volume2, Maximize2, Minimize2, ExternalLink, Tag, Plus, Save, Bold, Italic, Underline, List, ListOrdered } from 'lucide-react';
+import { X, Clock, Video, Music, FileText, Link as LinkIcon, Image, Volume2, Maximize2, Minimize2, ExternalLink, Tag, Plus, Save, Bold, Italic, Underline, List, ListOrdered, Upload } from 'lucide-react';
 import { EditableText } from './EditableText';
 import type { Activity } from '../contexts/DataContext';
 import { useData } from '../contexts/DataContext';
@@ -469,9 +469,10 @@ export function ActivityDetails({
                     <div className="flex space-x-2">
                       <button
                         onClick={() => imageInputRef.current?.click()}
-                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg"
+                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg flex items-center space-x-1"
                       >
-                        Upload Image
+                        <Upload className="h-4 w-4" />
+                        <span>Upload</span>
                       </button>
                       <input
                         ref={imageInputRef}

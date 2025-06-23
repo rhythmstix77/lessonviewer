@@ -109,12 +109,13 @@ export function ActivityCard({
   const formatDescription = (text: string) => {
     if (!text) return '';
     
-    // Replace newlines with <br> tags if not already HTML
-    if (!text.includes('<')) {
-      return text.replace(/\n/g, '<br>');
+    // If already HTML, return as is
+    if (text.includes('<')) {
+      return text;
     }
     
-    return text;
+    // Replace newlines with <br> tags
+    return text.replace(/\n/g, '<br>');
   };
 
   // Check if description is long enough to truncate
