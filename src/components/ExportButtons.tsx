@@ -259,7 +259,7 @@ export function ExportButtons() {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-visible">
       {/* Compact Header */}
-      <div className="p-3">
+      <div className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="bg-gradient-to-br from-green-500 to-teal-600 p-2 rounded-lg">
@@ -409,8 +409,8 @@ export function ExportButtons() {
 
         {/* Selected Lessons Preview */}
         {selectedLessons.length > 0 && !showLessonSelector && (
-          <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="flex items-center justify-between mb-1">
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-blue-900">
                 Selected for export:
               </span>
