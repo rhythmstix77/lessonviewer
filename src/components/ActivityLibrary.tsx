@@ -559,6 +559,33 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
         )}
       </div>
 
+      {/* Category List */}
+      <div className="p-4 border-t border-gray-200 bg-gray-50">
+        <h3 className="text-sm font-medium text-gray-700 mb-3">Categories</h3>
+        <div className="flex flex-wrap gap-2">
+          {categories.map(category => (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category === selectedCategory ? 'all' : category)}
+              className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                category === selectedCategory 
+                  ? 'bg-gray-800 text-white' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+              style={{
+                backgroundColor: category === selectedCategory 
+                  ? categoryColors[category] || '#6B7280'
+                  : 'transparent',
+                color: category === selectedCategory ? 'white' : 'inherit',
+                borderLeft: `4px solid ${categoryColors[category] || '#6B7280'}`
+              }}
+            >
+              <span>{category}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Activity Details Modal */}
       {selectedActivityDetails && (
         <ActivityDetails
