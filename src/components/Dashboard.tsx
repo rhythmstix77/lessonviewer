@@ -19,6 +19,7 @@ interface Unit {
   description: string;
   lessonNumbers: string[];
   color: string;
+  term?: string;
   createdAt: Date;
   updatedAt: Date;
 }

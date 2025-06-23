@@ -12,10 +12,17 @@ import {
   Check,
   Clock,
   Users,
-  Tag
+  Tag,
+  ArrowUp,
+  ArrowDown,
+  FileText,
+  Download
 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 interface Unit {
   id: string;
@@ -23,6 +30,7 @@ interface Unit {
   description: string;
   lessonNumbers: string[];
   color: string;
+  term: string; // Added term field
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +41,16 @@ interface UnitManagerProps {
   onAddToCalendar?: (unit: Unit, startDate: Date) => void;
 }
 
+// Define terms
+const TERMS = [
+  { id: 'A1', name: 'Autumn 1', months: 'Sep-Oct' },
+  { id: 'A2', name: 'Autumn 2', months: 'Nov-Dec' },
+  { id: 'SP1', name: 'Spring 1', months: 'Jan-Feb' },
+  { id: 'SP2', name: 'Spring 2', months: 'Mar-Apr' },
+  { id: 'SM1', name: 'Summer 1', months: 'Apr-May' },
+  { id: 'SM2', name: 'Summer 2', months: 'Jun-Jul' },
+];
+
 export function UnitManager({ isOpen, onClose, onAddToCalendar }: UnitManagerProps) {
   const { lessonNumbers, allLessonsData, currentSheetInfo } = useData();
   const { getThemeForClass } = useSettings();
@@ -42,12 +60,14 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar }: UnitManagerPro
     name: '',
     description: '',
     lessonNumbers: [],
-    color: getThemeForClass(currentSheetInfo.sheet).primary
+    color: getThemeForClass(currentSheetInfo.sheet).primary,
+    term: 'A1' // Default to Autumn 1
   });
   const [isCreating, setIsCreating] = useState(false);
   const [expandedUnit, setExpandedUnit] = useState<string | null>(null);
   const [calendarDate, setCalendarDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [selectedUnitForCalendar, setSelectedUnitForCalendar] = useState<Unit | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   // Load units from localStorage
   useEffect(() => {
@@ -61,7 +81,8 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar }: UnitManagerPro
         const unitsWithDates = parsedUnits.map((unit: any) => ({
           ...unit,
           createdAt: new Date(unit.createdAt),
-          updatedAt: new Date(unit.updatedAt)
+          updatedAt: new Date(unit.updatedAt),
+          term: unit.term || 'A1' // Ensure term exists
         }));
         setUnits(unitsWithDates);
       } catch (error) {
@@ -75,6 +96,8 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar }: UnitManagerPro
   const saveUnits = (updatedUnits: Unit[]) => {
     localStorage.setItem(`units-${currentSheetInfo.sheet}`, JSON.stringify(updatedUnits));
     setUnits(updatedUnits);
+    setSaveStatus('success');
+    setTimeout(() => setSaveStatus('idle'), 3000);
   };
 
   const handleCreateUnit = () => {
@@ -89,6 +112,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar }: UnitManagerPro
       description: newUnit.description || '',
       lessonNumbers: newUnit.lessonNumbers || [],
       color: newUnit.color || getThemeForClass(currentSheetInfo.sheet).primary,
+      term: newUnit.term || 'A1',
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -101,7 +125,8 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar }: UnitManagerPro
       name: '',
       description: '',
       lessonNumbers: [],
-      color: getThemeForClass(currentSheetInfo.sheet).primary
+      color: getThemeForClass(currentSheetInfo.sheet).primary,
+      term: 'A1'
     });
     setIsCreating(false);
   };
@@ -187,6 +212,173 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar }: UnitManagerPro
     return { totalDuration, totalActivities };
   };
 
+  // Move a lesson up or down in the unit order
+  const moveLessonInUnit = (unitId: string, lessonNum: string, direction: 'up' | 'down') => {
+    const unit = units.find(u => u.id === unitId);
+    if (!unit) return;
+    
+    const lessonIndex = unit.lessonNumbers.indexOf(lessonNum);
+    if (lessonIndex === -1) return;
+    
+    // Can't move up if already at the top
+    if (direction === 'up' && lessonIndex === 0) return;
+    
+    // Can't move down if already at the bottom
+    if (direction === 'down' && lessonIndex === unit.lessonNumbers.length - 1) return;
+    
+    const newLessonNumbers = [...unit.lessonNumbers];
+    const targetIndex = direction === 'up' ? lessonIndex - 1 : lessonIndex + 1;
+    
+    // Swap positions
+    [newLessonNumbers[lessonIndex], newLessonNumbers[targetIndex]] = 
+    [newLessonNumbers[targetIndex], newLessonNumbers[lessonIndex]];
+    
+    // Update the unit
+    const updatedUnits = units.map(u => 
+      u.id === unitId 
+        ? { ...u, lessonNumbers: newLessonNumbers, updatedAt: new Date() } 
+        : u
+    );
+    
+    saveUnits(updatedUnits);
+  };
+
+  // Export unit to PDF
+  const exportUnitToPdf = (unit: Unit) => {
+    const doc = new jsPDF();
+    let yPos = 20;
+    
+    // Add title
+    doc.setFontSize(18);
+    doc.text(`Unit: ${unit.name}`, 105, yPos, { align: 'center' });
+    yPos += 10;
+    
+    // Add term
+    const term = TERMS.find(t => t.id === unit.term)?.name || unit.term;
+    doc.setFontSize(14);
+    doc.text(`Term: ${term}`, 105, yPos, { align: 'center' });
+    yPos += 15;
+    
+    // Add description if available
+    if (unit.description) {
+      doc.setFontSize(12);
+      doc.text('Description:', 14, yPos);
+      yPos += 7;
+      
+      const descLines = doc.splitTextToSize(unit.description, 180);
+      doc.text(descLines, 14, yPos);
+      yPos += descLines.length * 7 + 10;
+    }
+    
+    // Add lessons
+    doc.setFontSize(16);
+    doc.text('Lessons:', 14, yPos);
+    yPos += 10;
+    
+    unit.lessonNumbers.forEach((lessonNum, index) => {
+      const lessonData = allLessonsData[lessonNum];
+      if (!lessonData) return;
+      
+      // Check if we need a new page
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      // Lesson header
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 150);
+      doc.text(`Lesson ${lessonNum}`, 14, yPos);
+      yPos += 7;
+      doc.setTextColor(0, 0, 0);
+      
+      // Lesson details
+      doc.setFontSize(12);
+      doc.text(`Duration: ${lessonData.totalTime} minutes`, 20, yPos);
+      yPos += 7;
+      
+      // Categories
+      doc.text(`Categories: ${lessonData.categoryOrder.join(', ')}`, 20, yPos);
+      yPos += 7;
+      
+      // Activities count
+      let totalActivities = 0;
+      Object.values(lessonData.grouped).forEach(activities => {
+        totalActivities += activities.length;
+      });
+      doc.text(`Activities: ${totalActivities}`, 20, yPos);
+      yPos += 15;
+    });
+    
+    // Save the PDF
+    doc.save(`${currentSheetInfo.sheet}_unit_${unit.name.replace(/\s+/g, '_')}.pdf`);
+  };
+
+  // Export unit to Excel
+  const exportUnitToExcel = (unit: Unit) => {
+    // Create a new workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Create unit overview sheet
+    const unitOverviewData = [
+      ['Unit Name', unit.name],
+      ['Term', TERMS.find(t => t.id === unit.term)?.name || unit.term],
+      ['Description', unit.description],
+      ['Lessons', unit.lessonNumbers.length.toString()],
+      ['Color', unit.color]
+    ];
+    
+    const unitWs = XLSX.utils.aoa_to_sheet(unitOverviewData);
+    XLSX.utils.book_append_sheet(wb, unitWs, 'Unit Overview');
+    
+    // Create a sheet for each lesson
+    unit.lessonNumbers.forEach(lessonNum => {
+      const lessonData = allLessonsData[lessonNum];
+      if (!lessonData) return;
+      
+      // Create data for this lesson
+      const data = [];
+      
+      // Add header row
+      data.push(['Category', 'Activity', 'Time (mins)', 'Description', 'Level']);
+      
+      // Add activities
+      lessonData.categoryOrder.forEach(category => {
+        const activities = lessonData.grouped[category] || [];
+        
+        activities.forEach(activity => {
+          data.push([
+            category,
+            activity.activity,
+            activity.time.toString(),
+            activity.description.replace(/<[^>]*>/g, ''),
+            activity.level || ''
+          ]);
+        });
+      });
+      
+      // Create worksheet
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      
+      // Set column widths
+      const colWidths = [
+        { wch: 20 }, // Category
+        { wch: 25 }, // Activity
+        { wch: 10 }, // Time
+        { wch: 50 }, // Description
+        { wch: 15 }  // Level
+      ];
+      
+      ws['!cols'] = colWidths;
+      
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, `Lesson ${lessonNum}`);
+    });
+    
+    // Generate Excel file
+    XLSX.writeFile(wb, `${currentSheetInfo.sheet}_unit_${unit.name.replace(/\s+/g, '_')}.xlsx`);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -224,6 +416,14 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar }: UnitManagerPro
             </button>
           )}
 
+          {/* Save Status Message */}
+          {saveStatus === 'success' && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center space-x-2">
+              <Check className="h-5 w-5 text-green-600" />
+              <span className="text-green-700">Unit saved successfully!</span>
+            </div>
+          )}
+
           {/* Create Unit Form */}
           {isCreating && (
             <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-6">
@@ -249,6 +449,23 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar }: UnitManagerPro
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Enter unit name"
                   />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Term
+                  </label>
+                  <select
+                    value={newUnit.term || 'A1'}
+                    onChange={(e) => setNewUnit(prev => ({ ...prev, term: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    {TERMS.map(term => (
+                      <option key={term.id} value={term.id}>
+                        {term.name} ({term.months})
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 
                 <div>
@@ -404,6 +621,23 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar }: UnitManagerPro
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Term
+                  </label>
+                  <select
+                    value={editingUnit.term || 'A1'}
+                    onChange={(e) => setEditingUnit(prev => prev ? { ...prev, term: e.target.value } : null)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {TERMS.map(term => (
+                      <option key={term.id} value={term.id}>
+                        {term.name} ({term.months})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Description
                   </label>
                   <textarea
@@ -437,74 +671,89 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar }: UnitManagerPro
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Lessons
+                    Manage Lessons
+                  </label>
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 max-h-60 overflow-y-auto">
+                    <div className="space-y-2">
+                      {editingUnit.lessonNumbers.length === 0 ? (
+                        <p className="text-gray-500 text-center py-4">No lessons in this unit yet</p>
+                      ) : (
+                        editingUnit.lessonNumbers.map((lessonNum, index) => {
+                          const lessonData = allLessonsData[lessonNum];
+                          return (
+                            <div 
+                              key={lessonNum}
+                              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                            >
+                              <div className="flex items-center space-x-3">
+                                <div className="bg-blue-100 text-blue-800 w-8 h-8 rounded-full flex items-center justify-center font-medium">
+                                  {index + 1}
+                                </div>
+                                <div>
+                                  <p className="font-medium text-gray-900">Lesson {lessonNum}</p>
+                                  {lessonData && (
+                                    <p className="text-xs text-gray-500">
+                                      {lessonData.totalTime} mins • {Object.values(lessonData.grouped).reduce((sum, activities) => sum + activities.length, 0)} activities
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <button
+                                  onClick={() => moveLessonInUnit(editingUnit.id, lessonNum, 'up')}
+                                  disabled={index === 0}
+                                  className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded-lg transition-colors duration-200 disabled:opacity-30"
+                                  title="Move Up"
+                                >
+                                  <ArrowUp className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => moveLessonInUnit(editingUnit.id, lessonNum, 'down')}
+                                  disabled={index === editingUnit.lessonNumbers.length - 1}
+                                  className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded-lg transition-colors duration-200 disabled:opacity-30"
+                                  title="Move Down"
+                                >
+                                  <ArrowDown className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => toggleLessonSelection(lessonNum)}
+                                  className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                                  title="Remove from Unit"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Add More Lessons
                   </label>
                   <div className="bg-white border border-gray-200 rounded-lg p-4 max-h-60 overflow-y-auto">
                     <div className="grid grid-cols-6 gap-2">
-                      {lessonNumbers.map((lessonNum) => {
-                        const isSelected = editingUnit.lessonNumbers.includes(lessonNum);
-                        return (
+                      {lessonNumbers
+                        .filter(num => !editingUnit.lessonNumbers.includes(num))
+                        .map((lessonNum) => (
                           <div
                             key={lessonNum}
                             onClick={() => toggleLessonSelection(lessonNum)}
-                            className={`p-2 border rounded-lg cursor-pointer transition-colors duration-200 text-center ${
-                              isSelected 
-                                ? 'bg-blue-100 border-blue-300 text-blue-800' 
-                                : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                            }`}
+                            className="p-2 border rounded-lg cursor-pointer transition-colors duration-200 text-center bg-gray-50 border-gray-200 hover:bg-gray-100"
                           >
-                            <div className="flex items-center justify-center mb-1">
-                              <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                                isSelected ? 'bg-blue-600' : 'bg-gray-200'
-                              }`}>
-                                {isSelected && <Check className="h-3 w-3 text-white" />}
-                              </div>
-                            </div>
                             <span className="text-sm font-medium">Lesson {lessonNum}</span>
                           </div>
-                        );
-                      })}
+                        ))}
                     </div>
+                    
+                    {lessonNumbers.filter(num => !editingUnit.lessonNumbers.includes(num)).length === 0 && (
+                      <p className="text-gray-500 text-center py-2">All available lessons are already in this unit</p>
+                    )}
                   </div>
-                  
-                  {/* Selected Lessons Summary */}
-                  {editingUnit.lessonNumbers.length > 0 && (
-                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-blue-900">
-                          {editingUnit.lessonNumbers.length} lessons selected
-                        </span>
-                        <button
-                          onClick={() => setEditingUnit(prev => prev ? { ...prev, lessonNumbers: [] } : null)}
-                          className="text-xs text-blue-600 hover:text-blue-800 flex items-center space-x-1 px-2 py-1 hover:bg-blue-100 rounded transition-colors duration-200"
-                        >
-                          <X className="h-3 w-3" />
-                          <span>Clear</span>
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {editingUnit.lessonNumbers
-                          .sort((a, b) => parseInt(a) - parseInt(b))
-                          .map((lessonNum) => (
-                            <span
-                              key={lessonNum}
-                              className="inline-flex items-center space-x-1 px-2 py-1 bg-blue-200 text-blue-800 text-xs font-medium rounded-full"
-                            >
-                              <span>L{lessonNum}</span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleLessonSelection(lessonNum);
-                                }}
-                                className="hover:text-blue-900 p-0.5 hover:bg-blue-300 rounded-full transition-colors duration-200"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </span>
-                          ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
                 
                 <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
@@ -550,6 +799,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar }: UnitManagerPro
                 {units.map((unit) => {
                   const isExpanded = expandedUnit === unit.id;
                   const { totalDuration, totalActivities } = getUnitStats(unit.lessonNumbers);
+                  const term = TERMS.find(t => t.id === unit.term)?.name || unit.term;
                   
                   return (
                     <div 
@@ -576,9 +826,9 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar }: UnitManagerPro
                             <div>
                               <h4 className="font-semibold text-gray-900">{unit.name}</h4>
                               <div className="flex items-center space-x-3 text-sm text-gray-600">
-                                <span>{unit.lessonNumbers.length} lessons</span>
+                                <span>{term}</span>
                                 <span>•</span>
-                                <span>{totalDuration} mins</span>
+                                <span>{unit.lessonNumbers.length} lessons</span>
                               </div>
                             </div>
                           </div>
@@ -634,52 +884,102 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar }: UnitManagerPro
                             </div>
                           )}
                           
+                          {/* Export Options */}
+                          <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                            <h5 className="text-sm font-medium text-blue-800 mb-3">Export Unit</h5>
+                            <div className="flex space-x-3">
+                              <button
+                                onClick={() => exportUnitToPdf(unit)}
+                                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg flex items-center space-x-2"
+                              >
+                                <FileText className="h-4 w-4" />
+                                <span>Export to PDF</span>
+                              </button>
+                              <button
+                                onClick={() => exportUnitToExcel(unit)}
+                                className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg flex items-center space-x-2"
+                              >
+                                <Download className="h-4 w-4" />
+                                <span>Export to Excel</span>
+                              </button>
+                            </div>
+                          </div>
+                          
                           {/* Lessons in this unit */}
                           <div>
                             <h5 className="text-sm font-medium text-gray-700 mb-3">Lessons in this Unit</h5>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                              {unit.lessonNumbers.sort((a, b) => parseInt(a) - parseInt(b)).map((lessonNum) => {
-                                const lessonData = allLessonsData[lessonNum];
-                                if (!lessonData) return null;
-                                
-                                return (
-                                  <div 
-                                    key={lessonNum}
-                                    className="bg-gray-50 rounded-lg border border-gray-200 p-3"
-                                  >
-                                    <div className="flex items-center justify-between mb-2">
-                                      <h6 className="font-medium text-gray-900">Lesson {lessonNum}</h6>
-                                      <div className="flex items-center space-x-2 text-xs text-gray-500">
-                                        <Clock className="h-3 w-3" />
-                                        <span>{lessonData.totalTime} mins</span>
+                            <div className="space-y-3">
+                              {unit.lessonNumbers.length === 0 ? (
+                                <p className="text-gray-500 text-center py-4">No lessons in this unit yet</p>
+                              ) : (
+                                unit.lessonNumbers.map((lessonNum, index) => {
+                                  const lessonData = allLessonsData[lessonNum];
+                                  if (!lessonData) return null;
+                                  
+                                  return (
+                                    <div 
+                                      key={lessonNum}
+                                      className="bg-gray-50 rounded-lg border border-gray-200 p-3"
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-3">
+                                          <div className="bg-blue-100 text-blue-800 w-8 h-8 rounded-full flex items-center justify-center font-medium">
+                                            {index + 1}
+                                          </div>
+                                          <div>
+                                            <h6 className="font-medium text-gray-900">Lesson {lessonNum}</h6>
+                                            <div className="flex items-center space-x-3 text-xs text-gray-500">
+                                              <span className="flex items-center">
+                                                <Clock className="h-3 w-3 mr-1" />
+                                                {lessonData.totalTime} mins
+                                              </span>
+                                              <span className="flex items-center">
+                                                <Users className="h-3 w-3 mr-1" />
+                                                {Object.values(lessonData.grouped).reduce((sum, activities) => sum + activities.length, 0)} activities
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        
+                                        <div className="flex items-center space-x-1">
+                                          <button
+                                            onClick={() => moveLessonInUnit(unit.id, lessonNum, 'up')}
+                                            disabled={index === 0}
+                                            className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded-lg transition-colors duration-200 disabled:opacity-30"
+                                            title="Move Up"
+                                          >
+                                            <ArrowUp className="h-4 w-4" />
+                                          </button>
+                                          <button
+                                            onClick={() => moveLessonInUnit(unit.id, lessonNum, 'down')}
+                                            disabled={index === unit.lessonNumbers.length - 1}
+                                            className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded-lg transition-colors duration-200 disabled:opacity-30"
+                                            title="Move Down"
+                                          >
+                                            <ArrowDown className="h-4 w-4" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="mt-2 flex flex-wrap gap-1">
+                                        {lessonData.categoryOrder.slice(0, 3).map((category) => (
+                                          <span
+                                            key={category}
+                                            className="px-2 py-0.5 bg-white text-xs font-medium rounded-full border border-gray-200"
+                                          >
+                                            {category}
+                                          </span>
+                                        ))}
+                                        {lessonData.categoryOrder.length > 3 && (
+                                          <span className="px-2 py-0.5 bg-white text-xs font-medium rounded-full border border-gray-200">
+                                            +{lessonData.categoryOrder.length - 3}
+                                          </span>
+                                        )}
                                       </div>
                                     </div>
-                                    
-                                    <div className="flex flex-wrap gap-1 mb-2">
-                                      {lessonData.categoryOrder.slice(0, 3).map((category) => (
-                                        <span
-                                          key={category}
-                                          className="px-2 py-0.5 bg-white text-xs font-medium rounded-full border border-gray-200"
-                                        >
-                                          {category}
-                                        </span>
-                                      ))}
-                                      {lessonData.categoryOrder.length > 3 && (
-                                        <span className="px-2 py-0.5 bg-white text-xs font-medium rounded-full border border-gray-200">
-                                          +{lessonData.categoryOrder.length - 3}
-                                        </span>
-                                      )}
-                                    </div>
-                                    
-                                    <div className="flex items-center text-xs text-gray-500">
-                                      <Users className="h-3 w-3 mr-1" />
-                                      <span>
-                                        {Object.values(lessonData.grouped).reduce((sum, activities) => sum + activities.length, 0)} activities
-                                      </span>
-                                    </div>
-                                  </div>
-                                );
-                              })}
+                                  );
+                                })
+                              )}
                             </div>
                           </div>
                           
