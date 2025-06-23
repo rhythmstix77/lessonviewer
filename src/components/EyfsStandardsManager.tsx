@@ -33,8 +33,17 @@ export function EyfsStandardsManager({ isOpen, onClose }: EyfsStandardsManagerPr
   const [showAddArea, setShowAddArea] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
+  // Check if user is admin
+  const isAdmin = user?.email === 'admin@rhythmstix.co.uk' || 
+                  user?.email === 'admin@example.com' || 
+                  user?.role === 'administrator' ||
+                  user?.role === 'admin' ||
+                  user?.email === 'rob.reichstorer@gmail.com';
+
   // Load standards from localStorage on mount
   useEffect(() => {
+    if (!isOpen) return;
+    
     const savedStandards = localStorage.getItem(`eyfs-standards-${currentSheetInfo.sheet}`);
     if (savedStandards) {
       setStandards(JSON.parse(savedStandards));
@@ -58,16 +67,9 @@ export function EyfsStandardsManager({ isOpen, onClose }: EyfsStandardsManagerPr
       setStandards(defaultStandards);
       localStorage.setItem(`eyfs-standards-${currentSheetInfo.sheet}`, JSON.stringify(defaultStandards));
     }
-  }, [allEyfsStatements, currentSheetInfo.sheet]);
+  }, [allEyfsStatements, currentSheetInfo.sheet, isOpen]);
 
-  // Check if user is admin
-  const isAdmin = user?.email === 'admin@rhythmstix.co.uk' || 
-                  user?.email === 'admin@example.com' || 
-                  user?.role === 'administrator' ||
-                  user?.role === 'admin' ||
-                  user?.email === 'rob.reichstorer@gmail.com';
-
-  // Don't render if user is not admin - moved after all hooks
+  // Don't render if user is not admin or modal is not open
   if (!isAdmin || !isOpen) {
     return null;
   }
