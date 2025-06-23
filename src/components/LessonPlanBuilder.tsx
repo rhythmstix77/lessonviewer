@@ -76,8 +76,8 @@ export function LessonPlanBuilder() {
     activities: [],
     duration: 0,
     notes: '',
-    status: 'planned',
-    title: 'New Lesson Plan',
+    status: 'draft', // Changed from 'planned' to 'draft' to be more accurate
+    title: '', // Empty title by default
     term: 'A1', // Default to Autumn 1
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -145,6 +145,14 @@ export function LessonPlanBuilder() {
 
   const handleUpdateLessonPlan = (updatedPlan: LessonPlan) => {
     try {
+      // Validate that the plan has a title
+      if (!updatedPlan.title.trim()) {
+        alert('Please provide a title for the lesson plan');
+        setSaveStatus('error');
+        setTimeout(() => setSaveStatus('idle'), 3000);
+        return false;
+      }
+      
       const updatedPlans = lessonPlans.map(plan => 
         plan.id === updatedPlan.id ? { ...updatedPlan, updatedAt: new Date() } : plan
       );
@@ -331,8 +339,8 @@ export function LessonPlanBuilder() {
         activities: [],
         duration: 0,
         notes: '',
-        status: 'planned',
-        title: 'New Lesson Plan',
+        status: 'draft',
+        title: '',
         term: currentLessonPlan.term, // Keep the same term
         createdAt: new Date(),
         updatedAt: new Date()
@@ -358,17 +366,30 @@ export function LessonPlanBuilder() {
                     type="text"
                     value={currentLessonPlan.title || ''}
                     onChange={(e) => setCurrentLessonPlan(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Enter lesson title..."
+                    placeholder="Enter lesson title or learning objective..."
                     className="w-full text-2xl font-bold text-gray-900 border-b border-gray-300 focus:border-green-500 focus:outline-none bg-transparent"
                   />
                   <div className="flex items-center flex-wrap gap-3 mt-2">
                     <div className="flex items-center space-x-2 text-gray-600">
                       <span>{currentSheetInfo.display}</span>
                       <span>•</span>
-                      <span>Week {currentLessonPlan.week}</span>
+                      <div className="flex items-center space-x-1">
+                        <span>Week</span>
+                        <input
+                          type="number"
+                          value={currentLessonPlan.week}
+                          onChange={(e) => setCurrentLessonPlan(prev => ({ 
+                            ...prev, 
+                            week: parseInt(e.target.value) || 1 
+                          }))}
+                          className="w-12 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 focus:border-green-500 text-sm"
+                          min="1"
+                        />
+                      </div>
                     </div>
                     
                     <div className="flex items-center space-x-2">
+                      <label className="text-sm text-gray-600">Term:</label>
                       <select
                         value={currentLessonPlan.term || 'A1'}
                         onChange={(e) => setCurrentLessonPlan(prev => ({ ...prev, term: e.target.value }))}
@@ -428,7 +449,7 @@ export function LessonPlanBuilder() {
                 ) : (
                   <>
                     <AlertCircle className="h-5 w-5 text-red-600" />
-                    <span>Failed to save lesson plan. Please try again.</span>
+                    <span>Failed to save lesson plan. Please ensure you've provided a title.</span>
                   </>
                 )}
               </div>

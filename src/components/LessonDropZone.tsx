@@ -28,7 +28,7 @@ interface LessonPlan {
   activities: Activity[];
   duration: number;
   notes: string;
-  status: 'planned' | 'completed' | 'cancelled';
+  status: 'planned' | 'completed' | 'cancelled' | 'draft';
   title?: string;
   term?: string;
 }
@@ -279,6 +279,20 @@ export function LessonDropZone({
   // Get all categories in the lesson plan
   const categories = Object.keys(groupedActivities).sort();
 
+  // Get term name from term ID
+  const getTermName = (termId: string) => {
+    const term = [
+      { id: 'A1', name: 'Autumn 1' },
+      { id: 'A2', name: 'Autumn 2' },
+      { id: 'SP1', name: 'Spring 1' },
+      { id: 'SP2', name: 'Spring 2' },
+      { id: 'SM1', name: 'Summer 1' },
+      { id: 'SM2', name: 'Summer 2' },
+    ].find(t => t.id === termId);
+    
+    return term ? term.name : termId;
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
       {/* Header */}
@@ -288,15 +302,10 @@ export function LessonDropZone({
             <Calendar className="h-6 w-6" />
             <div>
               <h2 className="text-xl font-bold">
-                {lessonPlan.title || `Lesson Plan - Week ${lessonPlan.week}`}
+                {lessonPlan.title || "Untitled Lesson Plan"}
               </h2>
               <p className="text-green-100 text-sm">
-                {lessonPlan.date.toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
+                {getTermName(lessonPlan.term || 'A1')} • Week {lessonPlan.week}
               </p>
             </div>
           </div>
