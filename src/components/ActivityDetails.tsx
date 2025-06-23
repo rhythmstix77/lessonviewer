@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Clock, Video, Music, FileText, Link as LinkIcon, Image, Volume2, Maximize2, Minimize2, ExternalLink, Tag, Plus } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Clock, Video, Music, FileText, Link as LinkIcon, Image, Volume2, Maximize2, Minimize2, ExternalLink, Tag, Plus, Save, Bold, Italic, Underline, List, ListOrdered } from 'lucide-react';
 import { EditableText } from './EditableText';
 import type { Activity } from '../contexts/DataContext';
 import { useData } from '../contexts/DataContext';
@@ -8,15 +8,26 @@ interface ActivityDetailsProps {
   activity: Activity;
   onClose: () => void;
   onAddToLesson?: () => void;
+  isEditing?: boolean;
+  onUpdate?: (updatedActivity: Activity) => void;
 }
 
-export function ActivityDetails({ activity, onClose, onAddToLesson }: ActivityDetailsProps) {
-  const { allEyfsStatements, addEyfsToLesson, removeEyfsFromLesson } = useData();
+export function ActivityDetails({ 
+  activity, 
+  onClose, 
+  onAddToLesson,
+  isEditing = false,
+  onUpdate
+}: ActivityDetailsProps) {
+  const { allEyfsStatements, eyfsStatements, addEyfsToLesson, removeEyfsFromLesson } = useData();
   const [selectedLink, setSelectedLink] = useState<{ url: string; title: string; type: string } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showEyfsSelector, setShowEyfsSelector] = useState(false);
   const [selectedEyfs, setSelectedEyfs] = useState<string[]>(activity.eyfsStandards || []);
-  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [editedActivity, setEditedActivity] = useState<Activity>({...activity});
+  const containerRef = useRef<HTMLDivElement>(null);
+  const descriptionRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // Fullscreen functionality
   const toggleFullscreen = async () => {
@@ -38,7 +49,7 @@ export function ActivityDetails({ activity, onClose, onAddToLesson }: ActivityDe
   };
 
   // Listen for fullscreen changes
-  React.useEffect(() => {
+  useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
     };
@@ -47,7 +58,103 @@ export function ActivityDetails({ activity, onClose, onAddToLesson }: ActivityDe
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
+  // Initialize edited activity when the component mounts or activity changes
+  useEffect(() => {
+    setEditedActivity({...activity});
+    setSelectedEyfs(activity.eyfsStandards || []);
+  }, [activity]);
+
+  const execCommand = (command: string, value?: string) => {
+    document.execCommand(command, false, value);
+    if (descriptionRef.current) {
+      const updatedContent = descriptionRef.current.innerHTML;
+      setEditedActivity(prev => ({ ...prev, description: updatedContent }));
+    }
+  };
+
+  const handleSave = () => {
+    if (onUpdate) {
+      onUpdate({
+        ...editedActivity,
+        eyfsStandards: selectedEyfs
+      });
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Convert to base64 for demo purposes
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const imageUrl = event.target?.result as string;
+      setEditedActivity(prev => ({
+        ...prev,
+        imageLink: imageUrl
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
   const renderDescription = () => {
+    if (isEditing) {
+      return (
+        <div>
+          {/* Rich Text Toolbar */}
+          <div className="flex items-center space-x-1 mb-2 p-2 bg-gray-50 rounded-lg">
+            <button
+              onClick={() => execCommand('bold')}
+              className="p-1 hover:bg-gray-200 rounded"
+              title="Bold"
+            >
+              <Bold className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => execCommand('italic')}
+              className="p-1 hover:bg-gray-200 rounded"
+              title="Italic"
+            >
+              <Italic className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => execCommand('underline')}
+              className="p-1 hover:bg-gray-200 rounded"
+              title="Underline"
+            >
+              <Underline className="h-4 w-4" />
+            </button>
+            <div className="w-px h-6 bg-gray-300 mx-1"></div>
+            <button
+              onClick={() => execCommand('insertUnorderedList')}
+              className="p-1 hover:bg-gray-200 rounded"
+              title="Bullet List"
+            >
+              <List className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => execCommand('insertOrderedList')}
+              className="p-1 hover:bg-gray-200 rounded"
+              title="Numbered List"
+            >
+              <ListOrdered className="h-4 w-4" />
+            </button>
+          </div>
+          
+          <div
+            ref={descriptionRef}
+            contentEditable
+            className="min-h-[150px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            dangerouslySetInnerHTML={{ __html: editedActivity.description }}
+            onInput={(e) => {
+              const target = e.target as HTMLDivElement;
+              setEditedActivity(prev => ({ ...prev, description: target.innerHTML }));
+            }}
+          />
+        </div>
+      );
+    }
+    
     if (activity.htmlDescription) {
       // Render HTML description with basic formatting
       return (
@@ -84,13 +191,13 @@ export function ActivityDetails({ activity, onClose, onAddToLesson }: ActivityDe
   };
 
   const resources = [
-    { label: 'Video', url: activity.videoLink, icon: Video, color: 'text-red-600 bg-red-50 border-red-200', type: 'video' },
-    { label: 'Music', url: activity.musicLink, icon: Music, color: 'text-green-600 bg-green-50 border-green-200', type: 'music' },
-    { label: 'Backing', url: activity.backingLink, icon: Volume2, color: 'text-blue-600 bg-blue-50 border-blue-200', type: 'backing' },
-    { label: 'Resource', url: activity.resourceLink, icon: FileText, color: 'text-purple-600 bg-purple-50 border-purple-200', type: 'resource' },
-    { label: 'Link', url: activity.link, icon: LinkIcon, color: 'text-gray-600 bg-gray-50 border-gray-200', type: 'link' },
-    { label: 'Vocals', url: activity.vocalsLink, icon: Volume2, color: 'text-orange-600 bg-orange-50 border-orange-200', type: 'vocals' },
-    { label: 'Image', url: activity.imageLink, icon: Image, color: 'text-pink-600 bg-pink-50 border-pink-200', type: 'image' },
+    { label: 'Video', url: isEditing ? editedActivity.videoLink : activity.videoLink, icon: Video, color: 'text-red-600 bg-red-50 border-red-200', type: 'video' },
+    { label: 'Music', url: isEditing ? editedActivity.musicLink : activity.musicLink, icon: Music, color: 'text-green-600 bg-green-50 border-green-200', type: 'music' },
+    { label: 'Backing', url: isEditing ? editedActivity.backingLink : activity.backingLink, icon: Volume2, color: 'text-blue-600 bg-blue-50 border-blue-200', type: 'backing' },
+    { label: 'Resource', url: isEditing ? editedActivity.resourceLink : activity.resourceLink, icon: FileText, color: 'text-purple-600 bg-purple-50 border-purple-200', type: 'resource' },
+    { label: 'Link', url: isEditing ? editedActivity.link : activity.link, icon: LinkIcon, color: 'text-gray-600 bg-gray-50 border-gray-200', type: 'link' },
+    { label: 'Vocals', url: isEditing ? editedActivity.vocalsLink : activity.vocalsLink, icon: Volume2, color: 'text-orange-600 bg-orange-50 border-orange-200', type: 'vocals' },
+    { label: 'Image', url: isEditing ? editedActivity.imageLink : activity.imageLink, icon: Image, color: 'text-pink-600 bg-pink-50 border-pink-200', type: 'image' },
   ].filter(resource => resource.url && resource.url.trim());
 
   const handleResourceClick = (resource: any) => {
@@ -127,13 +234,57 @@ export function ActivityDetails({ activity, onClose, onAddToLesson }: ActivityDe
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">{activity.activity}</h2>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editedActivity.activity}
+                  onChange={(e) => setEditedActivity(prev => ({ ...prev, activity: e.target.value }))}
+                  className="text-xl font-bold text-gray-900 border-b border-gray-300 focus:border-blue-500 focus:outline-none w-full"
+                />
+              ) : (
+                <h2 className="text-xl font-bold text-gray-900">{activity.activity}</h2>
+              )}
               <div className="flex items-center space-x-3 mt-1">
-                <p className="text-sm text-gray-600">{activity.category}</p>
-                {activity.level && (
+                {isEditing ? (
+                  <select
+                    value={editedActivity.category}
+                    onChange={(e) => setEditedActivity(prev => ({ ...prev, category: e.target.value }))}
+                    className="text-sm text-gray-600 border border-gray-300 rounded px-2 py-1"
+                  >
+                    <option value="">Select Category</option>
+                    <option value="Welcome">Welcome</option>
+                    <option value="Kodaly Songs">Kodaly Songs</option>
+                    <option value="Kodaly Action Songs">Kodaly Action Songs</option>
+                    <option value="Action/Games Songs">Action/Games Songs</option>
+                    <option value="Rhythm Sticks">Rhythm Sticks</option>
+                    <option value="Scarf Songs">Scarf Songs</option>
+                    <option value="General Game">General Game</option>
+                    <option value="Core Songs">Core Songs</option>
+                    <option value="Parachute Games">Parachute Games</option>
+                    <option value="Percussion Games">Percussion Games</option>
+                    <option value="Teaching Units">Teaching Units</option>
+                    <option value="Goodbye">Goodbye</option>
+                  </select>
+                ) : (
+                  <p className="text-sm text-gray-600">{activity.category}</p>
+                )}
+                {activity.level && !isEditing && (
                   <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
                     {activity.level}
                   </span>
+                )}
+                {isEditing && (
+                  <select
+                    value={editedActivity.level}
+                    onChange={(e) => setEditedActivity(prev => ({ ...prev, level: e.target.value }))}
+                    className="text-sm text-gray-600 border border-gray-300 rounded px-2 py-1"
+                  >
+                    <option value="">Select Level</option>
+                    <option value="All">All</option>
+                    <option value="EYFS L">EYFS L</option>
+                    <option value="EYFS U">EYFS U</option>
+                    <option value="Reception">Reception</option>
+                  </select>
                 )}
               </div>
             </div>
@@ -205,12 +356,26 @@ export function ActivityDetails({ activity, onClose, onAddToLesson }: ActivityDe
             )}
 
             {/* Time */}
-            {activity.time > 0 && (
+            {(activity.time > 0 || isEditing) && (
               <div className="flex items-center space-x-2 mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <Clock className="h-5 w-5 text-blue-600" />
-                <span className="text-sm font-medium text-blue-900">
-                  Duration: {activity.time} minutes
-                </span>
+                {isEditing ? (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium text-blue-900">Duration:</span>
+                    <input
+                      type="number"
+                      value={editedActivity.time}
+                      onChange={(e) => setEditedActivity(prev => ({ ...prev, time: parseInt(e.target.value) || 0 }))}
+                      className="w-16 px-2 py-1 border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      min="0"
+                    />
+                    <span className="text-sm font-medium text-blue-900">minutes</span>
+                  </div>
+                ) : (
+                  <span className="text-sm font-medium text-blue-900">
+                    Duration: {activity.time} minutes
+                  </span>
+                )}
               </div>
             )}
 
@@ -228,7 +393,7 @@ export function ActivityDetails({ activity, onClose, onAddToLesson }: ActivityDe
             </div>
 
             {/* Unit Name */}
-            {activity.unitName && (
+            {(activity.unitName || isEditing) && (
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">
                   <EditableText 
@@ -236,7 +401,17 @@ export function ActivityDetails({ activity, onClose, onAddToLesson }: ActivityDe
                     fallback="Unit"
                   />
                 </h3>
-                <p className="text-gray-700">{activity.unitName}</p>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editedActivity.unitName}
+                    onChange={(e) => setEditedActivity(prev => ({ ...prev, unitName: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter unit name"
+                  />
+                ) : (
+                  <p className="text-gray-700">{activity.unitName}</p>
+                )}
               </div>
             )}
 
@@ -262,71 +437,172 @@ export function ActivityDetails({ activity, onClose, onAddToLesson }: ActivityDe
               </div>
             )}
 
-            {/* Resources */}
-            {resources.length > 0 && (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                  <EditableText 
-                    id="activity-resources-heading" 
-                    fallback="Resources"
-                  />
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {resources.map((resource, index) => {
-                    const IconComponent = resource.icon;
-                    return (
+            {/* Image Upload (only in edit mode) */}
+            {isEditing && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Activity Image</h3>
+                <div className="flex items-center space-x-4">
+                  {editedActivity.imageLink ? (
+                    <div className="relative">
+                      <img 
+                        src={editedActivity.imageLink} 
+                        alt="Activity" 
+                        className="w-32 h-32 object-cover rounded-lg border border-gray-200"
+                      />
                       <button
-                        key={index}
-                        onClick={() => handleResourceClick(resource)}
-                        className={`flex items-center space-x-3 p-4 rounded-xl border-2 transition-all duration-200 hover:scale-105 hover:shadow-md ${resource.color}`}
+                        onClick={() => setEditedActivity(prev => ({ ...prev, imageLink: '' }))}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
                       >
-                        <IconComponent className="h-6 w-6 flex-shrink-0" />
-                        <div className="flex-1 text-left">
-                          <p className="font-semibold text-gray-900">{resource.label}</p>
-                          <p className="text-xs text-gray-600 truncate max-w-[150px]">
-                            {resource.url}
-                          </p>
-                        </div>
+                        <X className="h-4 w-4" />
                       </button>
-                    );
-                  })}
+                    </div>
+                  ) : (
+                    <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+                      <Image className="h-8 w-8 text-gray-400" />
+                    </div>
+                  )}
+                  
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-600 mb-2">
+                      Upload an image for this activity or provide an image URL
+                    </p>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => imageInputRef.current?.click()}
+                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg"
+                      >
+                        Upload Image
+                      </button>
+                      <input
+                        ref={imageInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageUpload}
+                      />
+                      <input
+                        type="url"
+                        value={editedActivity.imageLink}
+                        onChange={(e) => setEditedActivity(prev => ({ ...prev, imageLink: e.target.value }))}
+                        placeholder="Or paste image URL"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
-            {resources.length === 0 && (
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">
-                  <EditableText 
-                    id="activity-no-resources-message" 
-                    fallback="No additional resources available"
-                  />
-                </p>
-              </div>
-            )}
+            {/* Resources */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                <EditableText 
+                  id="activity-resources-heading" 
+                  fallback="Resources"
+                />
+              </h3>
+              
+              {isEditing ? (
+                <div className="space-y-4">
+                  {[
+                    { key: 'videoLink', label: 'Video URL', icon: Video },
+                    { key: 'musicLink', label: 'Music URL', icon: Music },
+                    { key: 'backingLink', label: 'Backing Track URL', icon: Volume2 },
+                    { key: 'resourceLink', label: 'Resource URL', icon: FileText },
+                    { key: 'link', label: 'Additional Link', icon: LinkIcon },
+                    { key: 'vocalsLink', label: 'Vocals URL', icon: Volume2 },
+                  ].map(({ key, label, icon: Icon }) => (
+                    <div key={key} className="flex items-center space-x-3">
+                      <Icon className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                      <input
+                        type="url"
+                        value={editedActivity[key as keyof Activity] as string}
+                        onChange={(e) => setEditedActivity(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder={label}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  {resources.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {resources.map((resource, index) => {
+                        const IconComponent = resource.icon;
+                        return (
+                          <button
+                            key={index}
+                            onClick={() => handleResourceClick(resource)}
+                            className={`flex items-center space-x-3 p-4 rounded-xl border-2 transition-all duration-200 hover:scale-105 hover:shadow-md ${resource.color}`}
+                          >
+                            <IconComponent className="h-6 w-6 flex-shrink-0" />
+                            <div className="flex-1 text-left">
+                              <p className="font-semibold text-gray-900">{resource.label}</p>
+                              <p className="text-xs text-gray-600 truncate max-w-[150px]">
+                                {resource.url}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500">
+                        <EditableText 
+                          id="activity-no-resources-message" 
+                          fallback="No additional resources available"
+                        />
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
 
           {/* Footer */}
           <div className="flex justify-between p-6 border-t border-gray-200 bg-gray-50">
-            {onAddToLesson && (
-              <button
-                onClick={onAddToLesson}
-                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Add to Lesson</span>
-              </button>
+            {isEditing ? (
+              <div className="flex space-x-3">
+                <button
+                  onClick={onClose}
+                  className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>Save Changes</span>
+                </button>
+              </div>
+            ) : (
+              <>
+                {onAddToLesson && (
+                  <button
+                    onClick={onAddToLesson}
+                    className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Add to Lesson</span>
+                  </button>
+                )}
+                <button
+                  onClick={onClose}
+                  className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
+                >
+                  <EditableText 
+                    id="activity-close-button" 
+                    fallback="Close"
+                  />
+                </button>
+              </>
             )}
-            <button
-              onClick={onClose}
-              className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
-            >
-              <EditableText 
-                id="activity-close-button" 
-                fallback="Close"
-              />
-            </button>
           </div>
         </div>
       </div>
@@ -374,7 +650,7 @@ function ResourceViewer({ url, title, type, onClose }: ResourceViewerProps) {
     if (urlLower.match(/\.(mp3|wav|ogg|m4a)$/)) {
       return 'audio';
     }
-    if (urlLower.match(/\.(jpg|jpeg|png|gif|webp|svg)$/)) {
+    if (urlLower.match(/\.(jpg|jpeg|png|gif|webp|svg)$/) || urlLower.startsWith('data:image/')) {
       return 'image';
     }
     if (urlLower.match(/\.(pdf)$/)) {

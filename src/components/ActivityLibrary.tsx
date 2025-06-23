@@ -52,7 +52,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
   const [sortBy, setSortBy] = useState<'name' | 'category' | 'time' | 'level'>('category');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
-  const [editingActivity, setEditingActivity] = useState<string | null>(null);
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [selectedActivityDetails, setSelectedActivityDetails] = useState<Activity | null>(null);
   const [showImporter, setShowImporter] = useState(false);
   const [showCreator, setShowCreator] = useState(false);
@@ -124,6 +124,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
   const handleActivityUpdate = (updatedActivity: Activity) => {
     // In a real implementation, this would update the activity in your data store
     console.log('Update activity:', updatedActivity);
+    setEditingActivity(null);
   };
 
   const handleActivityDelete = (activityId: string) => {
@@ -153,8 +154,8 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
     setSelectedActivityDetails(activity);
   };
 
-  const handleEditActivity = (activity: Activity, index: number) => {
-    setEditingActivity(`${activity.activity}-${activity.category}`);
+  const handleEditActivity = (activity: Activity) => {
+    setEditingActivity(activity);
   };
 
   const handleImportActivities = (activities: Activity[]) => {
@@ -314,17 +315,24 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
           `}>
             {filteredAndSortedActivities.map((activity, index) => (
               <div key={`${activity.activity}-${activity.category}-${index}`} className="relative group">
+                {/* Edit button in corner */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditActivity(activity);
+                  }}
+                  className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  title="Edit Activity"
+                >
+                  <Edit3 className="h-3.5 w-3.5 text-gray-600" />
+                </button>
+                
                 <ActivityCard
                   activity={activity}
                   onUpdate={handleActivityUpdate}
                   onDelete={handleActivityDelete}
                   onDuplicate={handleActivityDuplicate}
-                  isEditing={editingActivity === `${activity.activity}-${activity.category}`}
-                  onEditToggle={() => setEditingActivity(
-                    editingActivity === `${activity.activity}-${activity.category}` 
-                      ? null 
-                      : `${activity.activity}-${activity.category}`
-                  )}
+                  isEditing={false}
                   categoryColor={categoryColors[activity.category] || '#6B7280'}
                   viewMode={viewMode === 'grid' ? 'detailed' : viewMode === 'list' ? 'compact' : 'minimal'}
                   onActivityClick={(activity) => {
@@ -333,15 +341,6 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
                   }}
                   draggable={false}
                 />
-                
-                {/* Edit button in corner */}
-                <button
-                  onClick={() => handleEditActivity(activity, index)}
-                  className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                  title="Edit Activity"
-                >
-                  <Edit3 className="h-3.5 w-3.5 text-gray-600" />
-                </button>
               </div>
             ))}
           </div>
@@ -356,6 +355,19 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
           onAddToLesson={() => {
             onActivitySelect(selectedActivityDetails);
             setSelectedActivityDetails(null);
+          }}
+        />
+      )}
+
+      {/* Activity Editor Modal */}
+      {editingActivity && (
+        <ActivityDetails
+          activity={editingActivity}
+          onClose={() => setEditingActivity(null)}
+          isEditing={true}
+          onUpdate={(updatedActivity) => {
+            handleActivityUpdate(updatedActivity);
+            setEditingActivity(null);
           }}
         />
       )}

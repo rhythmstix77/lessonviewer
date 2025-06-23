@@ -7,7 +7,6 @@ import {
   Link as LinkIcon, 
   Image, 
   Volume2, 
-  Edit3, 
   Save, 
   X, 
   Bold, 
@@ -19,9 +18,6 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
-  MoreVertical,
-  List,
-  ListOrdered,
   ChevronDown,
   ChevronUp,
   Tag
@@ -75,7 +71,6 @@ export function ActivityCard({
 }: ActivityCardProps) {
   const [editedActivity, setEditedActivity] = useState<Activity>(activity);
   const [showResources, setShowResources] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
 
@@ -211,15 +206,6 @@ export function ActivityCard({
                   {activity.time}m
                 </span>
               )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onEditToggle) setShowMenu(!showMenu);
-                }}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded"
-              >
-                <MoreVertical className="h-4 w-4" />
-              </button>
             </div>
           </div>
           
@@ -311,78 +297,6 @@ export function ActivityCard({
                   <span className="text-sm font-medium">{activity.time}m</span>
                 </div>
               )}
-              
-              {onEditToggle && (
-                <div className="relative">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowMenu(!showMenu);
-                    }}
-                    className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200"
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </button>
-
-                  {showMenu && (
-                    <div className="absolute top-full right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 py-2 min-w-[180px] z-50">
-                      {onEditToggle && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEditToggle();
-                            setShowMenu(false);
-                          }}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                        >
-                          <Edit3 className="h-4 w-4" />
-                          <span>Edit</span>
-                        </button>
-                      )}
-                      {onDuplicate && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDuplicate(activity);
-                            setShowMenu(false);
-                          }}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                        >
-                          <Copy className="h-4 w-4" />
-                          <span>Duplicate</span>
-                        </button>
-                      )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowResources(!showResources);
-                          setShowMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                      >
-                        {showResources ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        <span>{showResources ? 'Hide' : 'Show'} Resources</span>
-                      </button>
-                      {onDelete && (
-                        <>
-                          <hr className="my-1" />
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDelete(activity.activity);
-                              setShowMenu(false);
-                            }}
-                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            <span>Delete</span>
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -416,21 +330,6 @@ export function ActivityCard({
                   title="Underline"
                 >
                   <Underline className="h-4 w-4" />
-                </button>
-                <div className="w-px h-6 bg-gray-300 mx-1"></div>
-                <button
-                  onClick={() => execCommand('insertUnorderedList')}
-                  className="p-1 hover:bg-gray-200 rounded"
-                  title="Bullet List"
-                >
-                  <List className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => execCommand('insertOrderedList')}
-                  className="p-1 hover:bg-gray-200 rounded"
-                  title="Numbered List"
-                >
-                  <ListOrdered className="h-4 w-4" />
                 </button>
               </div>
               

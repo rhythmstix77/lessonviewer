@@ -14,7 +14,8 @@ import {
   Underline,
   List,
   ListOrdered,
-  Tag
+  Tag,
+  Upload
 } from 'lucide-react';
 
 interface ActivityCreatorProps {
@@ -45,6 +46,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const descriptionRef = React.useRef<HTMLDivElement>(null);
+  const imageInputRef = React.useRef<HTMLInputElement>(null);
 
   // Simplified level options - just the core options without duplicates
   const simplifiedLevels = ['All', 'EYFS L', 'EYFS U', 'Reception'];
@@ -74,6 +76,22 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
       const updatedContent = descriptionRef.current.innerHTML;
       setActivity(prev => ({ ...prev, description: updatedContent }));
     }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Convert to base64 for demo purposes
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const imageUrl = event.target?.result as string;
+      setActivity(prev => ({
+        ...prev,
+        imageLink: imageUrl
+      }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const validateForm = () => {
@@ -279,6 +297,66 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
               />
             </div>
 
+            {/* Activity Image */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Activity Image
+              </label>
+              <div className="flex items-center space-x-4">
+                {activity.imageLink ? (
+                  <div className="relative">
+                    <img 
+                      src={activity.imageLink} 
+                      alt="Activity" 
+                      className="w-32 h-32 object-cover rounded-lg border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setActivity(prev => ({ ...prev, imageLink: '' }))}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+                    <Image className="h-8 w-8 text-gray-400" />
+                  </div>
+                )}
+                
+                <div className="flex-1">
+                  <p className="text-sm text-gray-600 mb-2">
+                    Upload an image for this activity or provide an image URL
+                  </p>
+                  <div className="flex space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => imageInputRef.current?.click()}
+                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg flex items-center space-x-1"
+                    >
+                      <Upload className="h-4 w-4" />
+                      <span>Upload</span>
+                    </button>
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageUpload}
+                    />
+                    <input
+                      type="url"
+                      name="imageLink"
+                      value={activity.imageLink}
+                      onChange={handleChange}
+                      placeholder="Or paste image URL"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Resources */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-4">Resources</h3>
@@ -290,7 +368,6 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                   { key: 'resourceLink', label: 'Resource URL', icon: FileText },
                   { key: 'link', label: 'Additional Link', icon: LinkIcon },
                   { key: 'vocalsLink', label: 'Vocals URL', icon: Volume2 },
-                  { key: 'imageLink', label: 'Image URL', icon: Image },
                 ].map(({ key, label, icon: Icon }) => (
                   <div key={key} className="flex items-center space-x-3">
                     <Icon className="h-5 w-5 text-gray-500 flex-shrink-0" />
