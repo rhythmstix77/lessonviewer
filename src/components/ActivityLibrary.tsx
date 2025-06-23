@@ -60,42 +60,58 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
   const [libraryActivities, setLibraryActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Load activities from server
+  // Load activities from server or extract from lessons data
   useEffect(() => {
     const fetchActivities = async () => {
       setLoading(true);
       try {
-        const activities = await activitiesApi.getAll();
+        // Try to get activities from server
+        let activities = [];
+        try {
+          activities = await activitiesApi.getAll();
+        } catch (serverError) {
+          console.warn('Failed to fetch activities from server:', serverError);
+          
+          // Fallback to localStorage
+          const savedActivities = localStorage.getItem('library-activities');
+          if (savedActivities) {
+            activities = JSON.parse(savedActivities);
+          }
+        }
+        
+        // If we still don't have activities, extract from lessons data
+        if (!activities || activities.length === 0) {
+          const extractedActivities: Activity[] = [];
+          Object.values(allLessonsData).forEach(lessonData => {
+            Object.values(lessonData.grouped).forEach(categoryActivities => {
+              extractedActivities.push(...categoryActivities);
+            });
+          });
+          
+          // Remove duplicates based on activity name and category
+          activities = extractedActivities.filter((activity, index, self) => 
+            index === self.findIndex(a => a.activity === activity.activity && a.category === activity.category)
+          );
+          
+          // Save to localStorage
+          localStorage.setItem('library-activities', JSON.stringify(activities));
+          
+          // Try to save to server
+          try {
+            activities.forEach(async (activity) => {
+              if (!activity._id) {
+                activity._id = `${activity.activity}-${activity.category}-${Date.now()}`;
+              }
+              await activitiesApi.create(activity);
+            });
+          } catch (saveError) {
+            console.warn('Failed to save activities to server:', saveError);
+          }
+        }
+        
         setLibraryActivities(activities);
       } catch (error) {
-        console.error('Failed to fetch activities from server:', error);
-        
-        // Fallback to extracting from lessons data
-        const extractedActivities: Activity[] = [];
-        Object.values(allLessonsData).forEach(lessonData => {
-          Object.values(lessonData.grouped).forEach(categoryActivities => {
-            extractedActivities.push(...categoryActivities);
-          });
-        });
-        
-        // Remove duplicates based on activity name and category
-        const uniqueActivities = extractedActivities.filter((activity, index, self) => 
-          index === self.findIndex(a => a.activity === activity.activity && a.category === activity.category)
-        );
-        
-        setLibraryActivities(uniqueActivities);
-        
-        // Try to save these to the server
-        try {
-          uniqueActivities.forEach(async (activity) => {
-            if (!activity._id) {
-              activity._id = `${activity.activity}-${activity.category}-${Date.now()}`;
-            }
-            await activitiesApi.create(activity);
-          });
-        } catch (saveError) {
-          console.error('Failed to save activities to server:', saveError);
-        }
+        console.error('Failed to load activities:', error);
       } finally {
         setLoading(false);
       }
@@ -153,19 +169,40 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
 
   const handleActivityUpdate = async (updatedActivity: Activity) => {
     try {
-      if (updatedActivity._id) {
-        await activitiesApi.update(updatedActivity._id, updatedActivity);
-      } else {
-        const newActivity = await activitiesApi.create(updatedActivity);
-        updatedActivity._id = newActivity._id;
+      // Try to update on server
+      try {
+        if (updatedActivity._id) {
+          await activitiesApi.update(updatedActivity._id, updatedActivity);
+        } else {
+          const newActivity = await activitiesApi.create(updatedActivity);
+          updatedActivity._id = newActivity._id;
+        }
+      } catch (serverError) {
+        console.warn('Failed to update activity on server:', serverError);
       }
       
       // Update local state
       setLibraryActivities(prev => 
         prev.map(activity => 
-          activity._id === updatedActivity._id ? updatedActivity : activity
+          (activity._id === updatedActivity._id || 
+           (activity.activity === updatedActivity.activity && 
+            activity.category === updatedActivity.category)) 
+            ? updatedActivity : activity
         )
       );
+      
+      // Also update in localStorage
+      const savedActivities = localStorage.getItem('library-activities');
+      if (savedActivities) {
+        const activities = JSON.parse(savedActivities);
+        const updatedActivities = activities.map((activity: Activity) => 
+          (activity._id === updatedActivity._id || 
+           (activity.activity === updatedActivity.activity && 
+            activity.category === updatedActivity.category)) 
+            ? updatedActivity : activity
+        );
+        localStorage.setItem('library-activities', JSON.stringify(updatedActivities));
+      }
       
       setEditingActivity(null);
     } catch (error) {
@@ -178,11 +215,25 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
     if (confirm('Are you sure you want to delete this activity?')) {
       try {
         const activity = libraryActivities.find(a => a.activity === activityId);
+        
+        // Try to delete from server
         if (activity && activity._id) {
-          await activitiesApi.delete(activity._id);
-          
-          // Update local state
-          setLibraryActivities(prev => prev.filter(a => a._id !== activity._id));
+          try {
+            await activitiesApi.delete(activity._id);
+          } catch (serverError) {
+            console.warn('Failed to delete activity from server:', serverError);
+          }
+        }
+        
+        // Update local state
+        setLibraryActivities(prev => prev.filter(a => a.activity !== activityId));
+        
+        // Also update in localStorage
+        const savedActivities = localStorage.getItem('library-activities');
+        if (savedActivities) {
+          const activities = JSON.parse(savedActivities);
+          const updatedActivities = activities.filter((a: Activity) => a.activity !== activityId);
+          localStorage.setItem('library-activities', JSON.stringify(updatedActivities));
         }
       } catch (error) {
         console.error('Failed to delete activity:', error);
@@ -199,10 +250,29 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
     };
     
     try {
-      const newActivity = await activitiesApi.create(duplicatedActivity);
+      // Try to create on server
+      let newActivity = duplicatedActivity;
+      try {
+        newActivity = await activitiesApi.create(duplicatedActivity);
+      } catch (serverError) {
+        console.warn('Failed to create duplicated activity on server:', serverError);
+        // Generate a local ID
+        newActivity = {
+          ...duplicatedActivity,
+          _id: `local-${Date.now()}`
+        };
+      }
       
       // Update local state
       setLibraryActivities(prev => [...prev, newActivity]);
+      
+      // Also update in localStorage
+      const savedActivities = localStorage.getItem('library-activities');
+      if (savedActivities) {
+        const activities = JSON.parse(savedActivities);
+        activities.push(newActivity);
+        localStorage.setItem('library-activities', JSON.stringify(activities));
+      }
     } catch (error) {
       console.error('Failed to duplicate activity:', error);
       alert('Failed to duplicate activity. Please try again.');
@@ -231,17 +301,34 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
     try {
       setLoading(true);
       
-      // Add each activity to the server
+      // Try to add each activity to the server
       for (const activity of activities) {
         if (!activity._id) {
           activity._id = `${activity.activity}-${activity.category}-${Date.now()}`;
         }
-        await activitiesApi.create(activity);
+        
+        try {
+          await activitiesApi.create(activity);
+        } catch (serverError) {
+          console.warn('Failed to add imported activity to server:', serverError);
+        }
       }
       
-      // Refresh the activity list
-      const updatedActivities = await activitiesApi.getAll();
-      setLibraryActivities(updatedActivities);
+      // Update local state
+      setLibraryActivities(prev => {
+        // Remove duplicates based on activity name and category
+        const existingActivities = new Map(prev.map(a => [`${a.activity}-${a.category}`, a]));
+        
+        // Add new activities, replacing existing ones with the same name and category
+        activities.forEach(activity => {
+          existingActivities.set(`${activity.activity}-${activity.category}`, activity);
+        });
+        
+        return Array.from(existingActivities.values());
+      });
+      
+      // Also update in localStorage
+      localStorage.setItem('library-activities', JSON.stringify([...libraryActivities, ...activities]));
       
       setShowImporter(false);
     } catch (error) {
@@ -256,11 +343,31 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
     try {
       setLoading(true);
       
-      // Add the activity to the server
-      const createdActivity = await activitiesApi.create(newActivity);
+      // Try to add the activity to the server
+      let createdActivity = newActivity;
+      try {
+        createdActivity = await activitiesApi.create(newActivity);
+      } catch (serverError) {
+        console.warn('Failed to create activity on server:', serverError);
+        // Generate a local ID
+        createdActivity = {
+          ...newActivity,
+          _id: `local-${Date.now()}`
+        };
+      }
       
       // Update local state
       setLibraryActivities(prev => [...prev, createdActivity]);
+      
+      // Also update in localStorage
+      const savedActivities = localStorage.getItem('library-activities');
+      if (savedActivities) {
+        const activities = JSON.parse(savedActivities);
+        activities.push(createdActivity);
+        localStorage.setItem('library-activities', JSON.stringify(activities));
+      } else {
+        localStorage.setItem('library-activities', JSON.stringify([createdActivity]));
+      }
       
       setShowCreator(false);
     } catch (error) {
@@ -421,16 +528,16 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
           `}>
             {filteredAndSortedActivities.map((activity, index) => (
               <div key={`${activity._id || activity.activity}-${activity.category}-${index}`} className="relative group h-full">
-                {/* Edit button in corner - Larger hit area */}
+                {/* Edit button with larger hit area */}
                 <div 
-                  className="absolute top-0 right-0 p-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  className="absolute top-0 right-0 z-10 p-6 cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleEditActivity(activity);
                   }}
                 >
-                  <div className="bg-white rounded-full shadow-md p-1.5">
-                    <Edit3 className="h-3.5 w-3.5 text-gray-600" />
+                  <div className="bg-white rounded-full shadow-md p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <Edit3 className="h-4 w-4 text-gray-600" />
                   </div>
                 </div>
                 

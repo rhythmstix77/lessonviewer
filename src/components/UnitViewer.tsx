@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { ActivityDetails } from './ActivityDetails';
@@ -38,13 +38,13 @@ export function UnitViewer() {
   const [showEyfsSelector, setShowEyfsSelector] = useState(false);
   
   // Ref for scrolling to top when lesson is selected
-  const topRef = React.useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
 
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
 
   // Group lessons by half-term - useMemo MUST be after all other hooks
-  const lessonsByHalfTerm = React.useMemo(() => {
+  const lessonsByHalfTerm = useMemo(() => {
     const grouped: Record<string, string[]> = {};
     
     // Initialize all half-terms with empty arrays
@@ -65,7 +65,7 @@ export function UnitViewer() {
   }, [lessonNumbers]);
 
   // Scroll to top when a lesson is selected
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedLesson && topRef.current) {
       topRef.current.scrollIntoView({ 
         behavior: 'smooth', 
