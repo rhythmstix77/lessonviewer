@@ -205,6 +205,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
       }
       
       setEditingActivity(null);
+      setSelectedActivityDetails(null);
     } catch (error) {
       console.error('Failed to update activity:', error);
       alert('Failed to update activity. Please try again.');
@@ -529,17 +530,16 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
             {filteredAndSortedActivities.map((activity, index) => (
               <div key={`${activity._id || activity.activity}-${activity.category}-${index}`} className="relative group h-full">
                 {/* Edit button with larger hit area */}
-                <div 
-                  className="absolute top-0 right-0 z-10 p-6 cursor-pointer"
+                <button 
+                  className="absolute top-3 right-3 z-10 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleEditActivity(activity);
                   }}
+                  title="Edit Activity"
                 >
-                  <div className="bg-white rounded-full shadow-md p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <Edit3 className="h-4 w-4 text-gray-600" />
-                  </div>
-                </div>
+                  <Edit3 className="h-4 w-4 text-gray-600" />
+                </button>
                 
                 <ActivityCard
                   activity={activity}
@@ -547,6 +547,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
                   onDelete={handleActivityDelete}
                   onDuplicate={handleActivityDuplicate}
                   isEditing={false}
+                  onEditToggle={() => handleEditActivity(activity)}
                   categoryColor={categoryColors[activity.category] || '#6B7280'}
                   viewMode={viewMode === 'grid' ? 'detailed' : viewMode === 'list' ? 'compact' : 'minimal'}
                   onActivityClick={handleViewActivityDetails}
