@@ -322,7 +322,7 @@ export function LessonPlanBuilder() {
               <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden sticky top-8">
                 <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
                   <h3 className="text-lg font-semibold">Quick Add Activities</h3>
-                  <p className="text-blue-100 text-sm">Click or drag activities to your lesson plan</p>
+                  <p className="text-blue-100 text-sm">Drag activities to your lesson plan</p>
                   
                   {/* Category Selector */}
                   <div className="mt-3">
@@ -361,30 +361,29 @@ export function LessonPlanBuilder() {
                   ) : (
                     <div className="space-y-3">
                       {filteredAndSortedActivities.map((activity, index) => (
-                        <ActivityCard 
-                          key={`${activity.activity}-${activity.category}-${index}`}
-                          activity={activity}
-                          categoryColor={activity.category ? 
-                            {
-                              'Welcome': '#F59E0B',
-                              'Kodaly Songs': '#8B5CF6',
-                              'Kodaly Action Songs': '#F97316',
-                              'Action/Games Songs': '#F97316',
-                              'Rhythm Sticks': '#D97706',
-                              'Scarf Songs': '#10B981',
-                              'General Game': '#3B82F6',
-                              'Core Songs': '#84CC16',
-                              'Parachute Games': '#EF4444',
-                              'Percussion Games': '#06B6D4',
-                              'Teaching Units': '#6366F1',
-                              'Goodbye': '#14B8A6'
-                            }[activity.category] || '#6B7280'
-                          : '#6B7280'}
-                          viewMode="compact"
-                          onActivityClick={(activity) => {
-                            handleActivityAdd(activity);
-                          }}
-                        />
+                        <div key={`${activity.activity}-${activity.category}-${index}`}>
+                          <ActivityCard 
+                            activity={activity}
+                            categoryColor={activity.category ? 
+                              {
+                                'Welcome': '#F59E0B',
+                                'Kodaly Songs': '#8B5CF6',
+                                'Kodaly Action Songs': '#F97316',
+                                'Action/Games Songs': '#F97316',
+                                'Rhythm Sticks': '#D97706',
+                                'Scarf Songs': '#10B981',
+                                'General Game': '#3B82F6',
+                                'Core Songs': '#84CC16',
+                                'Parachute Games': '#EF4444',
+                                'Percussion Games': '#06B6D4',
+                                'Teaching Units': '#6366F1',
+                                'Goodbye': '#14B8A6'
+                              }[activity.category] || '#6B7280'
+                            : '#6B7280'}
+                            viewMode="compact"
+                            onActivityClick={() => handleActivityAdd(activity)}
+                          />
+                        </div>
                       ))}
                     </div>
                   )}

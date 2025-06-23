@@ -169,7 +169,6 @@ export function ActivityCard({
     }
     
     if (onActivityClick) {
-      e.stopPropagation();
       onActivityClick(activity);
     } else if (isDescriptionLong) {
       setIsExpanded(!isExpanded);
