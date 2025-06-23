@@ -5,7 +5,7 @@ import { ActivityDetails } from './ActivityDetails';
 import { ExportButtons } from './ExportButtons';
 import { EyfsStandardsList } from './EyfsStandardsList';
 import { EyfsStandardsSelector } from './EyfsStandardsSelector';
-import { BookOpen, X, GraduationCap, Tag, ChevronRight, ChevronDown, ChevronUp, FileText, ExternalLink } from 'lucide-react';
+import { BookOpen, X, GraduationCap, Tag, ChevronRight, ChevronDown, ChevronUp, FileText, ExternalLink, Clock, Users } from 'lucide-react';
 import type { Activity } from '../contexts/DataContext';
 
 // Define half-term periods
@@ -426,11 +426,14 @@ export function UnitViewer() {
         </div>
 
         {/* Half-Term Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className={`grid ${expandedHalfTerms.includes('A1') ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-6 mb-8`}>
           {HALF_TERMS.map((halfTerm) => {
             const lessonsInTerm = lessonsByHalfTerm[halfTerm.id] || [];
             const hasLessons = lessonsInTerm.length > 0;
             const isExpanded = expandedHalfTerms.includes(halfTerm.id);
+            
+            // If this is Autumn 1 and it's expanded, it should take full width
+            const isAutumn1Expanded = halfTerm.id === 'A1' && isExpanded;
             
             return (
               <div 
@@ -439,7 +442,9 @@ export function UnitViewer() {
                   isExpanded 
                     ? 'ring-4 ring-opacity-30 border-blue-500 ring-blue-500' 
                     : 'border-gray-200 hover:border-gray-300 hover:scale-[1.02]'
-                } ${!hasLessons ? 'opacity-60' : ''}`}
+                } ${!hasLessons ? 'opacity-60' : ''} ${
+                  isAutumn1Expanded ? 'col-span-full' : ''
+                }`}
               >
                 {/* Colorful Header */}
                 <div 
@@ -480,47 +485,143 @@ export function UnitViewer() {
                 {/* Expanded Content - Lessons in this half-term */}
                 {isExpanded && lessonsInTerm.length > 0 && (
                   <div className="p-4 border-t border-gray-200">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {lessonsInTerm.map((lessonNum) => {
-                        const lessonData = allLessonsData[lessonNum];
-                        if (!lessonData) return null;
+                    {/* Special expanded layout for Autumn 1 */}
+                    {isAutumn1Expanded ? (
+                      <div className="space-y-6">
+                        <h3 className="text-xl font-bold text-gray-900 mb-4 px-2">
+                          All Units for {halfTerm.name}
+                        </h3>
                         
-                        return (
-                          <div 
-                            key={lessonNum}
-                            className="bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 p-4 cursor-pointer"
-                            onClick={() => handleLessonSelect(lessonNum)}
-                          >
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <h4 className="font-semibold text-gray-900">Unit {lessonNum}</h4>
-                                <p className="text-sm text-gray-600 mt-1">
-                                  {lessonData.totalTime} mins • {lessonData.categoryOrder.length} categories
-                                </p>
-                              </div>
-                              <ChevronRight className="h-5 w-5 text-gray-400" />
-                            </div>
+                        {/* Organized lesson list with clear numbering */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                          {lessonsInTerm.map((lessonNum) => {
+                            const lessonData = allLessonsData[lessonNum];
+                            if (!lessonData) return null;
                             
-                            {/* Categories Preview */}
-                            <div className="mt-3 flex flex-wrap gap-1">
-                              {lessonData.categoryOrder.slice(0, 3).map((category) => (
-                                <span
-                                  key={category}
-                                  className="px-2 py-0.5 bg-white text-xs font-medium rounded-full border border-gray-200"
+                            return (
+                              <div 
+                                key={lessonNum}
+                                className="bg-white rounded-xl shadow-md border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 overflow-hidden"
+                                onClick={() => handleLessonSelect(lessonNum)}
+                              >
+                                {/* Lesson Header */}
+                                <div 
+                                  className="p-4 border-b border-gray-200"
+                                  style={{ 
+                                    background: `linear-gradient(to right, ${theme.primary}20, ${theme.secondary}10)` 
+                                  }}
                                 >
-                                  {category}
-                                </span>
-                              ))}
-                              {lessonData.categoryOrder.length > 3 && (
-                                <span className="px-2 py-0.5 bg-white text-xs font-medium rounded-full border border-gray-200">
-                                  +{lessonData.categoryOrder.length - 3}
-                                </span>
-                              )}
+                                  <div className="flex justify-between items-center">
+                                    <div className="flex items-center space-x-3">
+                                      <div 
+                                        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
+                                        style={{ backgroundColor: theme.primary }}
+                                      >
+                                        {lessonNum}
+                                      </div>
+                                      <h4 className="font-bold text-gray-900 text-lg">Unit {lessonNum}</h4>
+                                    </div>
+                                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                                  </div>
+                                </div>
+                                
+                                {/* Lesson Content */}
+                                <div className="p-4">
+                                  {/* Stats */}
+                                  <div className="flex items-center space-x-4 mb-3 text-sm text-gray-600">
+                                    <div className="flex items-center space-x-1">
+                                      <Clock className="h-4 w-4 text-gray-500" />
+                                      <span>{lessonData.totalTime} mins</span>
+                                    </div>
+                                    <div className="flex items-center space-x-1">
+                                      <Users className="h-4 w-4 text-gray-500" />
+                                      <span>
+                                        {Object.values(lessonData.grouped).reduce((sum, activities) => sum + activities.length, 0)} activities
+                                      </span>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Categories */}
+                                  <div className="mb-3">
+                                    <h5 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                                      Categories
+                                    </h5>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {lessonData.categoryOrder.map((category) => (
+                                        <span
+                                          key={category}
+                                          className="px-2 py-1 bg-gray-100 text-xs font-medium rounded-full border border-gray-200"
+                                        >
+                                          {category}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* First Activity Preview */}
+                                  {lessonData.categoryOrder.length > 0 && lessonData.grouped[lessonData.categoryOrder[0]]?.length > 0 && (
+                                    <div className="mt-3 pt-3 border-t border-gray-100">
+                                      <h5 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                                        First Activity
+                                      </h5>
+                                      <p className="text-sm font-medium text-gray-800 truncate">
+                                        {lessonData.grouped[lessonData.categoryOrder[0]][0].activity}
+                                      </p>
+                                      <p className="text-xs text-gray-600 line-clamp-2 mt-1">
+                                        {lessonData.grouped[lessonData.categoryOrder[0]][0].description.replace(/<[^>]*>/g, '')}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      // Regular grid for other half-terms
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {lessonsInTerm.map((lessonNum) => {
+                          const lessonData = allLessonsData[lessonNum];
+                          if (!lessonData) return null;
+                          
+                          return (
+                            <div 
+                              key={lessonNum}
+                              className="bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 p-4 cursor-pointer"
+                              onClick={() => handleLessonSelect(lessonNum)}
+                            >
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h4 className="font-semibold text-gray-900">Unit {lessonNum}</h4>
+                                  <p className="text-sm text-gray-600 mt-1">
+                                    {lessonData.totalTime} mins • {lessonData.categoryOrder.length} categories
+                                  </p>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-gray-400" />
+                              </div>
+                              
+                              {/* Categories Preview */}
+                              <div className="mt-3 flex flex-wrap gap-1">
+                                {lessonData.categoryOrder.slice(0, 3).map((category) => (
+                                  <span
+                                    key={category}
+                                    className="px-2 py-0.5 bg-white text-xs font-medium rounded-full border border-gray-200"
+                                  >
+                                    {category}
+                                  </span>
+                                ))}
+                                {lessonData.categoryOrder.length > 3 && (
+                                  <span className="px-2 py-0.5 bg-white text-xs font-medium rounded-full border border-gray-200">
+                                    +{lessonData.categoryOrder.length - 3}
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
                 
