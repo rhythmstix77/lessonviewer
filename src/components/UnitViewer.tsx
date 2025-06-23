@@ -395,35 +395,8 @@ export function UnitViewer() {
       <div ref={topRef} className="absolute top-16"></div>
       
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header with Title */}
-        <div className="mb-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-6 lg:space-y-0 lg:space-x-6 mb-6">
-            {/* Title Section with Learning Icon */}
-            <div className="flex items-center space-x-4">
-              <div className="flex-shrink-0">
-                <div 
-                  className="h-16 w-16 p-3 rounded-xl shadow-lg border-2 border-blue-200"
-                  style={{ 
-                    background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.secondary} 100%)` 
-                  }}
-                >
-                  <GraduationCap className="h-10 w-10 text-white" />
-                </div>
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  Unit Viewer
-                </h1>
-                <p className="text-gray-600 text-lg">
-                  {currentSheetInfo.display} • {lessonNumbers.length} lessons available
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Export Buttons */}
-          <ExportButtons />
-        </div>
+        {/* Export Buttons */}
+        <ExportButtons />
 
         {/* Half-Term Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
