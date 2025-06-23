@@ -209,12 +209,7 @@ export function ActivityDetails({ activity, onClose, onAddToLesson }: ActivityDe
               <div className="flex items-center space-x-2 mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <Clock className="h-5 w-5 text-blue-600" />
                 <span className="text-sm font-medium text-blue-900">
-                  <EditableText 
-                    id="activity-duration-label" 
-                    fallback="Duration: {time} minutes"
-                    className="text-sm font-medium text-blue-900"
-                  />
-                  {activity.time} minutes
+                  Duration: {activity.time} minutes
                 </span>
               </div>
             )}

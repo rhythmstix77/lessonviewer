@@ -14,8 +14,7 @@ import {
   MoreVertical,
   Upload,
   Download,
-  Edit3,
-  Lock
+  Edit3
 } from 'lucide-react';
 import { ActivityCard } from './ActivityCard';
 import { ActivityDetails } from './ActivityDetails';
@@ -57,8 +56,6 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
   const [selectedActivityDetails, setSelectedActivityDetails] = useState<Activity | null>(null);
   const [showImporter, setShowImporter] = useState(false);
   const [showCreator, setShowCreator] = useState(false);
-  const [editPassword, setEditPassword] = useState('');
-  const [showPasswordPrompt, setShowPasswordPrompt] = useState<{activity: Activity, index: number} | null>(null);
 
   // Extract all activities from all lessons
   const allActivities = useMemo(() => {
@@ -157,17 +154,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
   };
 
   const handleEditActivity = (activity: Activity, index: number) => {
-    setShowPasswordPrompt({activity, index});
-  };
-
-  const handlePasswordSubmit = () => {
-    if (showPasswordPrompt && editPassword === 'behvij-3Fuvpa-meqtev') {
-      setEditingActivity(`${showPasswordPrompt.activity.activity}-${showPasswordPrompt.activity.category}`);
-      setShowPasswordPrompt(null);
-      setEditPassword('');
-    } else {
-      alert('Incorrect password');
-    }
+    setEditingActivity(`${activity.activity}-${activity.category}`);
   };
 
   const handleImportActivities = (activities: Activity[]) => {
@@ -389,48 +376,6 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
           onImport={handleImportActivities}
           onClose={() => setShowImporter(false)}
         />
-      )}
-
-      {/* Password Prompt Modal */}
-      {showPasswordPrompt && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-lg p-6 max-w-md w-full">
-            <div className="flex items-center space-x-2 mb-4">
-              <Lock className="h-5 w-5 text-blue-600" />
-              <h3 className="text-lg font-semibold text-gray-900">Admin Access Required</h3>
-            </div>
-            
-            <p className="text-gray-600 mb-4">
-              Please enter the admin password to edit this activity.
-            </p>
-            
-            <input
-              type="password"
-              value={editPassword}
-              onChange={(e) => setEditPassword(e.target.value)}
-              placeholder="Enter password"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-4"
-            />
-            
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => {
-                  setShowPasswordPrompt(null);
-                  setEditPassword('');
-                }}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium rounded-lg transition-colors duration-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handlePasswordSubmit}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
-              >
-                Submit
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );
