@@ -124,11 +124,15 @@ export function LessonPlanBuilder() {
   };
 
   const handleActivityAdd = (activity: Activity) => {
+    // Create a deep copy of the activity to avoid reference issues
+    const activityCopy = JSON.parse(JSON.stringify(activity));
+    
     const updatedPlan = {
       ...currentLessonPlan,
-      activities: [...currentLessonPlan.activities, activity],
-      duration: currentLessonPlan.duration + (activity.time || 0),
+      activities: [...currentLessonPlan.activities, activityCopy],
+      duration: currentLessonPlan.duration + (activityCopy.time || 0),
     };
+    
     setCurrentLessonPlan(updatedPlan);
     handleUpdateLessonPlan(updatedPlan);
   };
