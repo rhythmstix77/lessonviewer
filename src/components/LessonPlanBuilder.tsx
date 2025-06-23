@@ -272,13 +272,38 @@ export function LessonPlanBuilder() {
 
   // Add selected activities to lesson plan
   const addSelectedActivities = () => {
-    const activitiesToAdd = libraryActivities.filter(activity => 
-      selectedActivities.includes(`${activity.activity}-${activity.category}`)
-    );
-    
-    activitiesToAdd.forEach(activity => {
-      handleActivityAdd(activity);
+    // Find all selected activities
+    const activitiesToAdd = libraryActivities.filter(activity => {
+      const activityId = `${activity.activity}-${activity.category}`;
+      return selectedActivities.includes(activityId);
     });
+    
+    if (activitiesToAdd.length === 0) return;
+    
+    // Create a new array of activities with unique IDs
+    const newActivities = activitiesToAdd.map(activity => {
+      // Create a deep copy of the activity
+      const activityCopy = JSON.parse(JSON.stringify(activity));
+      
+      // Add a unique ID
+      return {
+        ...activityCopy,
+        _uniqueId: Date.now() + Math.random().toString(36).substring(2, 9)
+      };
+    });
+    
+    // Calculate new total duration
+    const additionalDuration = newActivities.reduce((sum, activity) => sum + (activity.time || 0), 0);
+    
+    // Update the lesson plan
+    const updatedPlan = {
+      ...currentLessonPlan,
+      activities: [...currentLessonPlan.activities, ...newActivities],
+      duration: currentLessonPlan.duration + additionalDuration,
+    };
+    
+    setCurrentLessonPlan(updatedPlan);
+    handleUpdateLessonPlan(updatedPlan);
     
     // Clear selections after adding
     setSelectedActivities([]);
