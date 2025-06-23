@@ -5,7 +5,7 @@ import { ActivityDetails } from './ActivityDetails';
 import { ExportButtons } from './ExportButtons';
 import { EyfsStandardsList } from './EyfsStandardsList';
 import { EyfsStandardsSelector } from './EyfsStandardsSelector';
-import { BookOpen, X, GraduationCap, Tag, ChevronRight, ChevronDown, ChevronUp, FileText, ExternalLink, Clock, Users } from 'lucide-react';
+import { BookOpen, X, ChevronRight, ChevronDown, ChevronUp, FileText, ExternalLink, Clock, Users } from 'lucide-react';
 import type { Activity } from '../contexts/DataContext';
 
 // Define half-term periods

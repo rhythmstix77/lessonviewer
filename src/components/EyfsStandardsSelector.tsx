@@ -18,6 +18,30 @@ export function EyfsStandardsSelector({ lessonNumber, className = '' }: EyfsStan
     statement.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Group statements by area for better organization
+  const groupedStatements: Record<string, string[]> = {};
+  
+  filteredStatements.forEach(statement => {
+    // Split by colon, but also handle emoji if present
+    const colonIndex = statement.indexOf(':');
+    if (colonIndex > 0) {
+      const area = statement.substring(0, colonIndex).trim();
+      
+      if (!groupedStatements[area]) {
+        groupedStatements[area] = [];
+      }
+      
+      groupedStatements[area].push(statement);
+    } else {
+      // If no colon, use the whole statement
+      const area = "General";
+      if (!groupedStatements[area]) {
+        groupedStatements[area] = [];
+      }
+      groupedStatements[area].push(statement);
+    }
+  });
+
   const handleToggleStatement = (statement: string) => {
     if (lessonEyfsStatements.includes(statement)) {
       removeEyfsFromLesson(lessonNumber, statement);
@@ -61,28 +85,42 @@ export function EyfsStandardsSelector({ lessonNumber, className = '' }: EyfsStan
           </div>
 
           <div className="max-h-60 overflow-y-auto p-2">
-            {filteredStatements.length === 0 ? (
+            {Object.keys(groupedStatements).length === 0 ? (
               <div className="text-center py-4 text-gray-500">
                 No EYFS standards match your search
               </div>
             ) : (
-              <div className="space-y-1">
-                {filteredStatements.map((statement) => (
-                  <div
-                    key={statement}
-                    className="flex items-center space-x-2 p-2 hover:bg-blue-50 rounded-lg cursor-pointer"
-                    onClick={() => handleToggleStatement(statement)}
-                  >
-                    <div className={`w-5 h-5 flex-shrink-0 rounded border ${
-                      lessonEyfsStatements.includes(statement)
-                        ? 'bg-blue-600 border-blue-600 flex items-center justify-center'
-                        : 'border-gray-300'
-                    }`}>
-                      {lessonEyfsStatements.includes(statement) && (
-                        <Check className="h-3 w-3 text-white" />
-                      )}
+              <div className="space-y-3">
+                {Object.entries(groupedStatements).map(([area, statements]) => (
+                  <div key={area} className="bg-gray-50 rounded-lg p-2">
+                    <h4 className="text-sm font-medium text-gray-700 mb-1 px-2">{area}</h4>
+                    <div className="space-y-1">
+                      {statements.map((statement) => {
+                        // Extract the part after the colon for display
+                        const displayText = statement.includes(':') 
+                          ? statement.split(':')[1].trim() 
+                          : statement;
+                          
+                        return (
+                          <div
+                            key={statement}
+                            className="flex items-center space-x-2 p-2 hover:bg-blue-50 rounded-lg cursor-pointer"
+                            onClick={() => handleToggleStatement(statement)}
+                          >
+                            <div className={`w-5 h-5 flex-shrink-0 rounded border ${
+                              lessonEyfsStatements.includes(statement)
+                                ? 'bg-blue-600 border-blue-600 flex items-center justify-center'
+                                : 'border-gray-300'
+                            }`}>
+                              {lessonEyfsStatements.includes(statement) && (
+                                <Check className="h-3 w-3 text-white" />
+                              )}
+                            </div>
+                            <span className="text-sm text-gray-700">{displayText}</span>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <span className="text-sm text-gray-700">{statement}</span>
                   </div>
                 ))}
               </div>
@@ -109,23 +147,30 @@ export function EyfsStandardsSelector({ lessonNumber, className = '' }: EyfsStan
       {lessonEyfsStatements.length > 0 && !isOpen && (
         <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-100">
           <div className="flex flex-wrap gap-1">
-            {lessonEyfsStatements.map((statement) => (
-              <div
-                key={statement}
-                className="inline-flex items-center space-x-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
-              >
-                <span className="truncate max-w-[200px]">{statement.split(':')[1] || statement}</span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeEyfsFromLesson(lessonNumber, statement);
-                  }}
-                  className="hover:text-blue-900 p-0.5 hover:bg-blue-200 rounded-full transition-colors duration-200"
+            {lessonEyfsStatements.map((statement) => {
+              // Extract the part after the colon for display
+              const displayText = statement.includes(':') 
+                ? statement.split(':')[1].trim() 
+                : statement;
+                
+              return (
+                <div
+                  key={statement}
+                  className="inline-flex items-center space-x-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
                 >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
+                  <span className="truncate max-w-[200px]">{displayText}</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeEyfsFromLesson(lessonNumber, statement);
+                    }}
+                    className="hover:text-blue-900 p-0.5 hover:bg-blue-200 rounded-full transition-colors duration-200"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

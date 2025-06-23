@@ -22,15 +22,25 @@ export function EyfsStandardsList({ lessonNumber, className = '' }: EyfsStandard
   const groupedStatements: Record<string, string[]> = {};
   
   lessonEyfsStatements.forEach(statement => {
-    const parts = statement.split(':');
-    const area = parts[0].trim();
-    const detail = parts.length > 1 ? parts[1].trim() : statement;
-    
-    if (!groupedStatements[area]) {
-      groupedStatements[area] = [];
+    // Split by colon, but also handle emoji if present
+    const colonIndex = statement.indexOf(':');
+    if (colonIndex > 0) {
+      const area = statement.substring(0, colonIndex).trim();
+      const detail = statement.substring(colonIndex + 1).trim();
+      
+      if (!groupedStatements[area]) {
+        groupedStatements[area] = [];
+      }
+      
+      groupedStatements[area].push(detail);
+    } else {
+      // If no colon, use the whole statement
+      const area = "General";
+      if (!groupedStatements[area]) {
+        groupedStatements[area] = [];
+      }
+      groupedStatements[area].push(statement);
     }
-    
-    groupedStatements[area].push(detail);
   });
 
   return (
