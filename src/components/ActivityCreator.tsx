@@ -46,6 +46,16 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
   const [errors, setErrors] = useState<Record<string, string>>({});
   const descriptionRef = React.useRef<HTMLDivElement>(null);
 
+  // Create a deduplicated list of level options
+  const uniqueLevels = React.useMemo(() => {
+    const standardLevels = ['All', 'EYFS L', 'EYFS U', 'Reception'];
+    
+    // Combine with any custom levels from props, removing duplicates
+    const allLevels = [...new Set([...standardLevels, ...levels])];
+    
+    return allLevels;
+  }, [levels]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setActivity(prev => ({ ...prev, [name]: value }));
@@ -176,13 +186,9 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   <option value="">Select a level</option>
-                  {levels.map(level => (
+                  {uniqueLevels.map(level => (
                     <option key={level} value={level}>{level}</option>
                   ))}
-                  <option value="All">All</option>
-                  <option value="EYFS L">EYFS L</option>
-                  <option value="EYFS U">EYFS U</option>
-                  <option value="Reception">Reception</option>
                 </select>
               </div>
 
