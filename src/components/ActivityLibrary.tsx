@@ -410,33 +410,6 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
               <Upload className="h-4 w-4" />
               <span>Import/Export</span>
             </button>
-            
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg transition-colors duration-200 ${
-                  viewMode === 'grid' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
-                }`}
-              >
-                <Grid3X3 className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg transition-colors duration-200 ${
-                  viewMode === 'list' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
-                }`}
-              >
-                <List className="h-5 w-5" />
-              </button>
-              <button
-                onClick={() => setViewMode('compact')}
-                className={`p-2 rounded-lg transition-colors duration-200 ${
-                  viewMode === 'compact' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
-                }`}
-              >
-                <MoreVertical className="h-5 w-5" />
-              </button>
-            </div>
           </div>
         </div>
 
@@ -479,7 +452,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
             ))}
           </select>
           
-          <div className="flex space-x-2">
+          <div className="flex items-center space-x-2">
             <button
               onClick={() => toggleSort('category')}
               className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors duration-200 ${
@@ -498,6 +471,33 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
               <Clock className="h-4 w-4" />
               {sortBy === 'time' && (sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />)}
             </button>
+            
+            <div className="flex items-center space-x-2 ml-auto">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-lg transition-colors duration-200 ${
+                  viewMode === 'grid' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
+                }`}
+              >
+                <Grid3X3 className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-lg transition-colors duration-200 ${
+                  viewMode === 'list' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
+                }`}
+              >
+                <List className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setViewMode('compact')}
+                className={`p-2 rounded-lg transition-colors duration-200 ${
+                  viewMode === 'compact' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
+                }`}
+              >
+                <MoreVertical className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
