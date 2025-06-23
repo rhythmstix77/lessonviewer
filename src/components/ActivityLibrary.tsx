@@ -13,8 +13,7 @@ import {
   Eye,
   MoreVertical,
   Upload,
-  Download,
-  Edit3
+  Download
 } from 'lucide-react';
 import { ActivityCard } from './ActivityCard';
 import { ActivityDetails } from './ActivityDetails';
@@ -536,19 +535,7 @@ export function ActivityLibrary({
             }
           `}>
             {filteredAndSortedActivities.map((activity, index) => (
-              <div key={`${activity._id || activity.activity}-${activity.category}-${index}`} className="relative group h-full">
-                {/* Edit button with larger hit area */}
-                <button 
-                  className="absolute top-3 right-3 z-10 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEditActivity(activity);
-                  }}
-                  title="Edit Activity"
-                >
-                  <Edit3 className="h-4 w-4 text-gray-600" />
-                </button>
-                
+              <div key={`${activity._id || activity.activity}-${activity.category}-${index}`} className="h-full">
                 <ActivityCard
                   activity={activity}
                   onUpdate={handleActivityUpdate}
