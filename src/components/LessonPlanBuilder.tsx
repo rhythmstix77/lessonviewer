@@ -41,6 +41,7 @@ import { ActivityCard } from './ActivityCard';
 import { LessonPlannerCalendar } from './LessonPlannerCalendar';
 import { LessonDropZone } from './LessonDropZone';
 import { ActivityImporter } from './ActivityImporter';
+import { ActivityCreator } from './ActivityCreator';
 import { useData } from '../contexts/DataContext';
 import type { Activity } from '../contexts/DataContext';
 
@@ -65,6 +66,7 @@ export function LessonPlanBuilder() {
   const [lessonPlans, setLessonPlans] = useState<LessonPlan[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [showImporter, setShowImporter] = useState(false);
+  const [showCreator, setShowCreator] = useState(false);
   const [libraryActivities, setLibraryActivities] = useState<Activity[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -257,6 +259,13 @@ export function LessonPlanBuilder() {
     console.log(`Imported ${newActivities.length} new activities. Total library now: ${updatedLibrary.length}`);
   };
 
+  const handleCreateActivity = (newActivity: Activity) => {
+    // Add the new activity to the library
+    const updatedLibrary = [...libraryActivities, newActivity];
+    saveLibraryActivities(updatedLibrary);
+    console.log('New activity created:', newActivity);
+  };
+
   // Filter and sort activities for the library
   const filteredAndSortedActivities = React.useMemo(() => {
     let filtered = libraryActivities.filter(activity => {
@@ -333,6 +342,14 @@ export function LessonPlanBuilder() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
+                <button
+                  onClick={() => setShowCreator(true)}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Create Activity</span>
+                </button>
+                
                 <button
                   onClick={() => setShowImporter(true)}
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
@@ -542,15 +559,22 @@ export function LessonPlanBuilder() {
                         : 'No activities available in the library'
                       }
                     </p>
-                    {libraryActivities.length === 0 && (
+                    <div className="mt-6 flex justify-center space-x-4">
+                      <button
+                        onClick={() => setShowCreator(true)}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 inline-flex items-center space-x-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span>Create Activity</span>
+                      </button>
                       <button
                         onClick={() => setShowImporter(true)}
-                        className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 inline-flex items-center space-x-2"
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 inline-flex items-center space-x-2"
                       >
                         <Upload className="h-4 w-4" />
                         <span>Import Activities</span>
                       </button>
-                    )}
+                    </div>
                   </div>
                 ) : (
                   <div className={`
@@ -643,13 +667,22 @@ export function LessonPlanBuilder() {
                     {filteredAndSortedActivities.length === 0 ? (
                       <div className="text-center py-8">
                         <p className="text-gray-500">No matching activities found</p>
-                        <button
-                          onClick={() => setShowImporter(true)}
-                          className="mt-4 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 inline-flex items-center space-x-1"
-                        >
-                          <Upload className="h-3 w-3" />
-                          <span>Import</span>
-                        </button>
+                        <div className="mt-4 flex justify-center space-x-2">
+                          <button
+                            onClick={() => setShowCreator(true)}
+                            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 inline-flex items-center space-x-1"
+                          >
+                            <Plus className="h-3 w-3" />
+                            <span>Create</span>
+                          </button>
+                          <button
+                            onClick={() => setShowImporter(true)}
+                            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 inline-flex items-center space-x-1"
+                          >
+                            <Upload className="h-3 w-3" />
+                            <span>Import</span>
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <div className="space-y-3">
@@ -686,6 +719,16 @@ export function LessonPlanBuilder() {
           )}
         </div>
       </div>
+
+      {/* Activity Creator Modal */}
+      {showCreator && (
+        <ActivityCreator 
+          onSave={handleCreateActivity}
+          onClose={() => setShowCreator(false)}
+          categories={categories}
+          levels={levels}
+        />
+      )}
 
       {/* Activity Importer Modal */}
       {showImporter && (

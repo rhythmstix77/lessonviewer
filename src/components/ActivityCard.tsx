@@ -23,7 +23,8 @@ import {
   List,
   ListOrdered,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Tag
 } from 'lucide-react';
 import { useDrag } from 'react-dnd';
 import type { Activity } from '../contexts/DataContext';
@@ -514,6 +515,28 @@ export function ActivityCard({
             ) : (
               <p className="text-sm text-gray-700 font-medium">{activity.unitName}</p>
             )}
+          </div>
+        )}
+
+        {/* EYFS Standards */}
+        {activity.eyfsStandards && activity.eyfsStandards.length > 0 && (
+          <div className="mb-4">
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1 flex items-center space-x-1">
+              <Tag className="h-3 w-3" />
+              <span>EYFS</span>
+            </label>
+            <div className="flex flex-wrap gap-1">
+              {activity.eyfsStandards.slice(0, 2).map((standard, index) => (
+                <span key={index} className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                  {standard.split(':')[1] || standard}
+                </span>
+              ))}
+              {activity.eyfsStandards.length > 2 && (
+                <span className="inline-block px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
+                  +{activity.eyfsStandards.length - 2} more
+                </span>
+              )}
+            </div>
           </div>
         )}
 
