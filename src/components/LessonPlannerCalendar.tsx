@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Calendar, 
   ChevronLeft, 
@@ -10,7 +10,9 @@ import {
   Users,
   BookOpen,
   Save,
-  X
+  X,
+  FolderOpen,
+  Tag
 } from 'lucide-react';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import { useDrop } from 'react-dnd';
@@ -25,6 +27,9 @@ interface LessonPlan {
   duration: number;
   notes: string;
   status: 'planned' | 'completed' | 'cancelled';
+  unitId?: string;
+  unitName?: string;
+  lessonNumber?: string;
 }
 
 interface LessonPlannerCalendarProps {
@@ -47,6 +52,20 @@ export function LessonPlannerCalendar({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [editingPlan, setEditingPlan] = useState<LessonPlan | null>(null);
+  const [unitFilter, setUnitFilter] = useState<string>('all');
+
+  // Get unique units from lesson plans
+  const units = React.useMemo(() => {
+    const unitMap = new Map<string, { id: string, name: string }>();
+    
+    lessonPlans.forEach(plan => {
+      if (plan.unitId && plan.unitName) {
+        unitMap.set(plan.unitId, { id: plan.unitId, name: plan.unitName });
+      }
+    });
+    
+    return Array.from(unitMap.values());
+  }, [lessonPlans]);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -74,10 +93,35 @@ export function LessonPlannerCalendar({
   const weekStart = startOfWeek(currentDate);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
+  // Filter lesson plans based on unit filter
+  const filteredLessonPlans = React.useMemo(() => {
+    if (unitFilter === 'all') {
+      return lessonPlans;
+    } else if (unitFilter === 'none') {
+      return lessonPlans.filter(plan => !plan.unitId);
+    } else {
+      return lessonPlans.filter(plan => plan.unitId === unitFilter);
+    }
+  }, [lessonPlans, unitFilter]);
+
   const getLessonPlanForDate = (date: Date) => {
-    return lessonPlans.find(plan => 
+    // Get all plans for this date
+    const plansForDate = filteredLessonPlans.filter(plan => 
       isSameDay(new Date(plan.date), date) && plan.className === className
     );
+    
+    // Return the first plan if there's only one
+    if (plansForDate.length === 1) {
+      return plansForDate[0];
+    }
+    
+    // If there are multiple plans, return them all
+    if (plansForDate.length > 1) {
+      return plansForDate;
+    }
+    
+    // No plans for this date
+    return null;
   };
 
   const handleDateClick = (date: Date) => {
@@ -101,26 +145,37 @@ export function LessonPlannerCalendar({
 
   const handleDeletePlan = (planId: string) => {
     if (confirm('Are you sure you want to delete this lesson plan?')) {
-      // Implementation would depend on your data management
-      console.log('Delete plan:', planId);
+      // Filter out the plan to delete
+      const updatedPlans = lessonPlans.filter(plan => plan.id !== planId);
+      
+      // Save the updated plans
+      localStorage.setItem('lesson-plans', JSON.stringify(updatedPlans));
+      
+      // Update the state in the parent component
+      onUpdateLessonPlan({ ...lessonPlans.find(plan => plan.id === planId)!, id: 'deleted' });
     }
   };
 
   const renderCalendarDay = (date: Date, isCurrentMonth: boolean = true) => {
-    const lessonPlan = getLessonPlanForDate(date);
+    const plansForDate = getLessonPlanForDate(date);
     const isSelected = selectedDate && isSameDay(date, selectedDate);
     const isToday = isSameDay(date, new Date());
+    
+    // Handle multiple plans for the same day
+    const hasMultiplePlans = Array.isArray(plansForDate) && plansForDate.length > 1;
+    const singlePlan = !hasMultiplePlans ? plansForDate as LessonPlan | null : null;
+    const multiplePlans = hasMultiplePlans ? plansForDate as LessonPlan[] : [];
 
     // Set up drop target for activities
     const [{ isOver }, drop] = useDrop(() => ({
       accept: 'activity',
       drop: (item: { activity: Activity }) => {
         // If there's already a plan for this date, add the activity to it
-        if (lessonPlan) {
+        if (singlePlan) {
           const updatedPlan = {
-            ...lessonPlan,
-            activities: [...lessonPlan.activities, item.activity],
-            duration: lessonPlan.duration + (item.activity.time || 0)
+            ...singlePlan,
+            activities: [...singlePlan.activities, item.activity],
+            duration: singlePlan.duration + (item.activity.time || 0)
           };
           onUpdateLessonPlan(updatedPlan);
         } else {
@@ -149,7 +204,7 @@ export function LessonPlannerCalendar({
       collect: (monitor) => ({
         isOver: monitor.isOver()
       })
-    }), [lessonPlan, onUpdateLessonPlan]);
+    }), [singlePlan, onUpdateLessonPlan]);
 
     return (
       <div
@@ -160,7 +215,7 @@ export function LessonPlannerCalendar({
           relative w-full h-24 p-2 border border-gray-200 hover:bg-blue-50 transition-colors duration-200 group
           ${isSelected ? 'bg-blue-100 border-blue-300' : ''}
           ${isToday ? 'ring-2 ring-blue-400' : ''}
-          ${lessonPlan ? 'bg-green-50' : ''}
+          ${singlePlan ? 'bg-green-50' : ''}
           ${!isCurrentMonth ? 'opacity-40' : ''}
           ${isOver ? 'bg-blue-100 border-blue-300' : ''}
         `}
@@ -170,22 +225,42 @@ export function LessonPlannerCalendar({
             {format(date, 'd')}
           </span>
           
-          {lessonPlan && (
+          {singlePlan && (
             <div className="flex-1 mt-1">
               <div className={`
                 text-xs px-2 py-1 rounded-full text-white font-medium
-                ${lessonPlan.status === 'completed' ? 'bg-green-500' : 
-                  lessonPlan.status === 'cancelled' ? 'bg-red-500' : 'bg-blue-500'}
+                ${singlePlan.status === 'completed' ? 'bg-green-500' : 
+                  singlePlan.status === 'cancelled' ? 'bg-red-500' : 'bg-blue-500'}
               `}>
-                Week {lessonPlan.week}
+                Week {singlePlan.week}
               </div>
               <div className="text-xs text-gray-600 mt-1">
-                {lessonPlan.activities.length} activities
+                {singlePlan.activities.length} activities
               </div>
+              {singlePlan.unitName && (
+                <div className="flex items-center mt-1">
+                  <Tag className="h-3 w-3 text-indigo-500 mr-1" />
+                  <span className="text-xs text-indigo-600 truncate">{singlePlan.unitName}</span>
+                </div>
+              )}
             </div>
           )}
           
-          {!lessonPlan && (
+          {hasMultiplePlans && (
+            <div className="flex-1 mt-1">
+              <div className="text-xs px-2 py-1 rounded-full bg-purple-500 text-white font-medium">
+                {multiplePlans.length} Plans
+              </div>
+              {multiplePlans.some(plan => plan.unitName) && (
+                <div className="flex items-center mt-1">
+                  <FolderOpen className="h-3 w-3 text-indigo-500 mr-1" />
+                  <span className="text-xs text-indigo-600 truncate">Unit Plans</span>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {!singlePlan && !hasMultiplePlans && (
             <div className="flex-1 flex items-center justify-center">
               <Plus className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100" />
             </div>
@@ -275,6 +350,30 @@ export function LessonPlannerCalendar({
         </div>
       </div>
 
+      {/* Unit Filter */}
+      {units.length > 0 && (
+        <div className="p-4 bg-indigo-50 border-b border-indigo-100">
+          <div className="flex items-center space-x-3">
+            <label className="text-sm font-medium text-gray-700">
+              Filter by Unit:
+            </label>
+            <select
+              value={unitFilter}
+              onChange={(e) => setUnitFilter(e.target.value)}
+              className="px-3 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+            >
+              <option value="all">All Plans</option>
+              <option value="none">No Unit</option>
+              {units.map(unit => (
+                <option key={unit.id} value={unit.id}>
+                  {unit.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
       {/* Calendar Grid */}
       <div className="p-6">
         {viewMode === 'month' ? renderMonthView() : renderWeekView()}
@@ -294,6 +393,10 @@ export function LessonPlannerCalendar({
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-red-500 rounded-full"></div>
             <span className="text-gray-600">Cancelled</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+            <span className="text-gray-600">Multiple Plans</span>
           </div>
         </div>
       </div>
@@ -341,6 +444,21 @@ export function LessonPlannerCalendar({
                   <option value="cancelled">Cancelled</option>
                 </select>
               </div>
+              
+              {/* Unit Information (if part of a unit) */}
+              {editingPlan.unitName && (
+                <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <FolderOpen className="h-4 w-4 text-indigo-600" />
+                    <span className="text-sm font-medium text-indigo-900">Unit: {editingPlan.unitName}</span>
+                  </div>
+                  {editingPlan.lessonNumber && (
+                    <p className="text-sm text-indigo-700">
+                      Lesson {editingPlan.lessonNumber} from this unit
+                    </p>
+                  )}
+                </div>
+              )}
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

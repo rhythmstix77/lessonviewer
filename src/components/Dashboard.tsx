@@ -4,13 +4,24 @@ import { UnitViewer } from "./UnitViewer";
 import { LessonPlanBuilder } from "./LessonPlanBuilder";
 import { LessonPlannerCalendar } from "./LessonPlannerCalendar";
 import { ActivityLibrary } from "./ActivityLibrary";
+import { UnitManager } from "./UnitManager";
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Calendar, BookOpen, Edit3, GraduationCap } from 'lucide-react';
+import { Calendar, BookOpen, Edit3, GraduationCap, FolderOpen } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../hooks/useAuth';
 import type { Activity } from '../contexts/DataContext';
+
+interface Unit {
+  id: string;
+  name: string;
+  description: string;
+  lessonNumbers: string[];
+  color: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export function Dashboard() {
   const { user } = useAuth();
@@ -19,6 +30,7 @@ export function Dashboard() {
   const [activeTab, setActiveTab] = useState('unit-viewer');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [lessonPlans, setLessonPlans] = useState<any[]>([]);
+  const [showUnitManager, setShowUnitManager] = useState(false);
   
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
@@ -89,6 +101,43 @@ export function Dashboard() {
     console.log('Activity added:', activity);
   };
 
+  const handleAddUnitToCalendar = (unit: Unit, startDate: Date) => {
+    // Create a lesson plan for each lesson in the unit
+    const weekNumber = Math.ceil(
+      (startDate.getTime() - new Date(startDate.getFullYear(), 0, 1).getTime()) / 
+      (7 * 24 * 60 * 60 * 1000)
+    );
+    
+    const newPlans = unit.lessonNumbers.map((lessonNumber, index) => {
+      // Calculate date for this lesson (each lesson is 1 day apart)
+      const lessonDate = new Date(startDate);
+      lessonDate.setDate(lessonDate.getDate() + index);
+      
+      return {
+        id: `plan-${Date.now()}-${index}`,
+        date: lessonDate,
+        week: weekNumber,
+        className: currentSheetInfo.sheet,
+        activities: [], // These would be populated from the lesson data
+        duration: 0,
+        notes: `Part of unit: ${unit.name}`,
+        status: 'planned',
+        unitId: unit.id,
+        unitName: unit.name,
+        lessonNumber,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    });
+    
+    const updatedPlans = [...lessonPlans, ...newPlans];
+    saveLessonPlans(updatedPlans);
+    
+    // Switch to calendar view
+    setActiveTab('calendar');
+    setShowUnitManager(false);
+  };
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
@@ -141,6 +190,17 @@ export function Dashboard() {
               </TabsTrigger>
             </TabsList>
 
+            {/* Unit Manager Button */}
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => setShowUnitManager(true)}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+              >
+                <FolderOpen className="h-5 w-5" />
+                <span>Manage Units</span>
+              </button>
+            </div>
+
             <TabsContent value="unit-viewer" className="mt-6">
               <UnitViewer />
             </TabsContent>
@@ -170,6 +230,13 @@ export function Dashboard() {
           </Tabs>
         </div>
       </div>
+
+      {/* Unit Manager Modal */}
+      <UnitManager 
+        isOpen={showUnitManager} 
+        onClose={() => setShowUnitManager(false)} 
+        onAddToCalendar={handleAddUnitToCalendar}
+      />
     </DndProvider>
   );
 }
