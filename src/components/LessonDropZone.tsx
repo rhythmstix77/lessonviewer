@@ -19,7 +19,6 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import type { Activity } from '../contexts/DataContext';
 import { EyfsStandardsSelector } from './EyfsStandardsSelector';
-import { useDrag } from 'react-dnd';
 
 interface LessonPlan {
   id: string;
@@ -44,66 +43,83 @@ interface LessonDropZoneProps {
   onActivityClick?: (activity: Activity) => void;
 }
 
-interface DraggableActivityProps {
+interface ActivityItemProps {
   activity: Activity;
   index: number;
   onRemove: () => void;
-  onReorder: (dragIndex: number, hoverIndex: number) => void;
+  onReorder?: (dragIndex: number, hoverIndex: number) => void;
   isEditing: boolean;
   onActivityClick?: (activity: Activity) => void;
+  isDraggable?: boolean;
 }
 
-function DraggableActivity({ activity, index, onRemove, onReorder, isEditing, onActivityClick }: DraggableActivityProps) {
+function ActivityItem({ 
+  activity, 
+  index, 
+  onRemove, 
+  onReorder, 
+  isEditing, 
+  onActivityClick,
+  isDraggable = true
+}: ActivityItemProps) {
   const ref = useRef<HTMLDivElement>(null);
+  
+  // Only set up drag and drop if draggable is true
+  let dragDropProps = {};
+  
+  if (isDraggable && onReorder) {
+    const [{ handlerId }, drop] = useDrop({
+      accept: 'lesson-activity',
+      collect(monitor) {
+        return {
+          handlerId: monitor.getHandlerId(),
+        };
+      },
+      hover(item: { index: number }, monitor) {
+        if (!ref.current) {
+          return;
+        }
+        const dragIndex = item.index;
+        const hoverIndex = index;
 
-  const [{ handlerId }, drop] = useDrop({
-    accept: 'lesson-activity',
-    collect(monitor) {
-      return {
-        handlerId: monitor.getHandlerId(),
-      };
-    },
-    hover(item: { index: number }, monitor) {
-      if (!ref.current) {
-        return;
-      }
-      const dragIndex = item.index;
-      const hoverIndex = index;
+        if (dragIndex === hoverIndex) {
+          return;
+        }
 
-      if (dragIndex === hoverIndex) {
-        return;
-      }
+        const hoverBoundingRect = ref.current?.getBoundingClientRect();
+        const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+        const clientOffset = monitor.getClientOffset();
+        const hoverClientY = clientOffset!.y - hoverBoundingRect.top;
 
-      const hoverBoundingRect = ref.current?.getBoundingClientRect();
-      const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
-      const clientOffset = monitor.getClientOffset();
-      const hoverClientY = clientOffset!.y - hoverBoundingRect.top;
+        if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
+          return;
+        }
 
-      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
-        return;
-      }
+        if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
+          return;
+        }
 
-      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
-        return;
-      }
+        onReorder(dragIndex, hoverIndex);
+        item.index = hoverIndex;
+      },
+    });
 
-      onReorder(dragIndex, hoverIndex);
-      item.index = hoverIndex;
-    },
-  });
+    const [{ isDragging }, drag] = useDrag({
+      type: 'lesson-activity',
+      item: () => {
+        return { index };
+      },
+      collect: (monitor) => ({
+        isDragging: monitor.isDragging(),
+      }),
+    });
 
-  const [{ isDragging }, drag] = useDrag({
-    type: 'lesson-activity',
-    item: () => {
-      return { index };
-    },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  });
-
-  const opacity = isDragging ? 0.4 : 1;
-  drag(drop(ref));
+    dragDropProps = {
+      ref: (node: HTMLDivElement) => drag(drop(node)),
+      style: { opacity: isDragging ? 0.4 : 1 },
+      'data-handler-id': handlerId,
+    };
+  }
 
   const categoryColors: Record<string, string> = {
     'Welcome': '#F59E0B',
@@ -143,14 +159,13 @@ function DraggableActivity({ activity, index, onRemove, onReorder, isEditing, on
 
   return (
     <div
-      ref={ref}
-      style={{ opacity }}
-      data-handler-id={handlerId}
+      ref={isDraggable ? ref : undefined}
+      {...dragDropProps}
       className="bg-white rounded-lg border-2 border-gray-200 p-4 transition-all duration-200 hover:shadow-md group"
       onClick={handleClick}
     >
       <div className="flex items-start space-x-3">
-        {isEditing && (
+        {isEditing && isDraggable && (
           <div className="flex flex-col space-y-1 pt-1">
             <div className="cursor-move text-gray-400 hover:text-gray-600">
               <GripVertical className="h-5 w-5" />
@@ -309,7 +324,7 @@ export function LessonDropZone({
 
       {/* Drop Zone */}
       <div
-        ref={drop}
+        ref={isEditing ? drop : undefined}
         className={`p-6 min-h-[400px] transition-colors duration-200 ${
           isOver ? 'bg-blue-50 border-blue-300' : ''
         }`}
@@ -351,14 +366,15 @@ export function LessonDropZone({
                     );
                     
                     return (
-                      <DraggableActivity
+                      <ActivityItem
                         key={`${activity._uniqueId || `${activity.activity}-${index}`}`}
                         activity={activity}
                         index={globalIndex}
                         onRemove={() => onActivityRemove(globalIndex)}
-                        onReorder={onActivityReorder}
+                        onReorder={isEditing ? onActivityReorder : undefined}
                         isEditing={isEditing}
                         onActivityClick={onActivityClick}
+                        isDraggable={isEditing}
                       />
                     );
                   })}
@@ -461,15 +477,18 @@ export function LessonDropZone({
                 onChange={(e) => onNotesUpdate(e.target.value)}
                 className="w-full h-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
                 placeholder="Add notes about this lesson plan..."
+                disabled={!isEditing}
               />
-              <div className="flex justify-end mt-2">
-                <button
-                  onClick={() => setIsRichTextEditing(true)}
-                  className="text-sm text-gray-600 hover:text-gray-900"
-                >
-                  Use rich text editor
-                </button>
-              </div>
+              {isEditing && (
+                <div className="flex justify-end mt-2">
+                  <button
+                    onClick={() => setIsRichTextEditing(true)}
+                    className="text-sm text-gray-600 hover:text-gray-900"
+                  >
+                    Use rich text editor
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
