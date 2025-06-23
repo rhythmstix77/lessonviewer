@@ -222,10 +222,9 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
     setSelectedActivityDetails(activity);
   };
 
-  const handleEditActivity = (activity: Activity, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setSelectedActivityDetails(activity);
+  const handleEditActivity = (activity: Activity) => {
     setEditingActivity(activity);
+    setSelectedActivityDetails(activity);
   };
 
   const handleImportActivities = async (activities: Activity[]) => {
@@ -422,14 +421,18 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
           `}>
             {filteredAndSortedActivities.map((activity, index) => (
               <div key={`${activity._id || activity.activity}-${activity.category}-${index}`} className="relative group h-full">
-                {/* Edit button in corner */}
-                <button
-                  onClick={(e) => handleEditActivity(activity, e)}
-                  className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                  title="Edit Activity"
+                {/* Edit button in corner - Larger hit area */}
+                <div 
+                  className="absolute top-0 right-0 p-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditActivity(activity);
+                  }}
                 >
-                  <Edit3 className="h-3.5 w-3.5 text-gray-600" />
-                </button>
+                  <div className="bg-white rounded-full shadow-md p-1.5">
+                    <Edit3 className="h-3.5 w-3.5 text-gray-600" />
+                  </div>
+                </div>
                 
                 <ActivityCard
                   activity={activity}

@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Download, FileText, File, Loader2, ChevronDown, Check, X, List } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 export function ExportButtons() {
-  const { currentSheetInfo, lessonNumbers } = useData();
+  const { currentSheetInfo, lessonNumbers, allLessonsData } = useData();
   const [exportLoading, setExportLoading] = useState<string>('');
   const [showLessonSelector, setShowLessonSelector] = useState(false);
   const [selectedLessons, setSelectedLessons] = useState<string[]>([]);
@@ -24,16 +27,15 @@ export function ExportButtons() {
     setExportLoading(exportKey);
 
     try {
-      // TODO: Implement actual export functionality
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate export time
+      const lessonsToExport = lessonNums && lessonNums.length > 0 
+        ? lessonNums 
+        : lessonNumbers;
       
-      if (lessonNums && lessonNums.length > 0) {
-        console.log(`Exporting lessons ${lessonNums.join(', ')} to ${type.toUpperCase()}`);
+      if (type === 'pdf') {
+        exportToPdf(lessonsToExport);
       } else {
-        console.log(`Exporting all lessons to ${type.toUpperCase()}`);
+        exportToDoc(lessonsToExport);
       }
-      
-      alert(`Export to ${type.toUpperCase()} ${lessonNums ? `for lessons ${lessonNums.join(', ')}` : 'for all lessons'} would start here.`);
       
       // Clear selection after successful export
       if (lessonNums) {
@@ -46,6 +48,142 @@ export function ExportButtons() {
     } finally {
       setExportLoading('');
     }
+  };
+
+  const exportToPdf = (lessonNums: string[]) => {
+    const doc = new jsPDF();
+    let yPos = 20;
+    
+    // Add title
+    doc.setFontSize(18);
+    doc.text(`${currentSheetInfo.display} Lesson Plans`, 105, yPos, { align: 'center' });
+    yPos += 15;
+    
+    lessonNums.forEach((lessonNum, index) => {
+      const lessonData = allLessonsData[lessonNum];
+      if (!lessonData) return;
+      
+      // Add page break if not the first lesson
+      if (index > 0) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      // Lesson header
+      doc.setFontSize(16);
+      doc.text(`Lesson ${lessonNum}`, 14, yPos);
+      yPos += 10;
+      
+      doc.setFontSize(12);
+      doc.text(`Total Time: ${lessonData.totalTime} minutes`, 14, yPos);
+      yPos += 10;
+      
+      // Categories and activities
+      lessonData.categoryOrder.forEach(category => {
+        const activities = lessonData.grouped[category] || [];
+        
+        // Check if we need a new page
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        // Category header
+        doc.setFontSize(14);
+        doc.setTextColor(0, 0, 150);
+        doc.text(category, 14, yPos);
+        yPos += 8;
+        doc.setTextColor(0, 0, 0);
+        
+        // Activities
+        doc.setFontSize(12);
+        activities.forEach(activity => {
+          // Check if we need a new page
+          if (yPos > 250) {
+            doc.addPage();
+            yPos = 20;
+          }
+          
+          doc.setFont(undefined, 'bold');
+          doc.text(`${activity.activity}${activity.time ? ` (${activity.time} mins)` : ''}`, 20, yPos);
+          yPos += 6;
+          
+          doc.setFont(undefined, 'normal');
+          // Split description into lines
+          const descText = activity.description.replace(/<[^>]*>/g, '');
+          const splitText = doc.splitTextToSize(descText, 170);
+          
+          splitText.forEach(line => {
+            // Check if we need a new page
+            if (yPos > 270) {
+              doc.addPage();
+              yPos = 20;
+            }
+            
+            doc.text(line, 25, yPos);
+            yPos += 6;
+          });
+          
+          yPos += 5;
+        });
+        
+        yPos += 10;
+      });
+    });
+    
+    // Save the PDF
+    doc.save(`${currentSheetInfo.sheet}_lessons_${lessonNums.join('-')}.pdf`);
+  };
+
+  const exportToDoc = (lessonNums: string[]) => {
+    // Create a new workbook
+    const wb = XLSX.utils.book_new();
+    
+    lessonNums.forEach(lessonNum => {
+      const lessonData = allLessonsData[lessonNum];
+      if (!lessonData) return;
+      
+      // Create data for this lesson
+      const data = [];
+      
+      // Add header row
+      data.push(['Category', 'Activity', 'Time (mins)', 'Description', 'Level']);
+      
+      // Add activities
+      lessonData.categoryOrder.forEach(category => {
+        const activities = lessonData.grouped[category] || [];
+        
+        activities.forEach(activity => {
+          data.push([
+            category,
+            activity.activity,
+            activity.time.toString(),
+            activity.description.replace(/<[^>]*>/g, ''),
+            activity.level || ''
+          ]);
+        });
+      });
+      
+      // Create worksheet
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      
+      // Set column widths
+      const colWidths = [
+        { wch: 20 }, // Category
+        { wch: 25 }, // Activity
+        { wch: 10 }, // Time
+        { wch: 50 }, // Description
+        { wch: 15 }  // Level
+      ];
+      
+      ws['!cols'] = colWidths;
+      
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, `Lesson ${lessonNum}`);
+    });
+    
+    // Generate Excel file
+    XLSX.writeFile(wb, `${currentSheetInfo.sheet}_lessons_${lessonNums.join('-')}.xlsx`);
   };
 
   const toggleLessonSelection = (lessonNum: string) => {
