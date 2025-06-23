@@ -16,6 +16,7 @@ import {
   List,
   ListOrdered
 } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 import type { Activity } from '../contexts/DataContext';
 import { EyfsStandardsSelector } from './EyfsStandardsSelector';
 import { useDrag } from 'react-dnd';
@@ -29,6 +30,8 @@ interface LessonPlan {
   duration: number;
   notes: string;
   status: 'planned' | 'completed' | 'cancelled';
+  title?: string;
+  term?: string;
 }
 
 interface LessonDropZoneProps {
@@ -244,6 +247,23 @@ export function LessonDropZone({
     }
   };
 
+  // Group activities by category for side-by-side display
+  const groupedActivities = React.useMemo(() => {
+    const grouped: Record<string, Activity[]> = {};
+    
+    lessonPlan.activities.forEach(activity => {
+      if (!grouped[activity.category]) {
+        grouped[activity.category] = [];
+      }
+      grouped[activity.category].push(activity);
+    });
+    
+    return grouped;
+  }, [lessonPlan.activities]);
+
+  // Get all categories in the lesson plan
+  const categories = Object.keys(groupedActivities).sort();
+
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
       {/* Header */}
@@ -253,7 +273,7 @@ export function LessonDropZone({
             <Calendar className="h-6 w-6" />
             <div>
               <h2 className="text-xl font-bold">
-                Lesson Plan - Week {lessonPlan.week}
+                {lessonPlan.title || `Lesson Plan - Week ${lessonPlan.week}`}
               </h2>
               <p className="text-green-100 text-sm">
                 {lessonPlan.date.toLocaleDateString('en-US', { 
@@ -287,7 +307,7 @@ export function LessonDropZone({
         <EyfsStandardsSelector lessonNumber={lessonPlan.id} />
       </div>
 
-      {/* Activities List */}
+      {/* Drop Zone */}
       <div
         ref={drop}
         className={`p-6 min-h-[400px] transition-colors duration-200 ${
@@ -314,18 +334,52 @@ export function LessonDropZone({
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {lessonPlan.activities.map((activity, index) => (
-              <DraggableActivity
-                key={`${activity.activity}-${index}-${activity._uniqueId || ''}`}
-                activity={activity}
-                index={index}
-                onRemove={() => onActivityRemove(index)}
-                onReorder={onActivityReorder}
-                isEditing={isEditing}
-                onActivityClick={onActivityClick}
-              />
+          <div className="space-y-6">
+            {/* Activities organized by category */}
+            {categories.map(category => (
+              <div key={category} className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-200">
+                  {category}
+                </h3>
+                
+                {/* Grid layout for activities */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {groupedActivities[category].map((activity, index) => {
+                    // Find the global index of this activity in the full activities array
+                    const globalIndex = lessonPlan.activities.findIndex(
+                      a => a._uniqueId === activity._uniqueId
+                    );
+                    
+                    return (
+                      <DraggableActivity
+                        key={`${activity._uniqueId || `${activity.activity}-${index}`}`}
+                        activity={activity}
+                        index={globalIndex}
+                        onRemove={() => onActivityRemove(globalIndex)}
+                        onReorder={onActivityReorder}
+                        isEditing={isEditing}
+                        onActivityClick={onActivityClick}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
             ))}
+            
+            {isEditing && (
+              <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors duration-200 ${
+                isOver ? 'border-blue-400 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
+              }`}>
+                <Plus className={`h-8 w-8 mx-auto mb-2 transition-colors duration-200 ${
+                  isOver ? 'text-blue-600' : 'text-gray-400'
+                }`} />
+                <p className={`font-medium transition-colors duration-200 ${
+                  isOver ? 'text-blue-600' : 'text-gray-600'
+                }`}>
+                  {isOver ? 'Drop to add activity' : 'Drag more activities here'}
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

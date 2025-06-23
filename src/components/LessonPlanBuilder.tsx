@@ -17,13 +17,24 @@ import {
   Filter,
   Edit3,
   FolderOpen,
-  AlertCircle
+  AlertCircle,
+  Calendar
 } from 'lucide-react';
 import { ActivityCard } from './ActivityCard';
 import { LessonDropZone } from './LessonDropZone';
 import { ActivityDetails } from './ActivityDetails';
 import { useData } from '../contexts/DataContext';
 import type { Activity } from '../contexts/DataContext';
+
+// Define half-term periods
+const HALF_TERMS = [
+  { id: 'A1', name: 'Autumn 1', months: 'Sep-Oct' },
+  { id: 'A2', name: 'Autumn 2', months: 'Nov-Dec' },
+  { id: 'SP1', name: 'Spring 1', months: 'Jan-Feb' },
+  { id: 'SP2', name: 'Spring 2', months: 'Mar-Apr' },
+  { id: 'SM1', name: 'Summer 1', months: 'Apr-May' },
+  { id: 'SM2', name: 'Summer 2', months: 'Jun-Jul' },
+];
 
 interface LessonPlan {
   id: string;
@@ -38,6 +49,8 @@ interface LessonPlan {
   updatedAt: Date;
   unitId?: string;
   unitName?: string;
+  title?: string;
+  term?: string;
 }
 
 interface Unit {
@@ -46,6 +59,7 @@ interface Unit {
   description: string;
   lessonNumbers: string[];
   color: string;
+  term?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,6 +77,8 @@ export function LessonPlanBuilder() {
     duration: 0,
     notes: '',
     status: 'planned',
+    title: 'New Lesson Plan',
+    term: 'A1', // Default to Autumn 1
     createdAt: new Date(),
     updatedAt: new Date(),
   }));
@@ -316,6 +332,8 @@ export function LessonPlanBuilder() {
         duration: 0,
         notes: '',
         status: 'planned',
+        title: 'New Lesson Plan',
+        term: currentLessonPlan.term, // Keep the same term
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -335,16 +353,44 @@ export function LessonPlanBuilder() {
                 <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-3 rounded-xl shadow-md">
                   <Edit3 className="h-7 w-7 text-white" />
                 </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Lesson Plan Builder</h1>
-                  <div className="flex items-center space-x-2 text-gray-600">
-                    <span>{currentSheetInfo.display}</span>
-                    <span>•</span>
-                    <span>Week {currentLessonPlan.week}</span>
-                    <span>•</span>
-                    <span>{currentLessonPlan.activities.length} activities</span>
-                    <span>•</span>
-                    <span>{currentLessonPlan.duration} minutes</span>
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={currentLessonPlan.title || ''}
+                    onChange={(e) => setCurrentLessonPlan(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Enter lesson title..."
+                    className="w-full text-2xl font-bold text-gray-900 border-b border-gray-300 focus:border-green-500 focus:outline-none bg-transparent"
+                  />
+                  <div className="flex items-center flex-wrap gap-3 mt-2">
+                    <div className="flex items-center space-x-2 text-gray-600">
+                      <span>{currentSheetInfo.display}</span>
+                      <span>•</span>
+                      <span>Week {currentLessonPlan.week}</span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <select
+                        value={currentLessonPlan.term || 'A1'}
+                        onChange={(e) => setCurrentLessonPlan(prev => ({ ...prev, term: e.target.value }))}
+                        className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                      >
+                        {HALF_TERMS.map(term => (
+                          <option key={term.id} value={term.id}>
+                            {term.name} ({term.months})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 text-gray-600">
+                      <Clock className="h-4 w-4" />
+                      <span>{currentLessonPlan.duration} minutes</span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 text-gray-600">
+                      <Users className="h-4 w-4" />
+                      <span>{currentLessonPlan.activities.length} activities</span>
+                    </div>
                   </div>
                 </div>
               </div>
