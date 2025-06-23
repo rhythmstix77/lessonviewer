@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Search, 
   Filter, 
@@ -21,6 +21,7 @@ import { ActivityDetails } from './ActivityDetails';
 import { ActivityImporter } from './ActivityImporter';
 import { ActivityCreator } from './ActivityCreator';
 import { useData } from '../contexts/DataContext';
+import { activitiesApi } from '../config/api';
 import type { Activity } from '../contexts/DataContext';
 
 interface ActivityLibraryProps {
@@ -56,38 +57,67 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
   const [selectedActivityDetails, setSelectedActivityDetails] = useState<Activity | null>(null);
   const [showImporter, setShowImporter] = useState(false);
   const [showCreator, setShowCreator] = useState(false);
+  const [libraryActivities, setLibraryActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Extract all activities from all lessons
-  const allActivities = useMemo(() => {
-    const activities: Activity[] = [];
-    Object.values(allLessonsData).forEach(lessonData => {
-      Object.values(lessonData.grouped).forEach(categoryActivities => {
-        activities.push(...categoryActivities);
-      });
-    });
+  // Load activities from server
+  useEffect(() => {
+    const fetchActivities = async () => {
+      setLoading(true);
+      try {
+        const activities = await activitiesApi.getAll();
+        setLibraryActivities(activities);
+      } catch (error) {
+        console.error('Failed to fetch activities from server:', error);
+        
+        // Fallback to extracting from lessons data
+        const extractedActivities: Activity[] = [];
+        Object.values(allLessonsData).forEach(lessonData => {
+          Object.values(lessonData.grouped).forEach(categoryActivities => {
+            extractedActivities.push(...categoryActivities);
+          });
+        });
+        
+        // Remove duplicates based on activity name and category
+        const uniqueActivities = extractedActivities.filter((activity, index, self) => 
+          index === self.findIndex(a => a.activity === activity.activity && a.category === activity.category)
+        );
+        
+        setLibraryActivities(uniqueActivities);
+        
+        // Try to save these to the server
+        try {
+          uniqueActivities.forEach(async (activity) => {
+            if (!activity._id) {
+              activity._id = `${activity.activity}-${activity.category}-${Date.now()}`;
+            }
+            await activitiesApi.create(activity);
+          });
+        } catch (saveError) {
+          console.error('Failed to save activities to server:', saveError);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    // Remove duplicates based on activity name and category
-    const uniqueActivities = activities.filter((activity, index, self) => 
-      index === self.findIndex(a => a.activity === activity.activity && a.category === activity.category)
-    );
-    
-    return uniqueActivities;
+    fetchActivities();
   }, [allLessonsData]);
 
   // Get unique categories and levels
   const categories = useMemo(() => {
-    const cats = new Set(allActivities.map(a => a.category));
+    const cats = new Set(libraryActivities.map(a => a.category));
     return Array.from(cats).sort();
-  }, [allActivities]);
+  }, [libraryActivities]);
 
   const levels = useMemo(() => {
-    const lvls = new Set(allActivities.map(a => a.level).filter(Boolean));
+    const lvls = new Set(libraryActivities.map(a => a.level).filter(Boolean));
     return Array.from(lvls).sort();
-  }, [allActivities]);
+  }, [libraryActivities]);
 
   // Filter and sort activities
   const filteredAndSortedActivities = useMemo(() => {
-    let filtered = allActivities.filter(activity => {
+    let filtered = libraryActivities.filter(activity => {
       const matchesSearch = activity.activity.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            activity.description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = selectedCategory === 'all' || activity.category === selectedCategory;
@@ -119,26 +149,64 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
     });
 
     return filtered;
-  }, [allActivities, searchQuery, selectedCategory, selectedLevel, sortBy, sortOrder]);
+  }, [libraryActivities, searchQuery, selectedCategory, selectedLevel, sortBy, sortOrder]);
 
-  const handleActivityUpdate = (updatedActivity: Activity) => {
-    // In a real implementation, this would update the activity in your data store
-    console.log('Update activity:', updatedActivity);
-    setEditingActivity(null);
-  };
-
-  const handleActivityDelete = (activityId: string) => {
-    if (confirm('Are you sure you want to delete this activity?')) {
-      console.log('Delete activity:', activityId);
+  const handleActivityUpdate = async (updatedActivity: Activity) => {
+    try {
+      if (updatedActivity._id) {
+        await activitiesApi.update(updatedActivity._id, updatedActivity);
+      } else {
+        const newActivity = await activitiesApi.create(updatedActivity);
+        updatedActivity._id = newActivity._id;
+      }
+      
+      // Update local state
+      setLibraryActivities(prev => 
+        prev.map(activity => 
+          activity._id === updatedActivity._id ? updatedActivity : activity
+        )
+      );
+      
+      setEditingActivity(null);
+    } catch (error) {
+      console.error('Failed to update activity:', error);
+      alert('Failed to update activity. Please try again.');
     }
   };
 
-  const handleActivityDuplicate = (activity: Activity) => {
+  const handleActivityDelete = async (activityId: string) => {
+    if (confirm('Are you sure you want to delete this activity?')) {
+      try {
+        const activity = libraryActivities.find(a => a.activity === activityId);
+        if (activity && activity._id) {
+          await activitiesApi.delete(activity._id);
+          
+          // Update local state
+          setLibraryActivities(prev => prev.filter(a => a._id !== activity._id));
+        }
+      } catch (error) {
+        console.error('Failed to delete activity:', error);
+        alert('Failed to delete activity. Please try again.');
+      }
+    }
+  };
+
+  const handleActivityDuplicate = async (activity: Activity) => {
     const duplicatedActivity = {
       ...activity,
+      _id: undefined, // Remove ID to create a new one
       activity: `${activity.activity} (Copy)`,
     };
-    console.log('Duplicate activity:', duplicatedActivity);
+    
+    try {
+      const newActivity = await activitiesApi.create(duplicatedActivity);
+      
+      // Update local state
+      setLibraryActivities(prev => [...prev, newActivity]);
+    } catch (error) {
+      console.error('Failed to duplicate activity:', error);
+      alert('Failed to duplicate activity. Please try again.');
+    }
   };
 
   const toggleSort = (field: typeof sortBy) => {
@@ -160,16 +228,48 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
     setEditingActivity(activity);
   };
 
-  const handleImportActivities = (activities: Activity[]) => {
-    // In a real implementation, this would add the activities to your data store
-    console.log('Import activities:', activities);
-    setShowImporter(false);
+  const handleImportActivities = async (activities: Activity[]) => {
+    try {
+      setLoading(true);
+      
+      // Add each activity to the server
+      for (const activity of activities) {
+        if (!activity._id) {
+          activity._id = `${activity.activity}-${activity.category}-${Date.now()}`;
+        }
+        await activitiesApi.create(activity);
+      }
+      
+      // Refresh the activity list
+      const updatedActivities = await activitiesApi.getAll();
+      setLibraryActivities(updatedActivities);
+      
+      setShowImporter(false);
+    } catch (error) {
+      console.error('Failed to import activities:', error);
+      alert('Failed to import activities. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCreateActivity = (newActivity: Activity) => {
-    // In a real implementation, this would add the new activity to your data store
-    console.log('Create activity:', newActivity);
-    setShowCreator(false);
+  const handleCreateActivity = async (newActivity: Activity) => {
+    try {
+      setLoading(true);
+      
+      // Add the activity to the server
+      const createdActivity = await activitiesApi.create(newActivity);
+      
+      // Update local state
+      setLibraryActivities(prev => [...prev, createdActivity]);
+      
+      setShowCreator(false);
+    } catch (error) {
+      console.error('Failed to create activity:', error);
+      alert('Failed to create activity. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -182,7 +282,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
             <div>
               <h2 className="text-xl font-bold">Activity Library</h2>
               <p className="text-purple-100 text-sm">
-                {filteredAndSortedActivities.length} of {allActivities.length} activities
+                {filteredAndSortedActivities.length} of {libraryActivities.length} activities
               </p>
             </div>
           </div>
@@ -297,7 +397,12 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
 
       {/* Activity Grid */}
       <div className="p-6">
-        {filteredAndSortedActivities.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading activities...</p>
+          </div>
+        ) : filteredAndSortedActivities.length === 0 ? (
           <div className="text-center py-12">
             <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No activities found</h3>
@@ -316,7 +421,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
             }
           `}>
             {filteredAndSortedActivities.map((activity, index) => (
-              <div key={`${activity.activity}-${activity.category}-${index}`} className="relative group h-full">
+              <div key={`${activity._id || activity.activity}-${activity.category}-${index}`} className="relative group h-full">
                 {/* Edit button in corner */}
                 <button
                   onClick={(e) => handleEditActivity(activity, e)}

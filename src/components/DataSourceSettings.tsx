@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { Settings, Upload, RefreshCw, CheckCircle, AlertCircle, X } from 'lucide-react';
+import { Settings, Upload, RefreshCw, CheckCircle, AlertCircle, X, Database, Server } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../hooks/useAuth';
+import { dataApi } from '../config/api';
 
 export function DataSourceSettings() {
   const { user } = useAuth();
   const { refreshData, uploadExcelFile, loading } = useData();
   const [isOpen, setIsOpen] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
 
   // Check if user is admin - specifically Rob's email
   const isAdmin = user?.email === 'rob.reichstorer@gmail.com' || 
@@ -17,6 +19,24 @@ export function DataSourceSettings() {
   if (!isAdmin) {
     return null;
   }
+
+  // Check server status when opening the panel
+  React.useEffect(() => {
+    if (isOpen) {
+      checkServerStatus();
+    }
+  }, [isOpen]);
+
+  const checkServerStatus = async () => {
+    try {
+      setServerStatus('checking');
+      await dataApi.exportAll();
+      setServerStatus('online');
+    } catch (error) {
+      console.error('Server status check failed:', error);
+      setServerStatus('offline');
+    }
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -44,6 +64,62 @@ export function DataSourceSettings() {
       setTimeout(() => setUploadStatus('idle'), 3000);
     }
   };
+
+  const handleMigrateToServer = async () => {
+    try {
+      setUploadStatus('uploading');
+      
+      // Get all data from localStorage
+      const data = {
+        activities: [],
+        lessons: {},
+        lessonPlans: [],
+        eyfs: {}
+      };
+      
+      // Extract activities from localStorage
+      const libraryActivities = localStorage.getItem('library-activities');
+      if (libraryActivities) {
+        data.activities = JSON.parse(libraryActivities);
+      }
+      
+      // Extract lessons from localStorage
+      ['LKG', 'UKG', 'Reception'].forEach(sheet => {
+        const lessonData = localStorage.getItem(`lesson-data-${sheet}`);
+        if (lessonData) {
+          data.lessons[sheet] = JSON.parse(lessonData);
+        }
+      });
+      
+      // Extract lesson plans from localStorage
+      const lessonPlans = localStorage.getItem('lesson-plans');
+      if (lessonPlans) {
+        data.lessonPlans = JSON.parse(lessonPlans);
+      }
+      
+      // Extract EYFS standards from localStorage
+      ['LKG', 'UKG', 'Reception'].forEach(sheet => {
+        const eyfsData = localStorage.getItem(`eyfs-standards-${sheet}`);
+        if (eyfsData) {
+          data.eyfs[sheet] = JSON.parse(eyfsData);
+        }
+      });
+      
+      // Send all data to server
+      await dataApi.importAll(data);
+      
+      setUploadStatus('success');
+      setStatusMessage('Data successfully migrated to server.');
+      setTimeout(() => setUploadStatus('idle'), 3000);
+    } catch (error) {
+      console.error('Migration failed:', error);
+      setUploadStatus('error');
+      setStatusMessage('Failed to migrate data to server.');
+      setTimeout(() => setUploadStatus('idle'), 3000);
+    }
+  };
+
+  const [statusMessage, setStatusMessage] = useState('');
 
   if (!isOpen) {
     return (
@@ -103,6 +179,60 @@ export function DataSourceSettings() {
             </div>
           </div>
 
+          {/* Server Status */}
+          <div className="border border-gray-200 rounded-lg p-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <Server className="h-6 w-6 text-blue-600" />
+              <h3 className="text-lg font-semibold text-gray-900">Server Status</h3>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-gray-200 mb-4">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-700 font-medium">API Server:</span>
+                {serverStatus === 'checking' ? (
+                  <div className="flex items-center space-x-2">
+                    <RefreshCw className="h-4 w-4 text-blue-600 animate-spin" />
+                    <span className="text-blue-600 font-medium">Checking...</span>
+                  </div>
+                ) : serverStatus === 'online' ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span className="text-green-600 font-medium">Online</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <span className="text-red-600 font-medium">Offline</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {serverStatus === 'offline' && (
+              <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 mb-4">
+                <div className="flex items-start space-x-2">
+                  <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-yellow-700 font-medium mb-1">Server is offline</p>
+                    <p className="text-sm text-yellow-600">
+                      The data server is not running. Please start the server using <code className="bg-yellow-100 px-1 py-0.5 rounded">npm run server</code> in a terminal.
+                      Your data will be stored locally until the server is available.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {serverStatus === 'online' && (
+              <button
+                onClick={handleMigrateToServer}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+              >
+                <Database className="h-5 w-5" />
+                <span>Migrate Local Data to Server</span>
+              </button>
+            )}
+          </div>
+
           {/* Excel File Upload */}
           <div className="border border-gray-200 rounded-lg p-6">
             <div className="flex items-center space-x-3 mb-4">
@@ -125,21 +255,27 @@ export function DataSourceSettings() {
               {uploadStatus === 'uploading' && (
                 <div className="flex items-center space-x-2 text-blue-600 p-3 bg-blue-50 rounded-lg">
                   <RefreshCw className="h-5 w-5 animate-spin" />
-                  <span className="text-sm font-medium">Uploading and processing...</span>
+                  <span className="text-sm font-medium">
+                    {statusMessage || "Uploading and processing..."}
+                  </span>
                 </div>
               )}
               
               {uploadStatus === 'success' && (
                 <div className="flex items-center space-x-2 text-green-600 p-3 bg-green-50 rounded-lg">
                   <CheckCircle className="h-5 w-5" />
-                  <span className="text-sm font-medium">Data updated successfully!</span>
+                  <span className="text-sm font-medium">
+                    {statusMessage || "Data updated successfully!"}
+                  </span>
                 </div>
               )}
               
               {uploadStatus === 'error' && (
                 <div className="flex items-center space-x-2 text-red-600 p-3 bg-red-50 rounded-lg">
                   <AlertCircle className="h-5 w-5" />
-                  <span className="text-sm font-medium">Update failed. Please try again.</span>
+                  <span className="text-sm font-medium">
+                    {statusMessage || "Update failed. Please try again."}
+                  </span>
                 </div>
               )}
             </div>
@@ -179,8 +315,10 @@ export function DataSourceSettings() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Configuration</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200">
-                <span className="text-gray-600 font-medium">Data Source:</span>
-                <span className="font-semibold text-green-600">Local Storage</span>
+                <span className="text-gray-600 font-medium">Primary Data Source:</span>
+                <span className="font-semibold text-green-600">
+                  {serverStatus === 'online' ? 'Server API' : 'Local Storage (Fallback)'}
+                </span>
               </div>
               <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200">
                 <span className="text-gray-600 font-medium">Authentication:</span>
@@ -201,11 +339,15 @@ export function DataSourceSettings() {
             <div className="space-y-3 text-sm">
               <div>
                 <p className="text-gray-700 font-medium mb-1">Data Storage Method:</p>
-                <p className="text-gray-600">Local browser storage with Excel file import capability</p>
+                <p className="text-gray-600">
+                  {serverStatus === 'online' 
+                    ? 'Server-based storage with local fallback' 
+                    : 'Local browser storage with Excel file import capability'}
+                </p>
               </div>
               <div>
                 <p className="text-gray-700 font-medium mb-1">Class Data Sources:</p>
-                <p className="text-gray-600">LKG, UKG, and Reception data stored locally</p>
+                <p className="text-gray-600">LKG, UKG, and Reception data stored on server</p>
               </div>
               <div>
                 <p className="text-gray-700 font-medium mb-1">Update Frequency:</p>

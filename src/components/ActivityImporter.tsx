@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, FileText, CheckCircle, AlertCircle, X, Download, RefreshCw, List, ListOrdered } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { activitiesApi } from '../config/api';
 import type { Activity } from '../contexts/DataContext';
 
 interface ActivityImporterProps {
@@ -184,6 +185,7 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
       }
 
       const activity: Activity = {
+        _id: `imported-${Date.now()}-${i}`,
         activity: String(row[activityNameIdx] || '').trim(),
         description: description,
         time,
@@ -240,6 +242,61 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
     XLSX.writeFile(wb, 'activity_template.xlsx');
   };
 
+  const handleExportActivities = async () => {
+    try {
+      setImportStatus('processing');
+      setStatusMessage('Exporting activities...');
+      
+      // Get all activities from the server
+      const activities = await activitiesApi.getAll();
+      
+      // Create a workbook
+      const wb = XLSX.utils.book_new();
+      
+      // Define the headers
+      const headers = [
+        'Lesson Number', 'Category', 'Activity Name', 'Description', 
+        'Level', 'Time (Mins)', 'Video', 'Music', 'Backing', 'Resource', 'Unit Name'
+      ];
+      
+      // Transform activities to rows
+      const rows = [headers];
+      activities.forEach(activity => {
+        rows.push([
+          activity.lessonNumber || '',
+          activity.category || '',
+          activity.activity || '',
+          activity.description.replace(/<br\s*\/?>/g, '\n').replace(/<[^>]*>/g, '') || '',
+          activity.level || '',
+          activity.time.toString() || '0',
+          activity.videoLink || '',
+          activity.musicLink || '',
+          activity.backingLink || '',
+          activity.resourceLink || '',
+          activity.unitName || ''
+        ]);
+      });
+      
+      // Create a worksheet
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      
+      // Add the worksheet to the workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Activities');
+      
+      // Generate the Excel file
+      XLSX.writeFile(wb, 'activities_export.xlsx');
+      
+      setImportStatus('success');
+      setStatusMessage('Activities exported successfully.');
+      setTimeout(() => setImportStatus('idle'), 3000);
+    } catch (error) {
+      console.error('Export failed:', error);
+      setImportStatus('error');
+      setStatusMessage('Failed to export activities.');
+      setTimeout(() => setImportStatus('idle'), 3000);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
@@ -248,8 +305,8 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
           <div className="flex items-center space-x-3">
             <Upload className="h-6 w-6" />
             <div>
-              <h2 className="text-xl font-bold">Import Activities</h2>
-              <p className="text-purple-100 text-sm">Upload an Excel file with your activity data</p>
+              <h2 className="text-xl font-bold">Import/Export Activities</h2>
+              <p className="text-purple-100 text-sm">Upload an Excel file with your activity data or export existing activities</p>
             </div>
           </div>
           <button
@@ -262,6 +319,34 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Export Section */}
+          <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <Download className="h-6 w-6 text-green-600" />
+              <h3 className="text-lg font-semibold text-gray-900">Export Activities</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Export all activities to an Excel file for backup or sharing.
+            </p>
+            <button
+              onClick={handleExportActivities}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+              disabled={importStatus === 'processing'}
+            >
+              {importStatus === 'processing' && statusMessage.includes('Exporting') ? (
+                <>
+                  <RefreshCw className="h-5 w-5 animate-spin" />
+                  <span>Exporting Activities...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="h-5 w-5" />
+                  <span>Export All Activities</span>
+                </>
+              )}
+            </button>
+          </div>
+
           {/* Instructions */}
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">How to Import Activities</h3>
@@ -311,14 +396,14 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
                 className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 transition-colors duration-200"
               />
               
-              {importStatus === 'processing' && (
+              {importStatus === 'processing' && !statusMessage.includes('Exporting') && (
                 <div className="flex items-center space-x-2 text-blue-600 p-3 bg-blue-50 rounded-lg">
                   <RefreshCw className="h-5 w-5 animate-spin" />
                   <span className="text-sm font-medium">{statusMessage}</span>
                 </div>
               )}
               
-              {importStatus === 'success' && (
+              {importStatus === 'success' && !statusMessage.includes('exported') && (
                 <div className="flex items-center space-x-2 text-green-600 p-3 bg-green-50 rounded-lg">
                   <CheckCircle className="h-5 w-5" />
                   <span className="text-sm font-medium">{statusMessage}</span>
@@ -422,11 +507,11 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
             </button>
             <button
               onClick={handleImport}
-              disabled={importStatus !== 'success'}
+              disabled={importStatus !== 'success' || importedData.length === 0}
               className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
             >
               <CheckCircle className="h-5 w-5" />
-              <span>Import Activities</span>
+              <span>Import {importedData.length} Activities</span>
             </button>
           </div>
         </div>

@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import * as XLSX from 'xlsx';
+import { activitiesApi, lessonsApi, eyfsApi } from '../config/api';
 
 export interface Activity {
+  _id?: string;
   activity: string;
   description: string;
   htmlDescription?: string;
@@ -162,30 +164,22 @@ export function DataProvider({ children }: DataProviderProps) {
 
   useEffect(() => {
     loadData();
-    // Load EYFS statements from localStorage or use defaults
+    // Load EYFS statements
     loadEyfsStatements();
   }, [currentSheetInfo]);
 
-  const loadEyfsStatements = () => {
-    // Try to load from localStorage first
-    const savedStandards = localStorage.getItem(`eyfs-standards-${currentSheetInfo.sheet}`);
-    if (savedStandards) {
-      try {
-        const parsedStandards = JSON.parse(savedStandards);
-        // Convert from object format to flat array
-        const flatStandards: string[] = [];
-        Object.entries(parsedStandards).forEach(([area, details]) => {
-          (details as string[]).forEach(detail => {
-            flatStandards.push(`${area}: ${detail}`);
-          });
-        });
-        setAllEyfsStatements(flatStandards.length > 0 ? flatStandards : DEFAULT_EYFS_STATEMENTS);
-      } catch (error) {
-        console.error('Error parsing saved EYFS standards:', error);
+  const loadEyfsStatements = async () => {
+    try {
+      // Try to load from server
+      const response = await eyfsApi.getBySheet(currentSheetInfo.sheet);
+      if (response && response.allStatements) {
+        setAllEyfsStatements(response.allStatements);
+      } else {
+        // Use default standards if none saved
         setAllEyfsStatements(DEFAULT_EYFS_STATEMENTS);
       }
-    } else {
-      // Use default standards if none saved
+    } catch (error) {
+      console.error('Error loading EYFS statements:', error);
       setAllEyfsStatements(DEFAULT_EYFS_STATEMENTS);
     }
   };
@@ -194,7 +188,23 @@ export function DataProvider({ children }: DataProviderProps) {
     try {
       setLoading(true);
       
-      // Try to load from localStorage first
+      // Try to load from server
+      try {
+        const lessonData = await lessonsApi.getBySheet(currentSheetInfo.sheet);
+        if (lessonData && Object.keys(lessonData).length > 0) {
+          setAllLessonsData(lessonData.allLessonsData || {});
+          setLessonNumbers(lessonData.lessonNumbers || []);
+          setTeachingUnits(lessonData.teachingUnits || []);
+          setEyfsStatements(lessonData.eyfsStatements || {});
+          console.log(`Loaded ${currentSheetInfo.sheet} data from server`);
+          setLoading(false);
+          return;
+        }
+      } catch (error) {
+        console.warn(`Server data fetch failed for ${currentSheetInfo.sheet}, trying localStorage:`, error);
+      }
+      
+      // Try to load from localStorage as fallback
       const savedData = localStorage.getItem(`lesson-data-${currentSheetInfo.sheet}`);
       if (savedData) {
         const parsedData = JSON.parse(savedData);
@@ -203,6 +213,14 @@ export function DataProvider({ children }: DataProviderProps) {
         setTeachingUnits(parsedData.teachingUnits || []);
         setEyfsStatements(parsedData.eyfsStatements || {});
         console.log(`Loaded ${currentSheetInfo.sheet} data from localStorage`);
+        
+        // Save to server for future use
+        try {
+          await lessonsApi.updateSheet(currentSheetInfo.sheet, parsedData);
+          console.log(`Migrated ${currentSheetInfo.sheet} data to server`);
+        } catch (serverError) {
+          console.warn(`Failed to migrate ${currentSheetInfo.sheet} data to server:`, serverError);
+        }
       } else {
         // If no saved data, load sample data
         await loadSampleData();
@@ -283,7 +301,7 @@ export function DataProvider({ children }: DataProviderProps) {
     });
   };
 
-  const processSheetData = (sheetData: string[][]) => {
+  const processSheetData = async (sheetData: string[][]) => {
     try {
       if (!sheetData || sheetData.length === 0) {
         console.warn(`No sheet data provided for ${currentSheetInfo.sheet}`);
@@ -340,6 +358,7 @@ export function DataProvider({ children }: DataProviderProps) {
         }
 
         const activity: Activity = {
+          _id: `${currentSheetInfo.sheet}-${activityName}-${category}-${Date.now()}`,
           activity: activityName,
           description: description.replace(/"/g, ''),
           time,
@@ -359,6 +378,13 @@ export function DataProvider({ children }: DataProviderProps) {
         };
 
         activities.push(activity);
+        
+        // Also add to server
+        try {
+          await activitiesApi.create(activity);
+        } catch (error) {
+          console.warn('Failed to add activity to server:', error);
+        }
       }
 
       console.log(`Processed ${currentSheetInfo.sheet} activities:`, activities.length);
@@ -414,7 +440,8 @@ export function DataProvider({ children }: DataProviderProps) {
       });
       setEyfsStatements(eyfsStatementsMap);
 
-      // Save data to localStorage
+      // Save data to server and localStorage
+      await saveDataToServer(lessonsData, sortedLessonNumbers, Array.from(categoriesSet), eyfsStatementsMap);
       saveDataToLocalStorage(lessonsData, sortedLessonNumbers, Array.from(categoriesSet), eyfsStatementsMap);
 
     } catch (error) {
@@ -452,6 +479,27 @@ export function DataProvider({ children }: DataProviderProps) {
     }
   };
 
+  const saveDataToServer = async (
+    lessonsData: Record<string, LessonData>, 
+    lessonNums: string[], 
+    categories: string[],
+    eyfsStatementsData: Record<string, string[]>
+  ) => {
+    const dataToSave = {
+      allLessonsData: lessonsData,
+      lessonNumbers: lessonNums,
+      teachingUnits: categories,
+      eyfsStatements: eyfsStatementsData
+    };
+    
+    try {
+      await lessonsApi.updateSheet(currentSheetInfo.sheet, dataToSave);
+      console.log(`Saved ${currentSheetInfo.sheet} data to server`);
+    } catch (error) {
+      console.error(`Failed to save ${currentSheetInfo.sheet} data to server:`, error);
+    }
+  };
+
   const saveDataToLocalStorage = (
     lessonsData: Record<string, LessonData>, 
     lessonNums: string[], 
@@ -466,7 +514,7 @@ export function DataProvider({ children }: DataProviderProps) {
     };
     
     localStorage.setItem(`lesson-data-${currentSheetInfo.sheet}`, JSON.stringify(dataToSave));
-    console.log(`Saved ${currentSheetInfo.sheet} data to localStorage`);
+    console.log(`Saved ${currentSheetInfo.sheet} data to localStorage (backup)`);
   };
 
   const uploadExcelFile = async (file: File) => {
@@ -483,7 +531,7 @@ export function DataProvider({ children }: DataProviderProps) {
       console.log('Excel data loaded:', data.slice(0, 5)); // Log first 5 rows
       
       // Process the data
-      processSheetData(data);
+      await processSheetData(data);
       
       return true;
     } catch (error) {
@@ -530,7 +578,7 @@ export function DataProvider({ children }: DataProviderProps) {
   };
 
   // Add EYFS statement to a lesson
-  const addEyfsToLesson = (lessonNumber: string, eyfsStatement: string) => {
+  const addEyfsToLesson = async (lessonNumber: string, eyfsStatement: string) => {
     setEyfsStatements(prev => {
       const updatedStatements = { ...prev };
       if (!updatedStatements[lessonNumber]) {
@@ -540,7 +588,15 @@ export function DataProvider({ children }: DataProviderProps) {
         updatedStatements[lessonNumber] = [...updatedStatements[lessonNumber], eyfsStatement];
       }
       
-      // Save to localStorage
+      // Save to server
+      saveDataToServer(
+        allLessonsData, 
+        lessonNumbers, 
+        teachingUnits, 
+        updatedStatements
+      );
+      
+      // Save to localStorage as backup
       saveDataToLocalStorage(
         allLessonsData, 
         lessonNumbers, 
@@ -567,7 +623,7 @@ export function DataProvider({ children }: DataProviderProps) {
   };
 
   // Remove EYFS statement from a lesson
-  const removeEyfsFromLesson = (lessonNumber: string, eyfsStatement: string) => {
+  const removeEyfsFromLesson = async (lessonNumber: string, eyfsStatement: string) => {
     setEyfsStatements(prev => {
       const updatedStatements = { ...prev };
       if (updatedStatements[lessonNumber]) {
@@ -576,7 +632,15 @@ export function DataProvider({ children }: DataProviderProps) {
         );
       }
       
-      // Save to localStorage
+      // Save to server
+      saveDataToServer(
+        allLessonsData, 
+        lessonNumbers, 
+        teachingUnits, 
+        updatedStatements
+      );
+      
+      // Save to localStorage as backup
       saveDataToLocalStorage(
         allLessonsData, 
         lessonNumbers, 
@@ -602,13 +666,26 @@ export function DataProvider({ children }: DataProviderProps) {
   };
 
   // Update all EYFS statements
-  const updateAllEyfsStatements = (statements: string[]) => {
+  const updateAllEyfsStatements = async (statements: string[]) => {
     setAllEyfsStatements(statements);
     
-    // Save to localStorage in flat format
-    localStorage.setItem(`eyfs-statements-flat-${currentSheetInfo.sheet}`, JSON.stringify(statements));
+    // Save to server
+    try {
+      await eyfsApi.updateSheet(currentSheetInfo.sheet, {
+        allStatements: statements,
+        structuredStatements: structureEyfsStatements(statements)
+      });
+    } catch (error) {
+      console.error('Failed to save EYFS statements to server:', error);
+    }
     
-    // Also update the structured format
+    // Save to localStorage as backup
+    localStorage.setItem(`eyfs-statements-flat-${currentSheetInfo.sheet}`, JSON.stringify(statements));
+    localStorage.setItem(`eyfs-standards-${currentSheetInfo.sheet}`, JSON.stringify(structureEyfsStatements(statements)));
+  };
+
+  // Helper to structure EYFS statements by area
+  const structureEyfsStatements = (statements: string[]) => {
     const structuredStatements: Record<string, string[]> = {};
     statements.forEach(statement => {
       const parts = statement.split(':');
@@ -621,8 +698,7 @@ export function DataProvider({ children }: DataProviderProps) {
       
       structuredStatements[area].push(detail);
     });
-    
-    localStorage.setItem(`eyfs-standards-${currentSheetInfo.sheet}`, JSON.stringify(structuredStatements));
+    return structuredStatements;
   };
 
   const value = {
