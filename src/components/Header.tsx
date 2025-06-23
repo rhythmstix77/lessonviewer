@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, User, LogOut, BookOpen, RefreshCw, Settings } from 'lucide-react';
+import { Menu, X, User, LogOut, BookOpen, RefreshCw, Settings, Download } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -25,6 +25,33 @@ export function Header() {
 
   const handleRefresh = async () => {
     await refreshData();
+  };
+
+  const handleExportDatabase = () => {
+    // Export all data from localStorage
+    const data = {
+      lessonData: {
+        LKG: localStorage.getItem('lesson-data-LKG'),
+        UKG: localStorage.getItem('lesson-data-UKG'),
+        Reception: localStorage.getItem('lesson-data-Reception')
+      },
+      lessonPlans: localStorage.getItem('lesson-plans'),
+      libraryActivities: localStorage.getItem('library-activities'),
+      settings: localStorage.getItem('lesson-viewer-settings')
+    };
+    
+    // Convert to JSON and create download
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rhythmstix-data-export-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   // Get theme colors for current class
@@ -83,6 +110,15 @@ export function Header() {
                   ))}
                 </select>
               </div>
+
+              {/* Export Database Button */}
+              <button
+                onClick={handleExportDatabase}
+                className="p-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200 flex-shrink-0"
+                title="Export Database"
+              >
+                <Download className="h-5 w-5" />
+              </button>
 
               {/* Settings Button */}
               <button
@@ -188,6 +224,12 @@ export function Header() {
                     </span>
                   </div>
                   <div className="flex space-x-2 flex-shrink-0">
+                    <button
+                      onClick={handleExportDatabase}
+                      className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                    >
+                      <Download className="h-5 w-5" />
+                    </button>
                     <button
                       onClick={() => {
                         setSettingsOpen(true);

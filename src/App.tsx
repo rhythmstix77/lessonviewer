@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { DataProvider } from './contexts/DataContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { Header } from './components/Header';
-import { LessonViewer } from './components/LessonViewer';
+import { Dashboard } from './components/Dashboard';
 import { LoginForm } from './components/LoginForm';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { DataSourceSettings } from './components/DataSourceSettings';
@@ -29,7 +29,7 @@ function AppContent() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       <main className="flex-1 pt-16">
-        <LessonViewer />
+        <Dashboard />
       </main>
       <Footer />
       <DataSourceSettings />

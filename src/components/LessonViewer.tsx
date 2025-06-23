@@ -7,7 +7,7 @@ import { ExportButtons } from './ExportButtons';
 import { LoadingSpinner } from './LoadingSpinner';
 import { EyfsStandardsList } from './EyfsStandardsList';
 import { EyfsStandardsSelector } from './EyfsStandardsSelector';
-import { BookOpen, X, Search, GraduationCap, Edit3, Tag, ChevronRight, ChevronLeft } from 'lucide-react';
+import { BookOpen, X, GraduationCap, Tag, ChevronRight, ChevronLeft } from 'lucide-react';
 import type { Activity } from '../contexts/DataContext';
 
 export function LessonViewer() {
@@ -16,7 +16,6 @@ export function LessonViewer() {
   const [selectedLesson, setSelectedLesson] = useState<string>('');
   const [previewLesson, setPreviewLesson] = useState<string>('');
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string>('');
   const [showEyfsSelector, setShowEyfsSelector] = useState(false);
   
   // Ref for scrolling to top when lesson is selected
@@ -51,26 +50,6 @@ export function LessonViewer() {
     );
   }
 
-  const filteredLessons = lessonNumbers.filter(lessonNum => {
-    const lessonData = allLessonsData[lessonNum];
-    if (!lessonData) return false;
-
-    // Search query filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const hasMatch = Object.values(lessonData.grouped).some(activities =>
-        activities.some(activity =>
-          activity.activity.toLowerCase().includes(query) ||
-          activity.description.toLowerCase().includes(query) ||
-          activity.category.toLowerCase().includes(query)
-        )
-      );
-      if (!hasMatch) return false;
-    }
-
-    return true;
-  });
-
   const handleLessonSelect = (lessonNumber: string) => {
     setSelectedLesson(lessonNumber === selectedLesson ? '' : lessonNumber);
     setPreviewLesson('');
@@ -83,10 +62,6 @@ export function LessonViewer() {
 
   const handleCloseLessonView = () => {
     setSelectedLesson('');
-  };
-
-  const clearSearch = () => {
-    setSearchQuery('');
   };
 
   // If a lesson is selected, show full-width expanded view
@@ -275,7 +250,7 @@ export function LessonViewer() {
       <div ref={topRef} className="absolute top-16"></div>
       
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header with Search */}
+        {/* Header with Title */}
         <div className="mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-6 lg:space-y-0 lg:space-x-6 mb-6">
             {/* Title Section with Learning Icon */}
@@ -295,52 +270,8 @@ export function LessonViewer() {
                   Lesson Viewer
                 </h1>
                 <p className="text-gray-600 text-lg">
-                  {currentSheetInfo.display} • {filteredLessons.length} of {lessonNumbers.length} lessons available
+                  {currentSheetInfo.display} • {lessonNumbers.length} lessons available
                 </p>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center space-x-3">
-              {/* Search Section */}
-              <div className="flex-shrink-0 w-full lg:w-auto lg:min-w-[320px]">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search activities, descriptions, categories..."
-                    className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:border-2 transition-colors duration-200 text-gray-900 placeholder-gray-500 shadow-sm"
-                    style={{ 
-                      focusRingColor: theme.primary,
-                      focusBorderColor: theme.primary 
-                    }}
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={clearSearch}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
-                  )}
-                </div>
-                
-                {/* Search Results Info */}
-                {searchQuery && (
-                  <div className="mt-2 text-sm text-gray-600">
-                    {filteredLessons.length === 0 ? (
-                      <span className="text-red-600">No lessons found for "{searchQuery}"</span>
-                    ) : (
-                      <span>
-                        Found {filteredLessons.length} lesson{filteredLessons.length !== 1 ? 's' : ''} matching "{searchQuery}"
-                      </span>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -350,34 +281,22 @@ export function LessonViewer() {
         </div>
 
         {/* Lesson Grid - Horizontal Scrollable Layout */}
-        {filteredLessons.length === 0 ? (
+        {lessonNumbers.length === 0 ? (
           <div className="text-center py-12">
             <div className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-full p-8 w-32 h-32 mx-auto mb-6 flex items-center justify-center">
               <BookOpen className="h-16 w-16 text-gray-400" />
             </div>
             <h3 className="text-xl font-medium text-gray-900 mb-3">No lessons found</h3>
             <p className="text-gray-600 text-lg">
-              {searchQuery 
-                ? 'Try adjusting your search terms to see more results.'
-                : 'No lesson data available for this age group.'}
+              No lesson data available for this age group.
             </p>
-            {searchQuery && (
-              <button
-                onClick={clearSearch}
-                className="mt-4 inline-flex items-center space-x-2 px-4 py-2 text-white font-medium rounded-lg transition-colors duration-200"
-                style={{ backgroundColor: theme.primary }}
-              >
-                <X className="h-4 w-4" />
-                <span>Clear Search</span>
-              </button>
-            )}
           </div>
         ) : (
           <div className="space-y-8">
             {/* Horizontal Scroll Container */}
             <div className="overflow-x-auto pb-4">
               <div className="flex space-x-6 min-w-max">
-                {filteredLessons.map((lessonNum) => (
+                {lessonNumbers.map((lessonNum) => (
                   <div key={lessonNum} className="flex-shrink-0 w-80 relative">
                     <LessonCard
                       lessonNumber={lessonNum}
