@@ -275,6 +275,7 @@ export function ActivityDetails({
                 document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
               }
             }}
+            dir="ltr" // Explicitly set text direction to left-to-right
           />
         </div>
       );
@@ -375,6 +376,7 @@ export function ActivityDetails({
                 document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
               }
             }}
+            dir="ltr" // Explicitly set text direction to left-to-right
           />
         </div>
       );
@@ -443,6 +445,7 @@ export function ActivityDetails({
                   value={editedActivity.activity}
                   onChange={(e) => setEditedActivity(prev => ({ ...prev, activity: e.target.value }))}
                   className="text-xl font-bold text-gray-900 border-b border-gray-300 focus:border-blue-500 focus:outline-none w-full"
+                  dir="ltr" // Explicitly set text direction to left-to-right
                 />
               ) : (
                 <h2 className="text-xl font-bold text-gray-900">{activity.activity}</h2>
@@ -453,6 +456,7 @@ export function ActivityDetails({
                     value={editedActivity.category}
                     onChange={(e) => setEditedActivity(prev => ({ ...prev, category: e.target.value }))}
                     className="text-sm text-gray-600 border border-gray-300 rounded px-2 py-1"
+                    dir="ltr" // Explicitly set text direction to left-to-right
                   >
                     <option value="">Select Category</option>
                     <option value="Welcome">Welcome</option>
@@ -484,6 +488,7 @@ export function ActivityDetails({
                     value={editedActivity.level}
                     onChange={(e) => setEditedActivity(prev => ({ ...prev, level: e.target.value }))}
                     className="text-sm text-gray-600 border border-gray-300 rounded px-2 py-1"
+                    dir="ltr" // Explicitly set text direction to left-to-right
                   >
                     <option value="">Select Level</option>
                     <option value="All">All</option>
@@ -583,6 +588,7 @@ export function ActivityDetails({
                       onChange={(e) => setEditedActivity(prev => ({ ...prev, time: parseInt(e.target.value) || 0 }))}
                       className="w-16 px-2 py-1 border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       min="0"
+                      dir="ltr" // Explicitly set text direction to left-to-right
                     />
                     <span className="text-sm font-medium text-blue-900">minutes</span>
                   </div>
@@ -638,6 +644,7 @@ export function ActivityDetails({
                     onChange={(e) => setEditedActivity(prev => ({ ...prev, unitName: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter unit name"
+                    dir="ltr" // Explicitly set text direction to left-to-right
                   />
                 ) : (
                   <p className="text-gray-700">{activity.unitName}</p>
@@ -717,6 +724,7 @@ export function ActivityDetails({
                         onChange={(e) => setEditedActivity(prev => ({ ...prev, imageLink: e.target.value }))}
                         placeholder="Or paste image URL"
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        dir="ltr" // Explicitly set text direction to left-to-right
                       />
                     </div>
                   </div>
@@ -751,6 +759,7 @@ export function ActivityDetails({
                         onChange={(e) => setEditedActivity(prev => ({ ...prev, [key]: e.target.value }))}
                         className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder={label}
+                        dir="ltr" // Explicitly set text direction to left-to-right
                       />
                     </div>
                   ))}
