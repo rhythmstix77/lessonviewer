@@ -645,7 +645,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                   className={`bg-white rounded-xl shadow-md border-2 ${isOver ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200'} p-6 min-h-[600px] transition-all duration-200`}
                 >
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Unit Contents</h3>
-                  <p className="text-gray-600 mb-4">Tick lessons to add them to your unit</p>
+                  <p className="text-gray-600 mb-4">Drag lessons here or select from available lessons</p>
                   
                   {currentUnit?.lessonNumbers.length === 0 && selectedLessons.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-gray-300 rounded-lg">
@@ -735,19 +735,6 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                       })}
                     </div>
                   )}
-                  
-                  {/* Add Selected Lessons Button */}
-                  {selectedLessons.length > 0 && (
-                    <div className="mt-4">
-                      <button
-                        onClick={addSelectedLessonsToUnit}
-                        className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
-                      >
-                        <Plus className="h-4 w-4" />
-                        <span>Add {selectedLessons.length} Selected {selectedLessons.length === 1 ? 'Lesson' : 'Lessons'}</span>
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -800,6 +787,17 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                           Clear All
                         </button>
                       </div>
+                      
+                      {/* Add Selected Lessons Button */}
+                      {selectedLessons.length > 0 && currentUnit && (
+                        <button
+                          onClick={addSelectedLessonsToUnit}
+                          className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+                        >
+                          <Plus className="h-4 w-4" />
+                          <span>Add {selectedLessons.length} Selected {selectedLessons.length === 1 ? 'Lesson' : 'Lessons'}</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                   
