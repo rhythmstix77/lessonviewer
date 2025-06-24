@@ -221,6 +221,32 @@ export function LessonPlanBuilder() {
     const success = handleUpdateLessonPlan(currentLessonPlan);
   };
 
+  // Create a new lesson plan after saving the current one
+  const handleCreateNewAfterSave = () => {
+    // First save the current plan
+    const success = handleUpdateLessonPlan(currentLessonPlan);
+    
+    if (success) {
+      // Create a new empty plan
+      const newPlan: LessonPlan = {
+        id: `plan-${Date.now()}`,
+        date: new Date(),
+        week: currentLessonPlan.week + 1, // Increment week number
+        className: currentSheetInfo.sheet,
+        activities: [],
+        duration: 0,
+        notes: '',
+        status: 'draft',
+        title: '',
+        term: currentLessonPlan.term, // Keep the same term
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      setCurrentLessonPlan(newPlan);
+    }
+  };
+
   // Filter and sort activities for the library
   const filteredAndSortedActivities = React.useMemo(() => {
     let filtered = libraryActivities.filter(activity => {
@@ -324,138 +350,10 @@ export function LessonPlanBuilder() {
     setSelectedActivities([]);
   };
 
-  // Create a new lesson plan after saving the current one
-  const handleCreateNewAfterSave = () => {
-    // First save the current plan
-    const success = handleUpdateLessonPlan(currentLessonPlan);
-    
-    if (success) {
-      // Create a new empty plan
-      const newPlan: LessonPlan = {
-        id: `plan-${Date.now()}`,
-        date: new Date(),
-        week: currentLessonPlan.week + 1, // Increment week number
-        className: currentSheetInfo.sheet,
-        activities: [],
-        duration: 0,
-        notes: '',
-        status: 'draft',
-        title: '',
-        term: currentLessonPlan.term, // Keep the same term
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      
-      setCurrentLessonPlan(newPlan);
-    }
-  };
-
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-              <div className="flex items-center space-x-4">
-                <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-3 rounded-xl shadow-md">
-                  <Edit3 className="h-7 w-7 text-white" />
-                </div>
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    value={currentLessonPlan.title || ''}
-                    onChange={(e) => setCurrentLessonPlan(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Enter lesson title or learning objective..."
-                    className="w-full text-2xl font-bold text-gray-900 border-b border-gray-300 focus:border-green-500 focus:outline-none bg-transparent"
-                  />
-                  <div className="flex items-center flex-wrap gap-3 mt-2">
-                    <div className="flex items-center space-x-2 text-gray-600">
-                      <span>{currentSheetInfo.display}</span>
-                      <span>•</span>
-                      <div className="flex items-center space-x-1">
-                        <span>Week</span>
-                        <input
-                          type="number"
-                          value={currentLessonPlan.week}
-                          onChange={(e) => setCurrentLessonPlan(prev => ({ 
-                            ...prev, 
-                            week: parseInt(e.target.value) || 1 
-                          }))}
-                          className="w-12 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 focus:border-green-500 text-sm"
-                          min="1"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <label className="text-sm text-gray-600">Term:</label>
-                      <select
-                        value={currentLessonPlan.term || 'A1'}
-                        onChange={(e) => setCurrentLessonPlan(prev => ({ ...prev, term: e.target.value }))}
-                        className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
-                      >
-                        {HALF_TERMS.map(term => (
-                          <option key={term.id} value={term.id}>
-                            {term.name} ({term.months})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2 text-gray-600">
-                      <Clock className="h-4 w-4" />
-                      <span>{currentLessonPlan.duration} minutes</span>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2 text-gray-600">
-                      <Users className="h-4 w-4" />
-                      <span>{currentLessonPlan.activities.length} activities</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  onClick={handleSaveLessonPlan}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                >
-                  <Save className="h-4 w-4" />
-                  <span>Save Plan</span>
-                </button>
-                
-                <button
-                  onClick={handleCreateNewAfterSave}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Save & Create New</span>
-                </button>
-              </div>
-            </div>
-            
-            {/* Save Status Message */}
-            {saveStatus !== 'idle' && (
-              <div className={`mt-4 p-3 rounded-lg flex items-center space-x-2 ${
-                saveStatus === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
-                'bg-red-50 text-red-700 border border-red-200'
-              }`}>
-                {saveStatus === 'success' ? (
-                  <>
-                    <Check className="h-5 w-5 text-green-600" />
-                    <span>Lesson plan saved successfully!</span>
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle className="h-5 w-5 text-red-600" />
-                    <span>Failed to save lesson plan. Please ensure you've provided a title.</span>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
           {/* Main Content */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Lesson Plan Details */}
@@ -471,6 +369,8 @@ export function LessonPlanBuilder() {
                 }}
                 isEditing={true}
                 onActivityClick={(activity) => setSelectedActivity(activity)}
+                onSave={handleSaveLessonPlan}
+                onSaveAndCreate={handleCreateNewAfterSave}
               />
             </div>
 
@@ -583,7 +483,10 @@ export function LessonPlanBuilder() {
                                         'Parachute Games': '#EF4444',
                                         'Percussion Games': '#06B6D4',
                                         'Teaching Units': '#6366F1',
-                                        'Goodbye': '#14B8A6'
+                                        'Goodbye': '#14B8A6',
+                                        'Kodaly Rhythms': '#9333EA',
+                                        'Kodaly Games': '#F59E0B',
+                                        'IWB Games': '#FBBF24'
                                       }[activity.category] || '#6B7280'
                                     : '#6B7280',
                                     minHeight: '40px'

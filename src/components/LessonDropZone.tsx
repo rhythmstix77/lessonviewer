@@ -4,7 +4,6 @@ import {
   Plus, 
   Clock, 
   Users, 
-  Calendar, 
   FileText, 
   GripVertical, 
   Trash2,
@@ -42,6 +41,8 @@ interface LessonDropZoneProps {
   onNotesUpdate: (notes: string) => void;
   isEditing: boolean;
   onActivityClick?: (activity: Activity) => void;
+  onSave?: () => void;
+  onSaveAndCreate?: () => void;
 }
 
 interface ActivityItemProps {
@@ -242,7 +243,9 @@ export function LessonDropZone({
   onActivityReorder,
   onNotesUpdate,
   isEditing,
-  onActivityClick
+  onActivityClick,
+  onSave,
+  onSaveAndCreate
 }: LessonDropZoneProps) {
   // Fix: Use the correct drag type 'activity' to match ActivityCard
   const [{ isOver }, drop] = useDrop(() => ({
@@ -283,85 +286,96 @@ export function LessonDropZone({
   // Get all categories in the lesson plan
   const categories = Object.keys(groupedActivities).sort();
 
-  // Get term name from term ID
-  const getTermName = (termId: string) => {
-    const term = [
-      { id: 'A1', name: 'Autumn 1' },
-      { id: 'A2', name: 'Autumn 2' },
-      { id: 'SP1', name: 'Spring 1' },
-      { id: 'SP2', name: 'Spring 2' },
-      { id: 'SM1', name: 'Summer 1' },
-      { id: 'SM2', name: 'Summer 2' },
-    ].find(t => t.id === termId);
-    
-    return term ? term.name : termId;
-  };
-
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
       {/* New Header Design */}
       <div className="p-6 border-b border-gray-200 bg-white">
-        <div className="flex items-center space-x-4">
-          <div className="bg-green-500 p-3 rounded-lg shadow-md">
-            <Edit3 className="h-6 w-6 text-white" />
-          </div>
-          <div className="flex-1">
-            <input
-              type="text"
-              value={lessonPlan.title || ''}
-              onChange={(e) => {
-                // This would need to be connected to a handler in the parent component
-                // For now, we'll just show the input field
-              }}
-              placeholder="Enter lesson title or learning objective..."
-              className="w-full text-2xl font-bold text-gray-400 border-b border-gray-300 focus:border-green-500 focus:outline-none bg-transparent"
-            />
-            <div className="flex items-center flex-wrap gap-3 mt-2">
-              <div className="flex items-center space-x-2 text-gray-600">
-                <span>{lessonPlan.className}</span>
-                <span>•</span>
-                <div className="flex items-center space-x-1">
-                  <span>Week</span>
-                  <input
-                    type="number"
-                    value={lessonPlan.week}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4 flex-1">
+            <div className="bg-green-500 p-3 rounded-lg shadow-md">
+              <Edit3 className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <input
+                type="text"
+                value={lessonPlan.title || ''}
+                onChange={(e) => {
+                  // This would need to be connected to a handler in the parent component
+                  // For now, we'll just show the input field
+                }}
+                placeholder="Enter lesson title or learning objective..."
+                className="w-full text-2xl font-bold text-gray-400 border-b border-gray-300 focus:border-green-500 focus:outline-none bg-transparent"
+              />
+              <div className="flex items-center flex-wrap gap-3 mt-2">
+                <div className="flex items-center space-x-2 text-gray-600">
+                  <span>{lessonPlan.className}</span>
+                  <span>•</span>
+                  <div className="flex items-center space-x-1">
+                    <span>Week</span>
+                    <input
+                      type="number"
+                      value={lessonPlan.week}
+                      onChange={(e) => {
+                        // This would need to be connected to a handler in the parent component
+                      }}
+                      className="w-12 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 focus:border-green-500 text-sm"
+                      min="1"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm text-gray-600">Term:</label>
+                  <select
+                    value={lessonPlan.term || 'A1'}
                     onChange={(e) => {
                       // This would need to be connected to a handler in the parent component
                     }}
-                    className="w-12 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 focus:border-green-500 text-sm"
-                    min="1"
-                  />
+                    className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                  >
+                    <option value="A1">Autumn 1 (Sep-Oct)</option>
+                    <option value="A2">Autumn 2 (Nov-Dec)</option>
+                    <option value="SP1">Spring 1 (Jan-Feb)</option>
+                    <option value="SP2">Spring 2 (Mar-Apr)</option>
+                    <option value="SM1">Summer 1 (Apr-May)</option>
+                    <option value="SM2">Summer 2 (Jun-Jul)</option>
+                  </select>
+                </div>
+                
+                <div className="flex items-center space-x-2 text-gray-600">
+                  <Clock className="h-4 w-4" />
+                  <span>{lessonPlan.duration} minutes</span>
+                </div>
+                
+                <div className="flex items-center space-x-2 text-gray-600">
+                  <Users className="h-4 w-4" />
+                  <span>{lessonPlan.activities.length} activities</span>
                 </div>
               </div>
-              
-              <div className="flex items-center space-x-2">
-                <label className="text-sm text-gray-600">Term:</label>
-                <select
-                  value={lessonPlan.term || 'A1'}
-                  onChange={(e) => {
-                    // This would need to be connected to a handler in the parent component
-                  }}
-                  className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
-                >
-                  <option value="A1">Autumn 1 (Sep-Oct)</option>
-                  <option value="A2">Autumn 2 (Nov-Dec)</option>
-                  <option value="SP1">Spring 1 (Jan-Feb)</option>
-                  <option value="SP2">Spring 2 (Mar-Apr)</option>
-                  <option value="SM1">Summer 1 (Apr-May)</option>
-                  <option value="SM2">Summer 2 (Jun-Jul)</option>
-                </select>
-              </div>
-              
-              <div className="flex items-center space-x-2 text-gray-600">
-                <Clock className="h-4 w-4" />
-                <span>{lessonPlan.duration} minutes</span>
-              </div>
-              
-              <div className="flex items-center space-x-2 text-gray-600">
-                <Users className="h-4 w-4" />
-                <span>{lessonPlan.activities.length} activities</span>
-              </div>
             </div>
+          </div>
+          
+          {/* Save buttons */}
+          <div className="flex items-center space-x-3">
+            {onSave && (
+              <button
+                onClick={onSave}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+              >
+                <Save className="h-4 w-4" />
+                <span>Save Plan</span>
+              </button>
+            )}
+            
+            {onSaveAndCreate && (
+              <button
+                onClick={onSaveAndCreate}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Save & New</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
