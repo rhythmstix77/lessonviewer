@@ -370,7 +370,10 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
 
   // Add selected lessons to the current unit
   const addSelectedLessonsToUnit = () => {
-    if (!currentUnit || selectedLessons.length === 0) return;
+    if (!currentUnit || selectedLessons.length === 0) {
+      alert("Please select a unit and at least one lesson to add");
+      return;
+    }
     
     // Add selected lessons to the current unit
     const updatedLessons = [...currentUnit.lessonNumbers];
@@ -391,6 +394,8 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
     });
     
     setHasUnsavedChanges(true);
+    
+    // Clear selected lessons after adding
     setSelectedLessons([]);
   };
 
