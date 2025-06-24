@@ -7,7 +7,7 @@ import { ActivityLibrary } from "./ActivityLibrary";
 import { UnitManager } from "./UnitManager";
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Calendar, BookOpen, Edit3, GraduationCap, FolderOpen } from 'lucide-react';
+import { Calendar, BookOpen, Edit3, GraduationCap, FolderOpen, Tag } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../hooks/useAuth';
@@ -152,6 +152,7 @@ export function Dashboard() {
                   '--tw-gradient-from': theme.primary,
                   '--tw-gradient-to': theme.secondary
                 } as React.CSSProperties}
+                data-tab="unit-viewer"
               >
                 <div className="flex items-center space-x-2">
                   <GraduationCap className="h-5 w-5" />
@@ -162,6 +163,7 @@ export function Dashboard() {
               <TabsTrigger 
                 value="unit-builder"
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200"
+                data-tab="unit-builder"
               >
                 <div className="flex items-center space-x-2">
                   <FolderOpen className="h-5 w-5" />
@@ -172,6 +174,7 @@ export function Dashboard() {
               <TabsTrigger 
                 value="lesson-builder"
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200"
+                data-tab="lesson-builder"
               >
                 <div className="flex items-center space-x-2">
                   <Edit3 className="h-5 w-5" />
@@ -182,9 +185,10 @@ export function Dashboard() {
               <TabsTrigger 
                 value="activity-library"
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-rose-600 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200"
+                data-tab="activity-library"
               >
                 <div className="flex items-center space-x-2">
-                  <BookOpen className="h-5 w-5" />
+                  <Tag className="h-5 w-5" />
                   <span>Activity Library</span>
                 </div>
               </TabsTrigger>
@@ -192,6 +196,7 @@ export function Dashboard() {
               <TabsTrigger 
                 value="calendar"
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-600 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200"
+                data-tab="calendar"
               >
                 <div className="flex items-center space-x-2">
                   <Calendar className="h-5 w-5" />
