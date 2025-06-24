@@ -16,10 +16,13 @@ import {
   Search,
   ArrowUp,
   ArrowDown,
-  Filter
+  Filter,
+  FolderOpen,
+  AlertCircle
 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { LessonPlanBuilder } from './LessonPlanBuilder';
 
 // Define half-term periods
 const HALF_TERMS = [
@@ -78,6 +81,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
   const [searchQuery, setSearchQuery] = useState('');
   const [termFilter, setTermFilter] = useState<string>('all');
   const [unitSearchQuery, setUnitSearchQuery] = useState('');
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   // Load units from localStorage
   useEffect(() => {
@@ -109,7 +113,8 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
 
   const handleCreateUnit = () => {
     if (!newUnit.name || !newUnit.lessonNumbers?.length) {
-      alert('Please provide a name and select at least one lesson');
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
       return;
     }
 
@@ -136,6 +141,8 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
       term: 'A1'
     });
     setIsCreating(false);
+    setSaveStatus('success');
+    setTimeout(() => setSaveStatus('idle'), 3000);
   };
 
   const handleUpdateUnit = () => {
@@ -149,6 +156,8 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
     
     saveUnits(updatedUnits);
     setEditingUnit(null);
+    setSaveStatus('success');
+    setTimeout(() => setSaveStatus('idle'), 3000);
   };
 
   const handleDeleteUnit = (unitId: string) => {
@@ -158,6 +167,10 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
       
       if (expandedUnit === unitId) {
         setExpandedUnit(null);
+      }
+      
+      if (editingUnit?.id === unitId) {
+        setEditingUnit(null);
       }
     }
   };
@@ -292,8 +305,6 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
     );
   }, [units, unitSearchQuery]);
 
-  if (!embedded && !isOpen) return null;
-
   const containerClasses = embedded 
     ? "bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden" 
     : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50";
@@ -310,9 +321,9 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
           <div className="flex items-center space-x-3">
             <BookOpen className="h-6 w-6" />
             <div>
-              <h2 className="text-xl font-bold">Unit Manager</h2>
+              <h2 className="text-xl font-bold">Unit Builder</h2>
               <p className="text-indigo-100 text-sm">
-                {currentSheetInfo.display} • Group lessons into units for easier planning
+                {currentSheetInfo.display} • Create units from existing lessons
               </p>
             </div>
           </div>
@@ -327,661 +338,671 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Create Unit Button */}
-          {!isCreating && !editingUnit && (
-            <button
-              onClick={() => setIsCreating(true)}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
-            >
-              <Plus className="h-5 w-5" />
-              <span>Create New Unit</span>
-            </button>
-          )}
-
-          {/* Create Unit Form */}
-          {isCreating && (
-            <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Create New Unit</h3>
-                <button
-                  onClick={() => setIsCreating(false)}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Unit Name
-                  </label>
-                  <input
-                    type="text"
-                    value={newUnit.name || ''}
-                    onChange={(e) => setNewUnit(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Enter unit name"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Term
-                  </label>
-                  <select
-                    value={newUnit.term || 'A1'}
-                    onChange={(e) => setNewUnit(prev => ({ ...prev, term: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  >
-                    {HALF_TERMS.map(term => (
-                      <option key={term.id} value={term.id}>
-                        {term.name} ({term.months})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    value={newUnit.description || ''}
-                    onChange={(e) => setNewUnit(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 h-24 resize-none"
-                    placeholder="Enter unit description"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Unit Color
-                  </label>
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="color"
-                      value={newUnit.color || getThemeForClass(currentSheetInfo.sheet).primary}
-                      onChange={(e) => setNewUnit(prev => ({ ...prev, color: e.target.value }))}
-                      className="w-12 h-12 rounded-lg border border-gray-300 cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={newUnit.color || getThemeForClass(currentSheetInfo.sheet).primary}
-                      onChange={(e) => setNewUnit(prev => ({ ...prev, color: e.target.value }))}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                      placeholder="#6366F1"
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Lessons
-                  </label>
-                  
-                  {/* Search and Filter */}
-                  <div className="flex flex-wrap gap-3 mb-3">
-                    <div className="flex-1 min-w-[200px]">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="Search lessons..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="w-48">
-                      <div className="flex items-center space-x-2">
-                        <Filter className="h-4 w-4 text-gray-500" />
-                        <select
-                          value={termFilter}
-                          onChange={(e) => setTermFilter(e.target.value)}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                        >
-                          <option value="all">All Terms</option>
-                          {HALF_TERMS.map(term => (
-                            <option key={term.id} value={term.id}>
-                              {term.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white border border-gray-200 rounded-lg p-4 max-h-60 overflow-y-auto">
-                    <div className="grid grid-cols-6 gap-2">
-                      {filteredLessons.map((lessonNum) => {
-                        const isSelected = (newUnit.lessonNumbers || []).includes(lessonNum);
-                        const lessonTerm = LESSON_TO_HALF_TERM[lessonNum] || 'A1';
-                        const termInfo = HALF_TERMS.find(t => t.id === lessonTerm);
-                        
-                        return (
-                          <div
-                            key={lessonNum}
-                            onClick={() => toggleLessonSelection(lessonNum)}
-                            className={`p-2 border rounded-lg cursor-pointer transition-colors duration-200 text-center ${
-                              isSelected 
-                                ? 'bg-indigo-100 border-indigo-300 text-indigo-800' 
-                                : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                            }`}
-                          >
-                            <div className="flex items-center justify-center mb-1">
-                              <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                                isSelected ? 'bg-indigo-600' : 'bg-gray-200'
-                              }`}>
-                                {isSelected && <Check className="h-3 w-3 text-white" />}
-                              </div>
-                            </div>
-                            <span className="text-sm font-medium">Lesson {lessonNum}</span>
-                            <div className="text-xs text-gray-500 mt-1">{termInfo?.name}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    
-                    {filteredLessons.length === 0 && (
-                      <div className="text-center py-4 text-gray-500">
-                        No lessons match your search criteria
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Selected Lessons Summary */}
-                  {(newUnit.lessonNumbers || []).length > 0 && (
-                    <div className="mt-3 p-3 bg-indigo-50 rounded-lg border border-indigo-100">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-indigo-900">
-                          {(newUnit.lessonNumbers || []).length} lessons selected
-                        </span>
-                        <button
-                          onClick={() => setNewUnit(prev => ({ ...prev, lessonNumbers: [] }))}
-                          className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center space-x-1 px-2 py-1 hover:bg-indigo-100 rounded transition-colors duration-200"
-                        >
-                          <X className="h-3 w-3" />
-                          <span>Clear</span>
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {(newUnit.lessonNumbers || [])
-                          .sort((a, b) => parseInt(a) - parseInt(b))
-                          .map((lessonNum) => (
-                            <span
-                              key={lessonNum}
-                              className="inline-flex items-center space-x-1 px-2 py-1 bg-indigo-200 text-indigo-800 text-xs font-medium rounded-full"
-                            >
-                              <span>L{lessonNum}</span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleLessonSelection(lessonNum);
-                                }}
-                                className="hover:text-indigo-900 p-0.5 hover:bg-indigo-300 rounded-full transition-colors duration-200"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </span>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                  <button
-                    onClick={() => setIsCreating(false)}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium rounded-lg transition-colors duration-200"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleCreateUnit}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    <span>Create Unit</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Edit Unit Form */}
-          {editingUnit && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Edit Unit</h3>
-                <button
-                  onClick={() => setEditingUnit(null)}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Unit Name
-                  </label>
-                  <input
-                    type="text"
-                    value={editingUnit.name}
-                    onChange={(e) => setEditingUnit(prev => prev ? { ...prev, name: e.target.value } : null)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter unit name"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Term
-                  </label>
-                  <select
-                    value={editingUnit.term || 'A1'}
-                    onChange={(e) => setEditingUnit(prev => prev ? { ...prev, term: e.target.value } : null)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    {HALF_TERMS.map(term => (
-                      <option key={term.id} value={term.id}>
-                        {term.name} ({term.months})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    value={editingUnit.description}
-                    onChange={(e) => setEditingUnit(prev => prev ? { ...prev, description: e.target.value } : null)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-24 resize-none"
-                    placeholder="Enter unit description"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Unit Color
-                  </label>
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="color"
-                      value={editingUnit.color}
-                      onChange={(e) => setEditingUnit(prev => prev ? { ...prev, color: e.target.value } : null)}
-                      className="w-12 h-12 rounded-lg border border-gray-300 cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={editingUnit.color}
-                      onChange={(e) => setEditingUnit(prev => prev ? { ...prev, color: e.target.value } : null)}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                      placeholder="#6366F1"
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Lessons
-                  </label>
-                  
-                  {/* Search and Filter */}
-                  <div className="flex flex-wrap gap-3 mb-3">
-                    <div className="flex-1 min-w-[200px]">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="Search lessons..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="w-48">
-                      <div className="flex items-center space-x-2">
-                        <Filter className="h-4 w-4 text-gray-500" />
-                        <select
-                          value={termFilter}
-                          onChange={(e) => setTermFilter(e.target.value)}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                        >
-                          <option value="all">All Terms</option>
-                          {HALF_TERMS.map(term => (
-                            <option key={term.id} value={term.id}>
-                              {term.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white border border-gray-200 rounded-lg p-4 max-h-60 overflow-y-auto">
-                    <div className="grid grid-cols-6 gap-2">
-                      {filteredLessons.map((lessonNum) => {
-                        const isSelected = editingUnit.lessonNumbers.includes(lessonNum);
-                        const lessonTerm = LESSON_TO_HALF_TERM[lessonNum] || 'A1';
-                        const termInfo = HALF_TERMS.find(t => t.id === lessonTerm);
-                        
-                        return (
-                          <div
-                            key={lessonNum}
-                            onClick={() => toggleLessonSelection(lessonNum)}
-                            className={`p-2 border rounded-lg cursor-pointer transition-colors duration-200 text-center ${
-                              isSelected 
-                                ? 'bg-blue-100 border-blue-300 text-blue-800' 
-                                : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                            }`}
-                          >
-                            <div className="flex items-center justify-center mb-1">
-                              <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                                isSelected ? 'bg-blue-600' : 'bg-gray-200'
-                              }`}>
-                                {isSelected && <Check className="h-3 w-3 text-white" />}
-                              </div>
-                            </div>
-                            <span className="text-sm font-medium">Lesson {lessonNum}</span>
-                            <div className="text-xs text-gray-500 mt-1">{termInfo?.name}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    
-                    {filteredLessons.length === 0 && (
-                      <div className="text-center py-4 text-gray-500">
-                        No lessons match your search criteria
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Selected Lessons Summary */}
-                  {editingUnit.lessonNumbers.length > 0 && (
-                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-blue-900">
-                          {editingUnit.lessonNumbers.length} lessons selected
-                        </span>
-                        <button
-                          onClick={() => setEditingUnit(prev => prev ? { ...prev, lessonNumbers: [] } : null)}
-                          className="text-xs text-blue-600 hover:text-blue-800 flex items-center space-x-1 px-2 py-1 hover:bg-blue-100 rounded transition-colors duration-200"
-                        >
-                          <X className="h-3 w-3" />
-                          <span>Clear</span>
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {editingUnit.lessonNumbers
-                          .sort((a, b) => parseInt(a) - parseInt(b))
-                          .map((lessonNum) => (
-                            <span
-                              key={lessonNum}
-                              className="inline-flex items-center space-x-1 px-2 py-1 bg-blue-200 text-blue-800 text-xs font-medium rounded-full"
-                            >
-                              <span>L{lessonNum}</span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleLessonSelection(lessonNum);
-                                }}
-                                className="hover:text-blue-900 p-0.5 hover:bg-blue-300 rounded-full transition-colors duration-200"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </span>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                  <button
-                    onClick={() => setEditingUnit(null)}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium rounded-lg transition-colors duration-200"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleUpdateUnit}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    <span>Update Unit</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Units List */}
-          <div className="space-y-4">
-            {/* Unit Search */}
-            {units.length > 0 && (
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search units..."
-                  value={unitSearchQuery}
-                  onChange={(e) => setUnitSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                />
-              </div>
-            )}
-            
-            <h3 className="text-lg font-semibold text-gray-900">Your Units</h3>
-            
-            {units.length === 0 && !isCreating && !editingUnit ? (
-              <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
-                <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No units created yet</h3>
-                <p className="text-gray-600 mb-4">
-                  Create your first unit by grouping lessons together
-                </p>
+        <div className="flex-1 overflow-y-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
+            {/* Unit Builder Section */}
+            <div className="space-y-6">
+              {/* Create Unit Button */}
+              {!isCreating && !editingUnit && (
                 <button
                   onClick={() => setIsCreating(true)}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 inline-flex items-center space-x-2"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
                 >
-                  <Plus className="h-4 w-4" />
-                  <span>Create First Unit</span>
+                  <Plus className="h-5 w-5" />
+                  <span>Create New Unit</span>
                 </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredUnits.map((unit) => {
-                  const isExpanded = expandedUnit === unit.id;
-                  const { totalDuration, totalActivities } = getUnitStats(unit.lessonNumbers);
-                  const termInfo = HALF_TERMS.find(t => t.id === unit.term);
-                  
-                  return (
-                    <div 
-                      key={unit.id} 
-                      className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden"
+              )}
+
+              {/* Create Unit Form */}
+              {isCreating && (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Create New Unit</h3>
+                    <button
+                      onClick={() => setIsCreating(false)}
+                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                     >
-                      {/* Unit Header */}
-                      <div 
-                        className="p-4 border-b border-gray-200 cursor-pointer"
-                        onClick={() => toggleExpandUnit(unit.id)}
-                        style={{ 
-                          background: `linear-gradient(to right, ${unit.color}15, ${unit.color}05)`,
-                          borderLeft: `4px solid ${unit.color}`
-                        }}
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Unit Name
+                      </label>
+                      <input
+                        type="text"
+                        value={newUnit.name || ''}
+                        onChange={(e) => setNewUnit(prev => ({ ...prev, name: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Enter unit name"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Term
+                      </label>
+                      <select
+                        value={newUnit.term || 'A1'}
+                        onChange={(e) => setNewUnit(prev => ({ ...prev, term: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div 
-                              className="w-10 h-10 rounded-lg flex items-center justify-center text-white"
-                              style={{ backgroundColor: unit.color }}
+                        {HALF_TERMS.map(term => (
+                          <option key={term.id} value={term.id}>
+                            {term.name} ({term.months})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Description
+                      </label>
+                      <textarea
+                        value={newUnit.description || ''}
+                        onChange={(e) => setNewUnit(prev => ({ ...prev, description: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 h-24 resize-none"
+                        placeholder="Enter unit description"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Unit Color
+                      </label>
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="color"
+                          value={newUnit.color || getThemeForClass(currentSheetInfo.sheet).primary}
+                          onChange={(e) => setNewUnit(prev => ({ ...prev, color: e.target.value }))}
+                          className="w-12 h-12 rounded-lg border border-gray-300 cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={newUnit.color || getThemeForClass(currentSheetInfo.sheet).primary}
+                          onChange={(e) => setNewUnit(prev => ({ ...prev, color: e.target.value }))}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                          placeholder="#6366F1"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Select Lessons
+                      </label>
+                      
+                      {/* Search and Filter */}
+                      <div className="flex flex-wrap gap-3 mb-3">
+                        <div className="flex-1 min-w-[200px]">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <input
+                              type="text"
+                              placeholder="Search lessons..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="w-48">
+                          <div className="flex items-center space-x-2">
+                            <Filter className="h-4 w-4 text-gray-500" />
+                            <select
+                              value={termFilter}
+                              onChange={(e) => setTermFilter(e.target.value)}
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                             >
-                              <BookOpen className="h-5 w-5" />
-                            </div>
-                            <div>
-                              <h4 className="font-semibold text-gray-900">{unit.name}</h4>
-                              <div className="flex items-center space-x-3 text-sm text-gray-600">
-                                <span>{unit.lessonNumbers.length} lessons</span>
-                                <span>•</span>
-                                <span>{totalDuration} mins</span>
-                                {termInfo && (
-                                  <>
+                              <option value="all">All Terms</option>
+                              {HALF_TERMS.map(term => (
+                                <option key={term.id} value={term.id}>
+                                  {term.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-white border border-gray-200 rounded-lg p-4 max-h-60 overflow-y-auto">
+                        <div className="grid grid-cols-6 gap-2">
+                          {filteredLessons.map((lessonNum) => {
+                            const isSelected = (newUnit.lessonNumbers || []).includes(lessonNum);
+                            const lessonTerm = LESSON_TO_HALF_TERM[lessonNum] || 'A1';
+                            const termInfo = HALF_TERMS.find(t => t.id === lessonTerm);
+                            
+                            return (
+                              <div
+                                key={lessonNum}
+                                onClick={() => toggleLessonSelection(lessonNum)}
+                                className={`p-2 border rounded-lg cursor-pointer transition-colors duration-200 text-center ${
+                                  isSelected 
+                                    ? 'bg-indigo-100 border-indigo-300 text-indigo-800' 
+                                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                                }`}
+                              >
+                                <div className="flex items-center justify-center mb-1">
+                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                                    isSelected ? 'bg-indigo-600' : 'bg-gray-200'
+                                  }`}>
+                                    {isSelected && <Check className="h-3 w-3 text-white" />}
+                                  </div>
+                                </div>
+                                <span className="text-sm font-medium">Lesson {lessonNum}</span>
+                                <div className="text-xs text-gray-500 mt-1">{termInfo?.name}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        
+                        {filteredLessons.length === 0 && (
+                          <div className="text-center py-4 text-gray-500">
+                            No lessons match your search criteria
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Selected Lessons Summary */}
+                      {(newUnit.lessonNumbers || []).length > 0 && (
+                        <div className="mt-3 p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-indigo-900">
+                              {(newUnit.lessonNumbers || []).length} lessons selected
+                            </span>
+                            <button
+                              onClick={() => setNewUnit(prev => ({ ...prev, lessonNumbers: [] }))}
+                              className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center space-x-1 px-2 py-1 hover:bg-indigo-100 rounded transition-colors duration-200"
+                            >
+                              <X className="h-3 w-3" />
+                              <span>Clear</span>
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {(newUnit.lessonNumbers || [])
+                              .sort((a, b) => parseInt(a) - parseInt(b))
+                              .map((lessonNum) => (
+                                <span
+                                  key={lessonNum}
+                                  className="inline-flex items-center space-x-1 px-2 py-1 bg-indigo-200 text-indigo-800 text-xs font-medium rounded-full"
+                                >
+                                  <span>L{lessonNum}</span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleLessonSelection(lessonNum);
+                                    }}
+                                    className="hover:text-indigo-900 p-0.5 hover:bg-indigo-300 rounded-full transition-colors duration-200"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </span>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                      <button
+                        onClick={() => setIsCreating(false)}
+                        className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium rounded-lg transition-colors duration-200"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleCreateUnit}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                      >
+                        <Save className="h-4 w-4" />
+                        <span>Create Unit</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Edit Unit Form */}
+              {editingUnit && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Edit Unit</h3>
+                    <button
+                      onClick={() => setEditingUnit(null)}
+                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Unit Name
+                      </label>
+                      <input
+                        type="text"
+                        value={editingUnit.name}
+                        onChange={(e) => setEditingUnit(prev => prev ? { ...prev, name: e.target.value } : null)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Enter unit name"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Term
+                      </label>
+                      <select
+                        value={editingUnit.term || 'A1'}
+                        onChange={(e) => setEditingUnit(prev => prev ? { ...prev, term: e.target.value } : null)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        {HALF_TERMS.map(term => (
+                          <option key={term.id} value={term.id}>
+                            {term.name} ({term.months})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Description
+                      </label>
+                      <textarea
+                        value={editingUnit.description}
+                        onChange={(e) => setEditingUnit(prev => prev ? { ...prev, description: e.target.value } : null)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-24 resize-none"
+                        placeholder="Enter unit description"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Unit Color
+                      </label>
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="color"
+                          value={editingUnit.color}
+                          onChange={(e) => setEditingUnit(prev => prev ? { ...prev, color: e.target.value } : null)}
+                          className="w-12 h-12 rounded-lg border border-gray-300 cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={editingUnit.color}
+                          onChange={(e) => setEditingUnit(prev => prev ? { ...prev, color: e.target.value } : null)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          placeholder="#6366F1"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Select Lessons
+                      </label>
+                      
+                      {/* Search and Filter */}
+                      <div className="flex flex-wrap gap-3 mb-3">
+                        <div className="flex-1 min-w-[200px]">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <input
+                              type="text"
+                              placeholder="Search lessons..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="w-48">
+                          <div className="flex items-center space-x-2">
+                            <Filter className="h-4 w-4 text-gray-500" />
+                            <select
+                              value={termFilter}
+                              onChange={(e) => setTermFilter(e.target.value)}
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            >
+                              <option value="all">All Terms</option>
+                              {HALF_TERMS.map(term => (
+                                <option key={term.id} value={term.id}>
+                                  {term.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-white border border-gray-200 rounded-lg p-4 max-h-60 overflow-y-auto">
+                        <div className="grid grid-cols-6 gap-2">
+                          {filteredLessons.map((lessonNum) => {
+                            const isSelected = editingUnit.lessonNumbers.includes(lessonNum);
+                            const lessonTerm = LESSON_TO_HALF_TERM[lessonNum] || 'A1';
+                            const termInfo = HALF_TERMS.find(t => t.id === lessonTerm);
+                            
+                            return (
+                              <div
+                                key={lessonNum}
+                                onClick={() => toggleLessonSelection(lessonNum)}
+                                className={`p-2 border rounded-lg cursor-pointer transition-colors duration-200 text-center ${
+                                  isSelected 
+                                    ? 'bg-blue-100 border-blue-300 text-blue-800' 
+                                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                                }`}
+                              >
+                                <div className="flex items-center justify-center mb-1">
+                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                                    isSelected ? 'bg-blue-600' : 'bg-gray-200'
+                                  }`}>
+                                    {isSelected && <Check className="h-3 w-3 text-white" />}
+                                  </div>
+                                </div>
+                                <span className="text-sm font-medium">Lesson {lessonNum}</span>
+                                <div className="text-xs text-gray-500 mt-1">{termInfo?.name}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        
+                        {filteredLessons.length === 0 && (
+                          <div className="text-center py-4 text-gray-500">
+                            No lessons match your search criteria
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Selected Lessons Summary */}
+                      {editingUnit.lessonNumbers.length > 0 && (
+                        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-blue-900">
+                              {editingUnit.lessonNumbers.length} lessons selected
+                            </span>
+                            <button
+                              onClick={() => setEditingUnit(prev => prev ? { ...prev, lessonNumbers: [] } : null)}
+                              className="text-xs text-blue-600 hover:text-blue-800 flex items-center space-x-1 px-2 py-1 hover:bg-blue-100 rounded transition-colors duration-200"
+                            >
+                              <X className="h-3 w-3" />
+                              <span>Clear</span>
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {editingUnit.lessonNumbers
+                              .sort((a, b) => parseInt(a) - parseInt(b))
+                              .map((lessonNum) => (
+                                <span
+                                  key={lessonNum}
+                                  className="inline-flex items-center space-x-1 px-2 py-1 bg-blue-200 text-blue-800 text-xs font-medium rounded-full"
+                                >
+                                  <span>L{lessonNum}</span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleLessonSelection(lessonNum);
+                                    }}
+                                    className="hover:text-blue-900 p-0.5 hover:bg-blue-300 rounded-full transition-colors duration-200"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </span>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                      <button
+                        onClick={() => setEditingUnit(null)}
+                        className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium rounded-lg transition-colors duration-200"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleUpdateUnit}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                      >
+                        <Save className="h-4 w-4" />
+                        <span>Update Unit</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Units List */}
+              <div className="space-y-4">
+                {/* Unit Search */}
+                {units.length > 0 && (
+                  <div className="relative mb-4">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search units..."
+                      value={unitSearchQuery}
+                      onChange={(e) => setUnitSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                    />
+                  </div>
+                )}
+                
+                <h3 className="text-lg font-semibold text-gray-900">Your Units</h3>
+                
+                {units.length === 0 && !isCreating && !editingUnit ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
+                    <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No units created yet</h3>
+                    <p className="text-gray-600 mb-4">
+                      Create your first unit by grouping lessons together
+                    </p>
+                    <button
+                      onClick={() => setIsCreating(true)}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 inline-flex items-center space-x-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span>Create First Unit</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {filteredUnits.map((unit) => {
+                      const isExpanded = expandedUnit === unit.id;
+                      const { totalDuration, totalActivities } = getUnitStats(unit.lessonNumbers);
+                      const termInfo = HALF_TERMS.find(t => t.id === unit.term);
+                      
+                      return (
+                        <div 
+                          key={unit.id} 
+                          className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden"
+                        >
+                          {/* Unit Header */}
+                          <div 
+                            className="p-4 border-b border-gray-200 cursor-pointer"
+                            onClick={() => toggleExpandUnit(unit.id)}
+                            style={{ 
+                              background: `linear-gradient(to right, ${unit.color}15, ${unit.color}05)`,
+                              borderLeft: `4px solid ${unit.color}`
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <div 
+                                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white"
+                                  style={{ backgroundColor: unit.color }}
+                                >
+                                  <BookOpen className="h-5 w-5" />
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold text-gray-900">{unit.name}</h4>
+                                  <div className="flex items-center space-x-3 text-sm text-gray-600">
+                                    <span>{unit.lessonNumbers.length} lessons</span>
                                     <span>•</span>
-                                    <span>{termInfo.name}</span>
-                                  </>
+                                    <span>{totalDuration} mins</span>
+                                    {termInfo && (
+                                      <>
+                                        <span>•</span>
+                                        <span>{termInfo.name}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedUnitForCalendar(unit);
+                                  }}
+                                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                                  title="Add to Calendar"
+                                >
+                                  <Calendar className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingUnit(unit);
+                                  }}
+                                  className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                                  title="Edit Unit"
+                                >
+                                  <Edit3 className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteUnit(unit.id);
+                                  }}
+                                  className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                                  title="Delete Unit"
+                                >
+                                  <Trash2 className="h-5 w-5" />
+                                </button>
+                                {isExpanded ? (
+                                  <ChevronUp className="h-5 w-5 text-gray-400" />
+                                ) : (
+                                  <ChevronDown className="h-5 w-5 text-gray-400" />
                                 )}
                               </div>
                             </div>
                           </div>
                           
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedUnitForCalendar(unit);
-                              }}
-                              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                              title="Add to Calendar"
-                            >
-                              <Calendar className="h-5 w-5" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingUnit(unit);
-                              }}
-                              className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                              title="Edit Unit"
-                            >
-                              <Edit3 className="h-5 w-5" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteUnit(unit.id);
-                              }}
-                              className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors duration-200"
-                              title="Delete Unit"
-                            >
-                              <Trash2 className="h-5 w-5" />
-                            </button>
-                            {isExpanded ? (
-                              <ChevronUp className="h-5 w-5 text-gray-400" />
-                            ) : (
-                              <ChevronDown className="h-5 w-5 text-gray-400" />
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Unit Details (when expanded) */}
-                      {isExpanded && (
-                        <div className="p-4">
-                          {/* Description */}
-                          {unit.description && (
-                            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                              <h5 className="text-sm font-medium text-gray-700 mb-2">Description</h5>
-                              <p className="text-sm text-gray-600">{unit.description}</p>
+                          {/* Unit Details (when expanded) */}
+                          {isExpanded && (
+                            <div className="p-4">
+                              {/* Description */}
+                              {unit.description && (
+                                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                                  <h5 className="text-sm font-medium text-gray-700 mb-2">Description</h5>
+                                  <p className="text-sm text-gray-600">{unit.description}</p>
+                                </div>
+                              )}
+                              
+                              {/* Lessons in this unit */}
+                              <div>
+                                <h5 className="text-sm font-medium text-gray-700 mb-3">Lessons in this Unit</h5>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                  {unit.lessonNumbers.sort((a, b) => parseInt(a) - parseInt(b)).map((lessonNum) => {
+                                    const lessonData = allLessonsData[lessonNum];
+                                    if (!lessonData) return null;
+                                    
+                                    return (
+                                      <div 
+                                        key={lessonNum}
+                                        className="bg-gray-50 rounded-lg border border-gray-200 p-3"
+                                      >
+                                        <div className="flex items-center justify-between mb-2">
+                                          <h6 className="font-medium text-gray-900">Lesson {lessonNum}</h6>
+                                          <div className="flex items-center space-x-1">
+                                            <button
+                                              onClick={() => moveLessonInUnit(unit.id, lessonNum, 'up')}
+                                              className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded transition-colors duration-200"
+                                              title="Move Up"
+                                            >
+                                              <ArrowUp className="h-3 w-3" />
+                                            </button>
+                                            <button
+                                              onClick={() => moveLessonInUnit(unit.id, lessonNum, 'down')}
+                                              className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded transition-colors duration-200"
+                                              title="Move Down"
+                                            >
+                                              <ArrowDown className="h-3 w-3" />
+                                            </button>
+                                          </div>
+                                        </div>
+                                        
+                                        <div className="flex flex-wrap gap-1 mb-2">
+                                          {lessonData.categoryOrder.slice(0, 3).map((category) => (
+                                            <span
+                                              key={category}
+                                              className="px-2 py-0.5 bg-white text-xs font-medium rounded-full border border-gray-200"
+                                            >
+                                              {category}
+                                            </span>
+                                          ))}
+                                          {lessonData.categoryOrder.length > 3 && (
+                                            <span className="px-2 py-0.5 bg-white text-xs font-medium rounded-full border border-gray-200">
+                                              +{lessonData.categoryOrder.length - 3}
+                                            </span>
+                                          )}
+                                        </div>
+                                        
+                                        <div className="flex items-center text-xs text-gray-500">
+                                          <Clock className="h-3 w-3 mr-1" />
+                                          <span>{lessonData.totalTime} mins</span>
+                                          <span className="mx-2">•</span>
+                                          <Users className="h-3 w-3 mr-1" />
+                                          <span>
+                                            {Object.values(lessonData.grouped).reduce((sum, activities) => sum + activities.length, 0)} activities
+                                          </span>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                              
+                              {/* Unit Stats */}
+                              <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                <div className="grid grid-cols-3 gap-3">
+                                  <div className="text-center">
+                                    <div className="text-sm text-gray-500 mb-1">Lessons</div>
+                                    <div className="text-lg font-semibold text-gray-900">{unit.lessonNumbers.length}</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="text-sm text-gray-500 mb-1">Total Duration</div>
+                                    <div className="text-lg font-semibold text-gray-900">{totalDuration} mins</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="text-sm text-gray-500 mb-1">Activities</div>
+                                    <div className="text-lg font-semibold text-gray-900">{totalActivities}</div>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           )}
-                          
-                          {/* Lessons in this unit */}
-                          <div>
-                            <h5 className="text-sm font-medium text-gray-700 mb-3">Lessons in this Unit</h5>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                              {unit.lessonNumbers.sort((a, b) => parseInt(a) - parseInt(b)).map((lessonNum) => {
-                                const lessonData = allLessonsData[lessonNum];
-                                if (!lessonData) return null;
-                                
-                                return (
-                                  <div 
-                                    key={lessonNum}
-                                    className="bg-gray-50 rounded-lg border border-gray-200 p-3"
-                                  >
-                                    <div className="flex items-center justify-between mb-2">
-                                      <h6 className="font-medium text-gray-900">Lesson {lessonNum}</h6>
-                                      <div className="flex items-center space-x-1">
-                                        <button
-                                          onClick={() => moveLessonInUnit(unit.id, lessonNum, 'up')}
-                                          className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded transition-colors duration-200"
-                                          title="Move Up"
-                                        >
-                                          <ArrowUp className="h-3 w-3" />
-                                        </button>
-                                        <button
-                                          onClick={() => moveLessonInUnit(unit.id, lessonNum, 'down')}
-                                          className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded transition-colors duration-200"
-                                          title="Move Down"
-                                        >
-                                          <ArrowDown className="h-3 w-3" />
-                                        </button>
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="flex flex-wrap gap-1 mb-2">
-                                      {lessonData.categoryOrder.slice(0, 3).map((category) => (
-                                        <span
-                                          key={category}
-                                          className="px-2 py-0.5 bg-white text-xs font-medium rounded-full border border-gray-200"
-                                        >
-                                          {category}
-                                        </span>
-                                      ))}
-                                      {lessonData.categoryOrder.length > 3 && (
-                                        <span className="px-2 py-0.5 bg-white text-xs font-medium rounded-full border border-gray-200">
-                                          +{lessonData.categoryOrder.length - 3}
-                                        </span>
-                                      )}
-                                    </div>
-                                    
-                                    <div className="flex items-center text-xs text-gray-500">
-                                      <Clock className="h-3 w-3 mr-1" />
-                                      <span>{lessonData.totalTime} mins</span>
-                                      <span className="mx-2">•</span>
-                                      <Users className="h-3 w-3 mr-1" />
-                                      <span>
-                                        {Object.values(lessonData.grouped).reduce((sum, activities) => sum + activities.length, 0)} activities
-                                      </span>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                          
-                          {/* Unit Stats */}
-                          <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                            <div className="grid grid-cols-3 gap-3">
-                              <div className="text-center">
-                                <div className="text-sm text-gray-500 mb-1">Lessons</div>
-                                <div className="text-lg font-semibold text-gray-900">{unit.lessonNumbers.length}</div>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-sm text-gray-500 mb-1">Total Duration</div>
-                                <div className="text-lg font-semibold text-gray-900">{totalDuration} mins</div>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-sm text-gray-500 mb-1">Activities</div>
-                                <div className="text-lg font-semibold text-gray-900">{totalActivities}</div>
-                              </div>
-                            </div>
-                          </div>
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+
+            {/* Lesson Builder Section */}
+            <div>
+              <LessonPlanBuilder />
+            </div>
           </div>
         </div>
 
@@ -1051,6 +1072,28 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Save Status Message */}
+        {saveStatus !== 'idle' && (
+          <div className="fixed bottom-4 right-4 max-w-md">
+            <div className={`p-4 rounded-lg shadow-lg flex items-center space-x-2 ${
+              saveStatus === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+              'bg-red-50 text-red-700 border border-red-200'
+            }`}>
+              {saveStatus === 'success' ? (
+                <>
+                  <Check className="h-5 w-5 text-green-600" />
+                  <span>Unit saved successfully!</span>
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                  <span>Failed to save unit. Please ensure you've provided a unit name and selected at least one lesson.</span>
+                </>
+              )}
             </div>
           </div>
         )}

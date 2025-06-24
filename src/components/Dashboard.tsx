@@ -160,12 +160,12 @@ export function Dashboard() {
               </TabsTrigger>
               
               <TabsTrigger 
-                value="unit-manager"
+                value="unit-builder"
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200"
               >
                 <div className="flex items-center space-x-2">
                   <FolderOpen className="h-5 w-5" />
-                  <span>Unit Manager</span>
+                  <span>Unit Builder</span>
                 </div>
               </TabsTrigger>
               
@@ -204,7 +204,7 @@ export function Dashboard() {
               <UnitViewer />
             </TabsContent>
 
-            <TabsContent value="unit-manager" className="mt-6">
+            <TabsContent value="unit-builder" className="mt-6">
               <UnitManager 
                 isOpen={true} 
                 onClose={() => {}} 
