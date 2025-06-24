@@ -6,7 +6,8 @@ import { ActivityDetails } from './ActivityDetails';
 import { ExportButtons } from './ExportButtons';
 import { EyfsStandardsList } from './EyfsStandardsList';
 import { EyfsStandardsSelector } from './EyfsStandardsSelector';
-import { BookOpen, X, ChevronRight, ChevronDown, ChevronUp, FileText, ExternalLink, Clock, Users, Tag } from 'lucide-react';
+import { LessonExporter } from './LessonExporter';
+import { BookOpen, X, ChevronRight, ChevronDown, ChevronUp, FileText, ExternalLink, Clock, Users, Tag, Edit3, Download } from 'lucide-react';
 import type { Activity } from '../contexts/DataContext';
 
 // Define half-term periods
@@ -31,12 +32,15 @@ const LESSON_TO_HALF_TERM: Record<string, string> = {
 
 export function LessonViewer() {
   // ALL HOOKS MUST BE AT THE TOP - BEFORE ANY CONDITIONAL RETURNS
-  const { loading, lessonNumbers, allLessonsData, currentSheetInfo } = useData();
+  const { loading, lessonNumbers, allLessonsData, currentSheetInfo, updateLessonTitle } = useData();
   const { getThemeForClass } = useSettings();
   const [selectedLesson, setSelectedLesson] = useState<string>('');
   const [expandedHalfTerms, setExpandedHalfTerms] = useState<string[]>([]);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [showEyfsSelector, setShowEyfsSelector] = useState(false);
+  const [editingLessonTitle, setEditingLessonTitle] = useState<string | null>(null);
+  const [lessonTitleValue, setLessonTitleValue] = useState<string>('');
+  const [showExporter, setShowExporter] = useState(false);
   
   // Ref for scrolling to top when lesson is selected
   const topRef = useRef<HTMLDivElement>(null);
@@ -74,6 +78,20 @@ export function LessonViewer() {
       });
     }
   }, [selectedLesson]);
+
+  // Initialize lesson title editing
+  const startEditingLessonTitle = (lessonNumber: string) => {
+    setEditingLessonTitle(lessonNumber);
+    setLessonTitleValue(allLessonsData[lessonNumber]?.title || `Lesson ${lessonNumber}`);
+  };
+
+  // Save lesson title
+  const saveLessonTitle = () => {
+    if (editingLessonTitle && lessonTitleValue.trim()) {
+      updateLessonTitle(editingLessonTitle, lessonTitleValue.trim());
+      setEditingLessonTitle(null);
+    }
+  };
 
   // NOW we can have conditional returns - all hooks are above this point
   if (loading) {
@@ -127,14 +145,57 @@ export function LessonViewer() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-xl font-bold mb-1">
-                    Lesson {selectedLesson} - {currentSheetInfo.display}
-                  </h1>
+                  {editingLessonTitle === selectedLesson ? (
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={lessonTitleValue}
+                        onChange={(e) => setLessonTitleValue(e.target.value)}
+                        className="text-xl font-bold bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveLessonTitle();
+                          if (e.key === 'Escape') setEditingLessonTitle(null);
+                        }}
+                      />
+                      <button
+                        onClick={saveLessonTitle}
+                        className="p-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white"
+                      >
+                        <Check className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => setEditingLessonTitle(null)}
+                        className="p-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <h1 className="text-xl font-bold mb-1 flex items-center space-x-2">
+                      <span>{lessonData.title || `Lesson ${selectedLesson}`}</span>
+                      <button
+                        onClick={() => startEditingLessonTitle(selectedLesson)}
+                        className="p-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white"
+                        title="Edit lesson title"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                      </button>
+                    </h1>
+                  )}
                   <p className="text-white text-opacity-90 text-sm">
                     {lessonData.totalTime} minutes • {lessonData.categoryOrder.length} categories
                   </p>
                 </div>
                 <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setShowExporter(true)}
+                    className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 group flex items-center space-x-2"
+                    title="Export Lesson"
+                  >
+                    <Download className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+                    <span className="text-sm font-medium">Export</span>
+                  </button>
                   <button
                     onClick={() => setShowEyfsSelector(!showEyfsSelector)}
                     className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 group flex items-center space-x-2"
@@ -183,7 +244,10 @@ export function LessonViewer() {
                 'Parachute Games': 'from-red-400 to-pink-500',
                 'Percussion Games': 'from-cyan-400 to-blue-500',
                 'Teaching Units': 'from-indigo-400 to-purple-500',
-                'Goodbye': 'from-teal-400 to-cyan-500'
+                'Goodbye': 'from-teal-400 to-cyan-500',
+                'Kodaly Rhythms': 'from-purple-400 to-indigo-500',
+                'Kodaly Games': 'from-amber-400 to-orange-500',
+                'IWB Games': 'from-yellow-400 to-amber-500'
               };
 
               return (
@@ -233,6 +297,14 @@ export function LessonViewer() {
 
                         {/* Activity Content - FULL DESCRIPTION WITHOUT TRUNCATION */}
                         <div className="p-4">
+                          {/* Activity Text (if available) */}
+                          {activity.activityText && (
+                            <div 
+                              className="mb-3 prose prose-sm max-w-none"
+                              dangerouslySetInnerHTML={{ __html: activity.activityText }}
+                            />
+                          )}
+                          
                           {/* Full Description - No line clamps or truncation */}
                           <div 
                             className="text-sm text-gray-700 leading-relaxed mb-3 prose prose-sm max-w-none"
@@ -386,6 +458,14 @@ export function LessonViewer() {
               onClose={() => setSelectedActivity(null)}
             />
           )}
+
+          {/* Lesson Exporter */}
+          {showExporter && (
+            <LessonExporter
+              lessonNumber={selectedLesson}
+              onClose={() => setShowExporter(false)}
+            />
+          )}
         </div>
       </div>
     );
@@ -495,7 +575,53 @@ export function LessonViewer() {
                                       >
                                         {lessonNum}
                                       </div>
-                                      <h4 className="font-bold text-gray-900 text-lg">Lesson {lessonNum}</h4>
+                                      <div>
+                                        <h4 className="font-bold text-gray-900 text-lg flex items-center space-x-2">
+                                          <span>{lessonData.title || `Lesson ${lessonNum}`}</span>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              startEditingLessonTitle(lessonNum);
+                                            }}
+                                            className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+                                            title="Edit lesson title"
+                                          >
+                                            <Edit3 className="h-3.5 w-3.5" />
+                                          </button>
+                                        </h4>
+                                        {editingLessonTitle === lessonNum && (
+                                          <div 
+                                            className="absolute z-10 mt-2 bg-white p-3 rounded-lg shadow-lg border border-gray-200"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <input
+                                              type="text"
+                                              value={lessonTitleValue}
+                                              onChange={(e) => setLessonTitleValue(e.target.value)}
+                                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-2"
+                                              autoFocus
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter') saveLessonTitle();
+                                                if (e.key === 'Escape') setEditingLessonTitle(null);
+                                              }}
+                                            />
+                                            <div className="flex justify-end space-x-2">
+                                              <button
+                                                onClick={() => setEditingLessonTitle(null)}
+                                                className="px-3 py-1 text-gray-600 hover:text-gray-800 text-sm"
+                                              >
+                                                Cancel
+                                              </button>
+                                              <button
+                                                onClick={saveLessonTitle}
+                                                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded"
+                                              >
+                                                Save
+                                              </button>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
                                     <ChevronRight className="h-5 w-5 text-gray-400" />
                                   </div>
@@ -569,7 +695,51 @@ export function LessonViewer() {
                             >
                               <div className="flex justify-between items-start">
                                 <div>
-                                  <h4 className="font-semibold text-gray-900">Lesson {lessonNum}</h4>
+                                  <h4 className="font-semibold text-gray-900 flex items-center space-x-2">
+                                    <span>{lessonData.title || `Lesson ${lessonNum}`}</span>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        startEditingLessonTitle(lessonNum);
+                                      }}
+                                      className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+                                      title="Edit lesson title"
+                                    >
+                                      <Edit3 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </h4>
+                                  {editingLessonTitle === lessonNum && (
+                                    <div 
+                                      className="absolute z-10 mt-2 bg-white p-3 rounded-lg shadow-lg border border-gray-200"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <input
+                                        type="text"
+                                        value={lessonTitleValue}
+                                        onChange={(e) => setLessonTitleValue(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-2"
+                                        autoFocus
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') saveLessonTitle();
+                                          if (e.key === 'Escape') setEditingLessonTitle(null);
+                                        }}
+                                      />
+                                      <div className="flex justify-end space-x-2">
+                                        <button
+                                          onClick={() => setEditingLessonTitle(null)}
+                                          className="px-3 py-1 text-gray-600 hover:text-gray-800 text-sm"
+                                        >
+                                          Cancel
+                                        </button>
+                                        <button
+                                          onClick={saveLessonTitle}
+                                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded"
+                                        >
+                                          Save
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
                                   <p className="text-sm text-gray-600 mt-1">
                                     {lessonData.totalTime} mins • {lessonData.categoryOrder.length} categories
                                   </p>
