@@ -6,6 +6,7 @@ export interface Activity {
   _id?: string;
   activity: string;
   description: string;
+  activityText?: string; // New field for activity text
   htmlDescription?: string;
   time: number;
   videoLink: string;
@@ -82,7 +83,10 @@ const CATEGORY_ORDER = [
   'Parachute Games',
   'Percussion Games',
   'Goodbye',
-  'Teaching Units'
+  'Teaching Units',
+  'Kodaly Rhythms',
+  'Kodaly Games',
+  'IWB Games'
 ];
 
 // EYFS statements for all age groups

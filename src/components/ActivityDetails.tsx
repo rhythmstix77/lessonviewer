@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Clock, Video, Music, FileText, Link as LinkIcon, Image, Volume2, Maximize2, Minimize2, ExternalLink, Tag, Plus, Save, Bold, Italic, Underline, List, ListOrdered, Upload, Edit3 } from 'lucide-react';
+import { X, Clock, Video, Music, FileText, Link as LinkIcon, Image, Volume2, Maximize2, Minimize2, ExternalLink, Tag, Plus, Save, Bold, Italic, Underline, List, ListOrdered, Upload, Edit3, Check } from 'lucide-react';
 import { EditableText } from './EditableText';
 import type { Activity } from '../contexts/DataContext';
 import { useData } from '../contexts/DataContext';
@@ -28,8 +28,10 @@ export function ActivityDetails({
   const [isEditMode, setIsEditMode] = useState(isEditing);
   const containerRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
+  const activityTextRef = useRef<HTMLDivElement>(null); // New ref for activity text
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const [activeButtons, setActiveButtons] = useState<string[]>([]);
+  const [descriptionActiveButtons, setDescriptionActiveButtons] = useState<string[]>([]);
+  const [activityTextActiveButtons, setActivityTextActiveButtons] = useState<string[]>([]);
 
   // Fullscreen functionality
   const toggleFullscreen = async () => {
@@ -67,10 +69,12 @@ export function ActivityDetails({
     setIsEditMode(isEditing);
   }, [activity, isEditing]);
 
-  // Set up event listeners for selection changes to update active buttons
+  // Set up event listeners for selection changes to update active buttons for description
   useEffect(() => {
     if (isEditMode && descriptionRef.current) {
       const handleSelectionChange = () => {
+        if (!document.activeElement || !descriptionRef.current?.contains(document.activeElement)) return;
+        
         const activeCommands: string[] = [];
         
         if (document.queryCommandState('bold')) activeCommands.push('bold');
@@ -79,7 +83,7 @@ export function ActivityDetails({
         if (document.queryCommandState('insertUnorderedList')) activeCommands.push('insertUnorderedList');
         if (document.queryCommandState('insertOrderedList')) activeCommands.push('insertOrderedList');
         
-        setActiveButtons(activeCommands);
+        setDescriptionActiveButtons(activeCommands);
       };
       
       document.addEventListener('selectionchange', handleSelectionChange);
@@ -94,7 +98,33 @@ export function ActivityDetails({
     }
   }, [isEditMode]);
 
-  const execCommand = (command: string, value?: string) => {
+  // Set up event listeners for selection changes to update active buttons for activity text
+  useEffect(() => {
+    if (isEditMode && activityTextRef.current) {
+      const handleSelectionChange = () => {
+        if (!document.activeElement || !activityTextRef.current?.contains(document.activeElement)) return;
+        
+        const activeCommands: string[] = [];
+        
+        if (document.queryCommandState('bold')) activeCommands.push('bold');
+        if (document.queryCommandState('italic')) activeCommands.push('italic');
+        if (document.queryCommandState('underline')) activeCommands.push('underline');
+        if (document.queryCommandState('insertUnorderedList')) activeCommands.push('insertUnorderedList');
+        if (document.queryCommandState('insertOrderedList')) activeCommands.push('insertOrderedList');
+        
+        setActivityTextActiveButtons(activeCommands);
+      };
+      
+      document.addEventListener('selectionchange', handleSelectionChange);
+      
+      // Clean up
+      return () => {
+        document.removeEventListener('selectionchange', handleSelectionChange);
+      };
+    }
+  }, [isEditMode]);
+
+  const execDescriptionCommand = (command: string, value?: string) => {
     if (descriptionRef.current) {
       // Focus the editor to ensure commands work properly
       descriptionRef.current.focus();
@@ -107,10 +137,10 @@ export function ActivityDetails({
       document.execCommand(command, false, value);
       
       // Update active buttons state
-      if (activeButtons.includes(command)) {
-        setActiveButtons(prev => prev.filter(cmd => cmd !== command));
+      if (descriptionActiveButtons.includes(command)) {
+        setDescriptionActiveButtons(prev => prev.filter(cmd => cmd !== command));
       } else {
-        setActiveButtons(prev => [...prev, command]);
+        setDescriptionActiveButtons(prev => [...prev, command]);
       }
       
       // Get the updated content
@@ -119,6 +149,40 @@ export function ActivityDetails({
       
       // Restore focus to the editor
       descriptionRef.current.focus();
+      
+      // Restore selection if possible
+      if (range && selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+    }
+  };
+
+  const execActivityTextCommand = (command: string, value?: string) => {
+    if (activityTextRef.current) {
+      // Focus the editor to ensure commands work properly
+      activityTextRef.current.focus();
+      
+      // Save the current selection
+      const selection = window.getSelection();
+      const range = selection?.getRangeAt(0);
+      
+      // Execute the command
+      document.execCommand(command, false, value);
+      
+      // Update active buttons state
+      if (activityTextActiveButtons.includes(command)) {
+        setActivityTextActiveButtons(prev => prev.filter(cmd => cmd !== command));
+      } else {
+        setActivityTextActiveButtons(prev => [...prev, command]);
+      }
+      
+      // Get the updated content
+      const updatedContent = activityTextRef.current.innerHTML;
+      setEditedActivity(prev => ({ ...prev, activityText: updatedContent }));
+      
+      // Restore focus to the editor
+      activityTextRef.current.focus();
       
       // Restore selection if possible
       if (range && selection) {
@@ -161,37 +225,37 @@ export function ActivityDetails({
           {/* Rich Text Toolbar */}
           <div className="flex items-center space-x-1 mb-2 p-2 bg-gray-50 rounded-lg">
             <button
-              onClick={() => execCommand('bold')}
-              className={`p-1 rounded ${activeButtons.includes('bold') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
+              onClick={() => execDescriptionCommand('bold')}
+              className={`p-1 rounded ${descriptionActiveButtons.includes('bold') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
               title="Bold"
             >
               <Bold className="h-4 w-4" />
             </button>
             <button
-              onClick={() => execCommand('italic')}
-              className={`p-1 rounded ${activeButtons.includes('italic') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
+              onClick={() => execDescriptionCommand('italic')}
+              className={`p-1 rounded ${descriptionActiveButtons.includes('italic') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
               title="Italic"
             >
               <Italic className="h-4 w-4" />
             </button>
             <button
-              onClick={() => execCommand('underline')}
-              className={`p-1 rounded ${activeButtons.includes('underline') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
+              onClick={() => execDescriptionCommand('underline')}
+              className={`p-1 rounded ${descriptionActiveButtons.includes('underline') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
               title="Underline"
             >
               <Underline className="h-4 w-4" />
             </button>
             <div className="w-px h-6 bg-gray-300 mx-1"></div>
             <button
-              onClick={() => execCommand('insertUnorderedList')}
-              className={`p-1 rounded ${activeButtons.includes('insertUnorderedList') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
+              onClick={() => execDescriptionCommand('insertUnorderedList')}
+              className={`p-1 rounded ${descriptionActiveButtons.includes('insertUnorderedList') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
               title="Bullet List"
             >
               <List className="h-4 w-4" />
             </button>
             <button
-              onClick={() => execCommand('insertOrderedList')}
-              className={`p-1 rounded ${activeButtons.includes('insertOrderedList') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
+              onClick={() => execDescriptionCommand('insertOrderedList')}
+              className={`p-1 rounded ${descriptionActiveButtons.includes('insertOrderedList') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
               title="Numbered List"
             >
               <ListOrdered className="h-4 w-4" />
@@ -252,6 +316,84 @@ export function ActivityDetails({
         dangerouslySetInnerHTML={{ __html: formattedDescription }}
       />
     );
+  };
+
+  const renderActivityText = () => {
+    if (isEditMode) {
+      return (
+        <div>
+          {/* Rich Text Toolbar for Activity Text */}
+          <div className="flex items-center space-x-1 mb-2 p-2 bg-gray-50 rounded-lg">
+            <button
+              onClick={() => execActivityTextCommand('bold')}
+              className={`p-1 rounded ${activityTextActiveButtons.includes('bold') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
+              title="Bold"
+            >
+              <Bold className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => execActivityTextCommand('italic')}
+              className={`p-1 rounded ${activityTextActiveButtons.includes('italic') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
+              title="Italic"
+            >
+              <Italic className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => execActivityTextCommand('underline')}
+              className={`p-1 rounded ${activityTextActiveButtons.includes('underline') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
+              title="Underline"
+            >
+              <Underline className="h-4 w-4" />
+            </button>
+            <div className="w-px h-6 bg-gray-300 mx-1"></div>
+            <button
+              onClick={() => execActivityTextCommand('insertUnorderedList')}
+              className={`p-1 rounded ${activityTextActiveButtons.includes('insertUnorderedList') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
+              title="Bullet List"
+            >
+              <List className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => execActivityTextCommand('insertOrderedList')}
+              className={`p-1 rounded ${activityTextActiveButtons.includes('insertOrderedList') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
+              title="Numbered List"
+            >
+              <ListOrdered className="h-4 w-4" />
+            </button>
+          </div>
+          
+          <div
+            ref={activityTextRef}
+            contentEditable
+            className="min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            dangerouslySetInnerHTML={{ __html: editedActivity.activityText || '' }}
+            onInput={(e) => {
+              const target = e.target as HTMLDivElement;
+              setEditedActivity(prev => ({ ...prev, activityText: target.innerHTML }));
+            }}
+            onKeyDown={(e) => {
+              // Prevent default behavior for Tab key to avoid losing focus
+              if (e.key === 'Tab') {
+                e.preventDefault();
+                document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
+              }
+            }}
+          />
+        </div>
+      );
+    }
+    
+    // If there's activity text, display it
+    if (activity.activityText) {
+      return (
+        <div
+          className="prose prose-sm max-w-none"
+          dangerouslySetInnerHTML={{ __html: activity.activityText }}
+        />
+      );
+    }
+    
+    return null; // Don't show anything if there's no activity text
   };
 
   const resources = [
@@ -455,6 +597,21 @@ export function ActivityDetails({
               </div>
             )}
 
+            {/* Activity Text - NEW FIELD */}
+            {(editedActivity.activityText || isEditMode) && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  <EditableText 
+                    id="activity-text-heading" 
+                    fallback="Activity"
+                  />
+                </h3>
+                <div className="text-gray-700 leading-relaxed">
+                  {renderActivityText()}
+                </div>
+              </div>
+            )}
+
             {/* Description */}
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-3">
@@ -604,22 +761,18 @@ export function ActivityDetails({
               ) : (
                 <>
                   {resources.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-2">
                       {resources.map((resource, index) => {
                         const IconComponent = resource.icon;
                         return (
                           <button
                             key={index}
                             onClick={() => handleResourceClick(resource)}
-                            className={`flex items-center space-x-3 p-4 rounded-xl border-2 transition-all duration-200 hover:scale-105 hover:shadow-md ${resource.color}`}
+                            className={`flex items-center space-x-2 p-2 rounded-lg border transition-all duration-200 hover:scale-105 hover:shadow-sm ${resource.color}`}
                           >
-                            <IconComponent className="h-6 w-6 flex-shrink-0" />
-                            <div className="flex-1 text-left">
-                              <p className="font-semibold text-gray-900">{resource.label}</p>
-                              <p className="text-xs text-gray-600 truncate max-w-[150px]">
-                                {resource.url}
-                              </p>
-                            </div>
+                            <IconComponent className="h-4 w-4 flex-shrink-0" />
+                            <span className="text-sm font-medium truncate">{resource.label}</span>
+                            <ExternalLink className="h-3 w-3 flex-shrink-0 opacity-60" />
                           </button>
                         );
                       })}

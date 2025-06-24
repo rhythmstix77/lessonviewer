@@ -14,7 +14,13 @@ import {
   Palette,
   Link,
   Image,
-  Upload
+  Upload,
+  Clock,
+  Video,
+  Music,
+  FileText,
+  Link as LinkIcon,
+  Volume2
 } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 
@@ -30,6 +36,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
   const [activity, setActivity] = useState({
     activity: '',
     description: '',
+    activityText: '', // New field for activity text
     time: 0,
     videoLink: '',
     musicLink: '',
@@ -46,11 +53,66 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const descriptionRef = React.useRef<HTMLDivElement>(null);
-  const imageInputRef = React.useRef<HTMLInputElement>(null);
+  const descriptionRef = useRef<HTMLDivElement>(null);
+  const activityTextRef = useRef<HTMLDivElement>(null); // New ref for activity text
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [descriptionActiveButtons, setDescriptionActiveButtons] = useState<string[]>([]);
+  const [activityTextActiveButtons, setActivityTextActiveButtons] = useState<string[]>([]);
 
   // Simplified level options - just the core options without duplicates
   const simplifiedLevels = ['All', 'EYFS L', 'UKG', 'Reception'];
+
+  // Set up event listeners for selection changes to update active buttons for description
+  useEffect(() => {
+    if (descriptionRef.current) {
+      const handleSelectionChange = () => {
+        if (!document.activeElement || !descriptionRef.current?.contains(document.activeElement)) return;
+        
+        const activeCommands: string[] = [];
+        
+        if (document.queryCommandState('bold')) activeCommands.push('bold');
+        if (document.queryCommandState('italic')) activeCommands.push('italic');
+        if (document.queryCommandState('underline')) activeCommands.push('underline');
+        if (document.queryCommandState('insertUnorderedList')) activeCommands.push('insertUnorderedList');
+        if (document.queryCommandState('insertOrderedList')) activeCommands.push('insertOrderedList');
+        
+        setDescriptionActiveButtons(activeCommands);
+      };
+      
+      document.addEventListener('selectionchange', handleSelectionChange);
+      
+      // Clean up
+      return () => {
+        document.removeEventListener('selectionchange', handleSelectionChange);
+      };
+    }
+  }, []);
+
+  // Set up event listeners for selection changes to update active buttons for activity text
+  useEffect(() => {
+    if (activityTextRef.current) {
+      const handleSelectionChange = () => {
+        if (!document.activeElement || !activityTextRef.current?.contains(document.activeElement)) return;
+        
+        const activeCommands: string[] = [];
+        
+        if (document.queryCommandState('bold')) activeCommands.push('bold');
+        if (document.queryCommandState('italic')) activeCommands.push('italic');
+        if (document.queryCommandState('underline')) activeCommands.push('underline');
+        if (document.queryCommandState('insertUnorderedList')) activeCommands.push('insertUnorderedList');
+        if (document.queryCommandState('insertOrderedList')) activeCommands.push('insertOrderedList');
+        
+        setActivityTextActiveButtons(activeCommands);
+      };
+      
+      document.addEventListener('selectionchange', handleSelectionChange);
+      
+      // Clean up
+      return () => {
+        document.removeEventListener('selectionchange', handleSelectionChange);
+      };
+    }
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -71,11 +133,71 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
     setActivity(prev => ({ ...prev, time: isNaN(value) ? 0 : value }));
   };
 
-  const execCommand = (command: string, value?: string) => {
-    document.execCommand(command, false, value);
+  const execDescriptionCommand = (command: string, value?: string) => {
     if (descriptionRef.current) {
+      // Focus the editor to ensure commands work properly
+      descriptionRef.current.focus();
+      
+      // Save the current selection
+      const selection = window.getSelection();
+      const range = selection?.getRangeAt(0);
+      
+      // Execute the command
+      document.execCommand(command, false, value);
+      
+      // Update active buttons state
+      if (descriptionActiveButtons.includes(command)) {
+        setDescriptionActiveButtons(prev => prev.filter(cmd => cmd !== command));
+      } else {
+        setDescriptionActiveButtons(prev => [...prev, command]);
+      }
+      
+      // Get the updated content
       const updatedContent = descriptionRef.current.innerHTML;
       setActivity(prev => ({ ...prev, description: updatedContent }));
+      
+      // Restore focus to the editor
+      descriptionRef.current.focus();
+      
+      // Restore selection if possible
+      if (range && selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+    }
+  };
+
+  const execActivityTextCommand = (command: string, value?: string) => {
+    if (activityTextRef.current) {
+      // Focus the editor to ensure commands work properly
+      activityTextRef.current.focus();
+      
+      // Save the current selection
+      const selection = window.getSelection();
+      const range = selection?.getRangeAt(0);
+      
+      // Execute the command
+      document.execCommand(command, false, value);
+      
+      // Update active buttons state
+      if (activityTextActiveButtons.includes(command)) {
+        setActivityTextActiveButtons(prev => prev.filter(cmd => cmd !== command));
+      } else {
+        setActivityTextActiveButtons(prev => [...prev, command]);
+      }
+      
+      // Get the updated content
+      const updatedContent = activityTextRef.current.innerHTML;
+      setActivity(prev => ({ ...prev, activityText: updatedContent }));
+      
+      // Restore focus to the editor
+      activityTextRef.current.focus();
+      
+      // Restore selection if possible
+      if (range && selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
     }
   };
 
@@ -240,6 +362,75 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
               </div>
             </div>
 
+            {/* Activity Text - NEW FIELD */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Activity
+              </label>
+              
+              {/* Rich Text Toolbar for Activity Text */}
+              <div className="flex items-center space-x-1 mb-2 p-2 bg-gray-50 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => execActivityTextCommand('bold')}
+                  className={`p-1 rounded ${activityTextActiveButtons.includes('bold') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
+                  title="Bold"
+                >
+                  <Bold className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => execActivityTextCommand('italic')}
+                  className={`p-1 rounded ${activityTextActiveButtons.includes('italic') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
+                  title="Italic"
+                >
+                  <Italic className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => execActivityTextCommand('underline')}
+                  className={`p-1 rounded ${activityTextActiveButtons.includes('underline') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
+                  title="Underline"
+                >
+                  <Underline className="h-4 w-4" />
+                </button>
+                <div className="w-px h-6 bg-gray-300 mx-1"></div>
+                <button
+                  type="button"
+                  onClick={() => execActivityTextCommand('insertUnorderedList')}
+                  className={`p-1 rounded ${activityTextActiveButtons.includes('insertUnorderedList') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
+                  title="Bullet List"
+                >
+                  <List className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => execActivityTextCommand('insertOrderedList')}
+                  className={`p-1 rounded ${activityTextActiveButtons.includes('insertOrderedList') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
+                  title="Numbered List"
+                >
+                  <ListOrdered className="h-4 w-4" />
+                </button>
+              </div>
+              
+              <div
+                ref={activityTextRef}
+                contentEditable
+                className="min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                onInput={(e) => {
+                  const target = e.target as HTMLDivElement;
+                  setActivity(prev => ({ ...prev, activityText: target.innerHTML }));
+                }}
+                onKeyDown={(e) => {
+                  // Prevent default behavior for Tab key to avoid losing focus
+                  if (e.key === 'Tab') {
+                    e.preventDefault();
+                    document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
+                  }
+                }}
+              />
+            </div>
+
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -250,24 +441,24 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
               <div className="flex items-center space-x-1 mb-2 p-2 bg-gray-50 rounded-lg">
                 <button
                   type="button"
-                  onClick={() => execCommand('bold')}
-                  className="p-1 hover:bg-gray-200 rounded"
+                  onClick={() => execDescriptionCommand('bold')}
+                  className={`p-1 rounded ${descriptionActiveButtons.includes('bold') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
                   title="Bold"
                 >
                   <Bold className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => execCommand('italic')}
-                  className="p-1 hover:bg-gray-200 rounded"
+                  onClick={() => execDescriptionCommand('italic')}
+                  className={`p-1 rounded ${descriptionActiveButtons.includes('italic') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
                   title="Italic"
                 >
                   <Italic className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => execCommand('underline')}
-                  className="p-1 hover:bg-gray-200 rounded"
+                  onClick={() => execDescriptionCommand('underline')}
+                  className={`p-1 rounded ${descriptionActiveButtons.includes('underline') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
                   title="Underline"
                 >
                   <Underline className="h-4 w-4" />
@@ -275,16 +466,16 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                 <div className="w-px h-6 bg-gray-300 mx-1"></div>
                 <button
                   type="button"
-                  onClick={() => execCommand('insertUnorderedList')}
-                  className="p-1 hover:bg-gray-200 rounded"
+                  onClick={() => execDescriptionCommand('insertUnorderedList')}
+                  className={`p-1 rounded ${descriptionActiveButtons.includes('insertUnorderedList') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
                   title="Bullet List"
                 >
                   <List className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => execCommand('insertOrderedList')}
-                  className="p-1 hover:bg-gray-200 rounded"
+                  onClick={() => execDescriptionCommand('insertOrderedList')}
+                  className={`p-1 rounded ${descriptionActiveButtons.includes('insertOrderedList') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
                   title="Numbered List"
                 >
                   <ListOrdered className="h-4 w-4" />
@@ -298,6 +489,13 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                 onInput={(e) => {
                   const target = e.target as HTMLDivElement;
                   setActivity(prev => ({ ...prev, description: target.innerHTML }));
+                }}
+                onKeyDown={(e) => {
+                  // Prevent default behavior for Tab key to avoid losing focus
+                  if (e.key === 'Tab') {
+                    e.preventDefault();
+                    document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
+                  }
                 }}
               />
             </div>
@@ -367,12 +565,12 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
               <h3 className="text-lg font-medium text-gray-900 mb-4">Resources</h3>
               <div className="space-y-4">
                 {[
-                  { key: 'videoLink', label: 'Video URL', icon: Tag },
-                  { key: 'musicLink', label: 'Music URL', icon: Tag },
-                  { key: 'backingLink', label: 'Backing Track URL', icon: Tag },
-                  { key: 'resourceLink', label: 'Resource URL', icon: Tag },
-                  { key: 'link', label: 'Additional Link', icon: Tag },
-                  { key: 'vocalsLink', label: 'Vocals URL', icon: Tag },
+                  { key: 'videoLink', label: 'Video URL', icon: Video },
+                  { key: 'musicLink', label: 'Music URL', icon: Music },
+                  { key: 'backingLink', label: 'Backing Track URL', icon: Volume2 },
+                  { key: 'resourceLink', label: 'Resource URL', icon: FileText },
+                  { key: 'link', label: 'Additional Link', icon: LinkIcon },
+                  { key: 'vocalsLink', label: 'Vocals URL', icon: Volume2 },
                 ].map(({ key, label, icon: Icon }) => (
                   <div key={key} className="flex items-center space-x-3">
                     <Icon className="h-5 w-5 text-gray-500 flex-shrink-0" />
