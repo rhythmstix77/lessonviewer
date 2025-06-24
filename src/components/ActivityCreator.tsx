@@ -1,20 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
-  X, 
+  Tag, 
+  Plus, 
   Save, 
-  Clock, 
-  Video, 
-  Music, 
-  FileText, 
-  Link as LinkIcon, 
-  Image, 
-  Volume2, 
+  X, 
+  Edit3, 
   Bold, 
   Italic, 
-  Underline,
-  List,
+  Underline, 
+  List, 
   ListOrdered,
-  Tag,
+  Type,
+  Palette,
+  Link,
+  Image,
   Upload
 } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
@@ -203,7 +202,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                   <option value="LKG">LKG</option>
                   <option value="UKG">UKG</option>
                   <option value="Reception">Reception</option>
-                  {simplifiedLevels.filter(level => !['All', 'LKG', 'UKG', 'Reception'].includes(level)).map(level => (
+                  {simplifiedLevels.filter(level => !['All', 'LKG', 'UKG', 'Reception', 'EYFS U'].includes(level)).map(level => (
                     <option key={level} value={level}>{level}</option>
                   ))}
                 </select>
@@ -368,12 +367,12 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
               <h3 className="text-lg font-medium text-gray-900 mb-4">Resources</h3>
               <div className="space-y-4">
                 {[
-                  { key: 'videoLink', label: 'Video URL', icon: Video },
-                  { key: 'musicLink', label: 'Music URL', icon: Music },
-                  { key: 'backingLink', label: 'Backing Track URL', icon: Volume2 },
-                  { key: 'resourceLink', label: 'Resource URL', icon: FileText },
-                  { key: 'link', label: 'Additional Link', icon: LinkIcon },
-                  { key: 'vocalsLink', label: 'Vocals URL', icon: Volume2 },
+                  { key: 'videoLink', label: 'Video URL', icon: Tag },
+                  { key: 'musicLink', label: 'Music URL', icon: Tag },
+                  { key: 'backingLink', label: 'Backing Track URL', icon: Tag },
+                  { key: 'resourceLink', label: 'Resource URL', icon: Tag },
+                  { key: 'link', label: 'Additional Link', icon: Tag },
+                  { key: 'vocalsLink', label: 'Vocals URL', icon: Tag },
                 ].map(({ key, label, icon: Icon }) => (
                   <div key={key} className="flex items-center space-x-3">
                     <Icon className="h-5 w-5 text-gray-500 flex-shrink-0" />

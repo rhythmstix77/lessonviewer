@@ -456,7 +456,7 @@ export function ActivityLibrary({
             <option value="LKG" className="text-gray-900">LKG</option>
             <option value="UKG" className="text-gray-900">UKG</option>
             <option value="Reception" className="text-gray-900">Reception</option>
-            {uniqueLevels.filter(level => !['All', 'LKG', 'UKG', 'Reception'].includes(level)).map(level => (
+            {uniqueLevels.filter(level => !['All', 'LKG', 'UKG', 'Reception', 'EYFS U'].includes(level)).map(level => (
               <option key={level} value={level} className="text-gray-900">
                 {level}
               </option>
