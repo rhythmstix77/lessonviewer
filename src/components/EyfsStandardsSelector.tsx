@@ -80,6 +80,7 @@ export function EyfsStandardsSelector({ lessonNumber, className = '' }: EyfsStan
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                dir="ltr"
               />
             </div>
           </div>
@@ -116,7 +117,7 @@ export function EyfsStandardsSelector({ lessonNumber, className = '' }: EyfsStan
                                 <Check className="h-3 w-3 text-white" />
                               )}
                             </div>
-                            <span className="text-sm text-gray-700">{displayText}</span>
+                            <span className="text-sm text-gray-700" dir="ltr">{displayText}</span>
                           </div>
                         );
                       })}
@@ -158,7 +159,7 @@ export function EyfsStandardsSelector({ lessonNumber, className = '' }: EyfsStan
                   key={statement}
                   className="inline-flex items-center space-x-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
                 >
-                  <span className="truncate max-w-[200px]">{displayText}</span>
+                  <span className="truncate max-w-[200px]" dir="ltr">{displayText}</span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

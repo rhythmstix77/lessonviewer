@@ -394,6 +394,7 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
                 onChange={handleFileUpload}
                 disabled={importStatus === 'processing'}
                 className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 transition-colors duration-200"
+                dir="ltr"
               />
               
               {importStatus === 'processing' && !statusMessage.includes('Exporting') && (
@@ -436,9 +437,9 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {previewData.map((activity, index) => (
                       <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{activity.category}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{activity.activity}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{activity.level}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900" dir="ltr">{activity.category}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900" dir="ltr">{activity.activity}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900" dir="ltr">{activity.level}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{activity.time} mins</td>
                       </tr>
                     ))}

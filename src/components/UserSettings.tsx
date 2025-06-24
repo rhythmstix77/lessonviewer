@@ -298,6 +298,7 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
                       onChange={(e) => setTempSettings(prev => ({ ...prev, schoolName: e.target.value }))}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                       placeholder="Enter your school name"
+                      dir="ltr"
                     />
                   </div>
 
@@ -441,6 +442,7 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
                               onChange={(e) => setTempSettings(prev => ({ ...prev, primaryColor: e.target.value }))}
                               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
                               placeholder="#3B82F6"
+                              dir="ltr"
                             />
                           </div>
                         </div>
@@ -463,6 +465,7 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
                               onChange={(e) => setTempSettings(prev => ({ ...prev, secondaryColor: e.target.value }))}
                               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
                               placeholder="#2563EB"
+                              dir="ltr"
                             />
                           </div>
                         </div>
@@ -485,6 +488,7 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
                               onChange={(e) => setTempSettings(prev => ({ ...prev, accentColor: e.target.value }))}
                               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
                               placeholder="#60A5FA"
+                              dir="ltr"
                             />
                           </div>
                         </div>
@@ -598,6 +602,7 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
                         onChange={(e) => setNewCategoryName(e.target.value)}
                         placeholder="Category name"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        dir="ltr"
                       />
                     </div>
                     <div className="w-24">
@@ -655,6 +660,7 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
                                   setTempCategories(updatedCategories);
                                 }}
                                 className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                dir="ltr"
                               />
                               <input
                                 type="color"
@@ -683,7 +689,7 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
                               className="w-4 h-4 rounded-full flex-shrink-0"
                               style={{ backgroundColor: category.color }}
                             ></div>
-                            <div className="flex-1 font-medium text-gray-900">{category.name}</div>
+                            <div className="flex-1 font-medium text-gray-900" dir="ltr">{category.name}</div>
                             <div className="flex items-center space-x-1">
                               <button
                                 onClick={() => setEditingCategory(category.name)}
@@ -743,6 +749,7 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
                     accept=".json"
                     onChange={handleImportDatabase}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    dir="ltr"
                   />
                   <button
                     className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"

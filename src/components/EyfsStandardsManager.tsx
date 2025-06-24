@@ -353,6 +353,7 @@ export function EyfsStandardsManager({ isOpen, onClose }: EyfsStandardsManagerPr
                   onChange={(e) => setNewArea(e.target.value)}
                   placeholder="Enter new EYFS area name"
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  dir="ltr"
                 />
                 <button
                   onClick={addArea}
@@ -383,6 +384,7 @@ export function EyfsStandardsManager({ isOpen, onClose }: EyfsStandardsManagerPr
                   value={newStandard.area}
                   onChange={(e) => setNewStandard(prev => ({ ...prev, area: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  dir="ltr"
                 >
                   <option value="">Select an area</option>
                   {Object.keys(standards).map(area => (
@@ -402,6 +404,7 @@ export function EyfsStandardsManager({ isOpen, onClose }: EyfsStandardsManagerPr
                     onChange={(e) => setNewStandard(prev => ({ ...prev, value: e.target.value }))}
                     placeholder="Enter new EYFS standard"
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    dir="ltr"
                   />
                   <button
                     onClick={addStandard}
@@ -442,7 +445,7 @@ export function EyfsStandardsManager({ isOpen, onClose }: EyfsStandardsManagerPr
                           <ChevronDown className="h-5 w-5" />
                         )}
                       </button>
-                      <h3 className="font-semibold text-gray-900">{area}</h3>
+                      <h3 className="font-semibold text-gray-900" dir="ltr">{area}</h3>
                       <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
                         {details.length} standards
                       </span>
@@ -468,6 +471,7 @@ export function EyfsStandardsManager({ isOpen, onClose }: EyfsStandardsManagerPr
                                 value={editingStandard.value}
                                 onChange={(e) => setEditingStandard(prev => prev ? { ...prev, value: e.target.value } : null)}
                                 className="flex-1 px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                dir="ltr"
                               />
                               <button
                                 onClick={updateStandard}
@@ -485,7 +489,7 @@ export function EyfsStandardsManager({ isOpen, onClose }: EyfsStandardsManagerPr
                           ) : (
                             <>
                               <div className="flex-1">
-                                <p className="text-sm text-gray-700">{detail}</p>
+                                <p className="text-sm text-gray-700" dir="ltr">{detail}</p>
                                 <div className="mt-1 flex items-center space-x-2">
                                   <span className="text-xs text-gray-500">
                                     Used in {getStandardUsage(area, detail)} lessons
