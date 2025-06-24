@@ -879,7 +879,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                         className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
                       >
                         <Plus className="h-4 w-4" />
-                        <span>Add Lesson{selectedLessons.length > 1 ? 's' : ''}</span>
+                        <span>Add to Unit</span>
                       </button>
                     </div>
                   )}
