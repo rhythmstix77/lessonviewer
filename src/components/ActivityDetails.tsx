@@ -28,7 +28,7 @@ export function ActivityDetails({
   const [isEditMode, setIsEditMode] = useState(isEditing);
   const containerRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
-  const activityTextRef = useRef<HTMLDivElement>(null); // New ref for activity text
+  const activityTextRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [descriptionActiveButtons, setDescriptionActiveButtons] = useState<string[]>([]);
   const [activityTextActiveButtons, setActivityTextActiveButtons] = useState<string[]>([]);
@@ -87,9 +87,6 @@ export function ActivityDetails({
       };
       
       document.addEventListener('selectionchange', handleSelectionChange);
-      
-      // Focus the editor
-      descriptionRef.current.focus();
       
       // Clean up
       return () => {
