@@ -14,7 +14,8 @@ import {
   Italic,
   Underline,
   List,
-  ListOrdered
+  ListOrdered,
+  Edit3
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import type { Activity } from '../contexts/DataContext';
@@ -295,33 +296,69 @@ export function LessonDropZone({
 
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-      {/* Header */}
-      <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-green-600 to-emerald-600 text-white">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <Calendar className="h-6 w-6" />
-            <div>
-              <h2 className="text-xl font-bold">
-                {lessonPlan.title || "Untitled Lesson Plan"}
-              </h2>
-              <p className="text-green-100 text-sm">
-                {getTermName(lessonPlan.term || 'A1')} • Week {lessonPlan.week}
-              </p>
-            </div>
+      {/* New Header Design */}
+      <div className="p-6 border-b border-gray-200 bg-white">
+        <div className="flex items-center space-x-4">
+          <div className="bg-green-500 p-3 rounded-lg shadow-md">
+            <Edit3 className="h-6 w-6 text-white" />
           </div>
-          
-          <div className="text-right">
-            <div className="flex items-center space-x-4 text-green-100">
-              <div className="flex items-center space-x-1">
-                <Clock className="h-4 w-4" />
-                <span className="font-medium">{lessonPlan.duration} mins</span>
+          <div className="flex-1">
+            <input
+              type="text"
+              value={lessonPlan.title || ''}
+              onChange={(e) => {
+                // This would need to be connected to a handler in the parent component
+                // For now, we'll just show the input field
+              }}
+              placeholder="Enter lesson title or learning objective..."
+              className="w-full text-2xl font-bold text-gray-400 border-b border-gray-300 focus:border-green-500 focus:outline-none bg-transparent"
+            />
+            <div className="flex items-center flex-wrap gap-3 mt-2">
+              <div className="flex items-center space-x-2 text-gray-600">
+                <span>{lessonPlan.className}</span>
+                <span>•</span>
+                <div className="flex items-center space-x-1">
+                  <span>Week</span>
+                  <input
+                    type="number"
+                    value={lessonPlan.week}
+                    onChange={(e) => {
+                      // This would need to be connected to a handler in the parent component
+                    }}
+                    className="w-12 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 focus:border-green-500 text-sm"
+                    min="1"
+                  />
+                </div>
               </div>
-              <div className="flex items-center space-x-1">
+              
+              <div className="flex items-center space-x-2">
+                <label className="text-sm text-gray-600">Term:</label>
+                <select
+                  value={lessonPlan.term || 'A1'}
+                  onChange={(e) => {
+                    // This would need to be connected to a handler in the parent component
+                  }}
+                  className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                >
+                  <option value="A1">Autumn 1 (Sep-Oct)</option>
+                  <option value="A2">Autumn 2 (Nov-Dec)</option>
+                  <option value="SP1">Spring 1 (Jan-Feb)</option>
+                  <option value="SP2">Spring 2 (Mar-Apr)</option>
+                  <option value="SM1">Summer 1 (Apr-May)</option>
+                  <option value="SM2">Summer 2 (Jun-Jul)</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center space-x-2 text-gray-600">
+                <Clock className="h-4 w-4" />
+                <span>{lessonPlan.duration} minutes</span>
+              </div>
+              
+              <div className="flex items-center space-x-2 text-gray-600">
                 <Users className="h-4 w-4" />
-                <span className="font-medium">{lessonPlan.activities.length} activities</span>
+                <span>{lessonPlan.activities.length} activities</span>
               </div>
             </div>
-            <p className="text-sm text-green-200 mt-1">{lessonPlan.className}</p>
           </div>
         </div>
       </div>
