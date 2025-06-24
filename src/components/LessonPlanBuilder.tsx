@@ -400,6 +400,25 @@ export function LessonPlanBuilder() {
     setHasUnsavedChanges(false);
   };
 
+  // Category colors for the legend
+  const categoryColors = {
+    'Welcome': '#F59E0B',
+    'Kodaly Songs': '#8B5CF6',
+    'Kodaly Action Songs': '#F97316',
+    'Action/Games Songs': '#F97316',
+    'Rhythm Sticks': '#D97706',
+    'Scarf Songs': '#10B981',
+    'General Game': '#3B82F6',
+    'Core Songs': '#84CC16',
+    'Parachute Games': '#EF4444',
+    'Percussion Games': '#06B6D4',
+    'Teaching Units': '#6366F1',
+    'Goodbye': '#14B8A6',
+    'Kodaly Rhythms': '#9333EA',
+    'Kodaly Games': '#F59E0B',
+    'IWB Games': '#FBBF24'
+  };
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
@@ -465,7 +484,11 @@ export function LessonPlanBuilder() {
                       className="flex-1 px-3 py-1.5 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
                     >
                       <option value="all" className="text-gray-900">All Levels</option>
-                      {levels.map(level => (
+                      <option value="Reception" className="text-gray-900">Reception</option>
+                      <option value="LKG" className="text-gray-900">LKG</option>
+                      <option value="UKG" className="text-gray-900">UKG</option>
+                      <option value="All" className="text-gray-900">All</option>
+                      {levels.filter(level => !['Reception', 'LKG', 'UKG', 'All'].includes(level)).map(level => (
                         <option key={level} value={level} className="text-gray-900">
                           {level}
                         </option>
@@ -567,6 +590,28 @@ export function LessonPlanBuilder() {
                       })}
                     </div>
                   )}
+                </div>
+
+                {/* Category Legend */}
+                <div className="p-3 border-t border-gray-200 bg-gray-50">
+                  <h4 className="text-xs font-medium text-gray-500 uppercase mb-2">Categories</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(categoryColors).map(([category, color]) => (
+                      <div 
+                        key={category}
+                        className="flex items-center space-x-1 px-2 py-1 rounded-md bg-white border border-gray-200 text-xs"
+                        onClick={() => setSelectedCategory(category === selectedCategory ? 'all' : category)}
+                      >
+                        <div 
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: color }}
+                        ></div>
+                        <span className={selectedCategory === category ? "font-medium" : ""}>
+                          {category}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

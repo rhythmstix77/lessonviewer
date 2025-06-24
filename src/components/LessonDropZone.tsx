@@ -14,7 +14,9 @@ import {
   Underline,
   List,
   ListOrdered,
-  Edit3
+  Edit3,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import type { Activity } from '../contexts/DataContext';
@@ -300,8 +302,8 @@ export function LessonDropZone({
                 type="text"
                 value={lessonPlan.title || ''}
                 onChange={(e) => {
-                  // This would need to be connected to a handler in the parent component
-                  // For now, we'll just show the input field
+                  const updatedPlan = { ...lessonPlan, title: e.target.value };
+                  onNotesUpdate(updatedPlan.notes); // Trigger update to mark changes
                 }}
                 placeholder="Unit name"
                 className="w-full text-2xl font-bold text-gray-400 border-b border-gray-300 focus:border-green-500 focus:outline-none bg-transparent"
@@ -316,7 +318,8 @@ export function LessonDropZone({
                       type="number"
                       value={lessonPlan.week}
                       onChange={(e) => {
-                        // This would need to be connected to a handler in the parent component
+                        const updatedPlan = { ...lessonPlan, week: parseInt(e.target.value) || 1 };
+                        onNotesUpdate(updatedPlan.notes); // Trigger update to mark changes
                       }}
                       className="w-12 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 focus:border-green-500 text-sm"
                       min="1"
@@ -329,7 +332,8 @@ export function LessonDropZone({
                   <select
                     value={lessonPlan.term || 'A1'}
                     onChange={(e) => {
-                      // This would need to be connected to a handler in the parent component
+                      const updatedPlan = { ...lessonPlan, term: e.target.value };
+                      onNotesUpdate(updatedPlan.notes); // Trigger update to mark changes
                     }}
                     className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
                   >
@@ -376,14 +380,18 @@ export function LessonDropZone({
         <div className="flex flex-wrap gap-2">
           {/* Navigation buttons */}
           <button
+            onClick={() => navigateToLesson('prev')}
             className="px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm rounded transition-colors duration-200 flex items-center space-x-1"
           >
+            <ChevronLeft className="h-3.5 w-3.5" />
             <span>Previous</span>
           </button>
           <button
+            onClick={() => navigateToLesson('next')}
             className="px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm rounded transition-colors duration-200 flex items-center space-x-1"
           >
             <span>Next</span>
+            <ChevronRight className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
