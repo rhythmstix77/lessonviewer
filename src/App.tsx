@@ -9,9 +9,13 @@ import { LoadingSpinner } from './components/LoadingSpinner';
 import { DataSourceSettings } from './components/DataSourceSettings';
 import { Footer } from './components/Footer';
 import { useAuth } from './hooks/useAuth';
+import { HelpButton } from './components/HelpButton';
+import { HelpGuide } from './components/HelpGuide';
 
 function AppContent() {
   const { user, loading } = useAuth();
+  const [showHelpGuide, setShowHelpGuide] = useState(false);
+  const [helpGuideSection, setHelpGuideSection] = useState<'activity' | 'lesson' | 'unit' | 'assign' | undefined>(undefined);
 
   if (loading) {
     return (
@@ -25,6 +29,11 @@ function AppContent() {
     return <LoginForm />;
   }
 
+  const handleOpenGuide = (section?: 'activity' | 'lesson' | 'unit' | 'assign') => {
+    setHelpGuideSection(section);
+    setShowHelpGuide(true);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
@@ -33,6 +42,12 @@ function AppContent() {
       </main>
       <Footer />
       <DataSourceSettings />
+      <HelpButton onOpenGuide={handleOpenGuide} />
+      <HelpGuide 
+        isOpen={showHelpGuide} 
+        onClose={() => setShowHelpGuide(false)} 
+        initialSection={helpGuideSection}
+      />
     </div>
   );
 }

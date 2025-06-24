@@ -5,6 +5,7 @@ import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { UserSettings } from './UserSettings';
 import { WalkthroughGuide } from './WalkthroughGuide';
+import { HelpGuide } from './HelpGuide';
 
 export function Header() {
   const { user, logout } = useAuth();
@@ -13,6 +14,8 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showWalkthrough, setShowWalkthrough] = useState(false);
+  const [showHelpGuide, setShowHelpGuide] = useState(false);
+  const [helpGuideSection, setHelpGuideSection] = useState<'activity' | 'lesson' | 'unit' | 'assign' | undefined>(undefined);
 
   const sheetOptions = [
     { sheet: 'LKG', display: 'Lower Kindergarten', eyfs: 'LKG Statements' },
@@ -68,6 +71,13 @@ export function Header() {
 
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
+
+  // Open specific help guide section
+  const openHelpGuide = (section?: 'activity' | 'lesson' | 'unit' | 'assign') => {
+    setHelpGuideSection(section);
+    setShowHelpGuide(true);
+    setShowWalkthrough(false);
+  };
 
   return (
     <>
@@ -125,7 +135,7 @@ export function Header() {
 
               {/* Help Button */}
               <button
-                onClick={() => setShowWalkthrough(true)}
+                onClick={() => openHelpGuide()}
                 className="p-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200 flex-shrink-0"
                 title="Help Guide"
                 data-help-button
@@ -247,7 +257,7 @@ export function Header() {
                   </div>
                   <div className="flex space-x-2 flex-shrink-0">
                     <button
-                      onClick={() => setShowWalkthrough(true)}
+                      onClick={() => openHelpGuide()}
                       className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
                     >
                       <HelpCircle className="h-5 w-5" />
@@ -298,6 +308,13 @@ export function Header() {
       <WalkthroughGuide
         isOpen={showWalkthrough}
         onClose={() => setShowWalkthrough(false)}
+      />
+
+      {/* Help Guide */}
+      <HelpGuide
+        isOpen={showHelpGuide}
+        onClose={() => setShowHelpGuide(false)}
+        initialSection={helpGuideSection}
       />
     </>
   );
