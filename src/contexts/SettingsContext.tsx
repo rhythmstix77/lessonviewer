@@ -89,7 +89,10 @@ const DEFAULT_CATEGORIES: CategorySettings[] = [
   { name: 'Parachute Games', color: '#EF4444', position: 8 },
   { name: 'Percussion Games', color: '#06B6D4', position: 9 },
   { name: 'Teaching Units', color: '#6366F1', position: 10 },
-  { name: 'Goodbye', color: '#14B8A6', position: 11 }
+  { name: 'Goodbye', color: '#14B8A6', position: 11 },
+  { name: 'Kodaly Rhythms', color: '#9333EA', position: 12 },
+  { name: 'Kodaly Games', color: '#F59E0B', position: 13 },
+  { name: 'IWB Games', color: '#FBBF24', position: 14 }
 ];
 
 export function SettingsProvider({ children }: SettingsProviderProps) {

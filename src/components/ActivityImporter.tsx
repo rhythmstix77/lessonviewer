@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, FileText, CheckCircle, AlertCircle, X, Download, RefreshCw, List, ListOrdered } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, X, Download, RefreshCw } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { activitiesApi } from '../config/api';
 import type { Activity } from '../contexts/DataContext';
@@ -416,50 +416,6 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
                   <span className="text-sm font-medium">{statusMessage}</span>
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Formatting Instructions */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Text Formatting Tips</h3>
-            <div className="space-y-4">
-              <div className="flex items-start space-x-3">
-                <div className="bg-yellow-100 p-2 rounded-lg">
-                  <List className="h-5 w-5 text-yellow-700" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-1">Bullet Points</h4>
-                  <p className="text-sm text-gray-700 mb-2">
-                    When editing activities, use the bullet list button to create bullet points.
-                  </p>
-                  <div className="bg-white p-3 rounded-lg border border-yellow-200 text-sm">
-                    <ul className="list-disc pl-5 space-y-1">
-                      <li>First item</li>
-                      <li>Second item</li>
-                      <li>Third item</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3">
-                <div className="bg-yellow-100 p-2 rounded-lg">
-                  <ListOrdered className="h-5 w-5 text-yellow-700" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-1">Numbered Lists</h4>
-                  <p className="text-sm text-gray-700 mb-2">
-                    Use the numbered list button to create step-by-step instructions.
-                  </p>
-                  <div className="bg-white p-3 rounded-lg border border-yellow-200 text-sm">
-                    <ol className="list-decimal pl-5 space-y-1">
-                      <li>First step</li>
-                      <li>Second step</li>
-                      <li>Third step</li>
-                    </ol>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 

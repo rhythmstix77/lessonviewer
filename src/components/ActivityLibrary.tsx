@@ -20,6 +20,7 @@ import { ActivityDetails } from './ActivityDetails';
 import { ActivityImporter } from './ActivityImporter';
 import { ActivityCreator } from './ActivityCreator';
 import { useData } from '../contexts/DataContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { activitiesApi } from '../config/api';
 import type { Activity } from '../contexts/DataContext';
 
@@ -31,21 +32,6 @@ interface ActivityLibraryProps {
   onCategoryChange?: (category: string) => void;
 }
 
-const categoryColors: Record<string, string> = {
-  'Welcome': '#F59E0B',
-  'Kodaly Songs': '#8B5CF6',
-  'Kodaly Action Songs': '#F97316',
-  'Action/Games Songs': '#F97316',
-  'Rhythm Sticks': '#D97706',
-  'Scarf Songs': '#10B981',
-  'General Game': '#3B82F6',
-  'Core Songs': '#84CC16',
-  'Parachute Games': '#EF4444',
-  'Percussion Games': '#06B6D4',
-  'Teaching Units': '#6366F1',
-  'Goodbye': '#14B8A6'
-};
-
 export function ActivityLibrary({ 
   onActivitySelect, 
   selectedActivities, 
@@ -54,6 +40,7 @@ export function ActivityLibrary({
   onCategoryChange
 }: ActivityLibraryProps) {
   const { allLessonsData } = useData();
+  const { getCategoryColor, categories } = useSettings();
   const [searchQuery, setSearchQuery] = useState('');
   const [localSelectedCategory, setLocalSelectedCategory] = useState(selectedCategory);
   const [selectedLevel, setSelectedLevel] = useState('all');
@@ -141,12 +128,12 @@ export function ActivityLibrary({
   }, [allLessonsData]);
 
   // Get unique categories and levels
-  const categories = useMemo(() => {
+  const uniqueCategories = useMemo(() => {
     const cats = new Set(libraryActivities.map(a => a.category));
     return Array.from(cats).sort();
   }, [libraryActivities]);
 
-  const levels = useMemo(() => {
+  const uniqueLevels = useMemo(() => {
     const lvls = new Set(libraryActivities.map(a => a.level).filter(Boolean));
     return Array.from(lvls).sort();
   }, [libraryActivities]);
@@ -447,19 +434,36 @@ export function ActivityLibrary({
           </div>
           
           <select
+            value={localSelectedCategory}
+            onChange={(e) => handleCategoryChange(e.target.value)}
+            className="px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
+          >
+            <option value="all" className="text-gray-900">All Categories</option>
+            {uniqueCategories.map(category => (
+              <option key={category} value={category} className="text-gray-900">
+                {category}
+              </option>
+            ))}
+          </select>
+          
+          <select
             value={selectedLevel}
             onChange={(e) => setSelectedLevel(e.target.value)}
             className="px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
           >
             <option value="all" className="text-gray-900">All Levels</option>
-            {levels.map(level => (
+            <option value="All" className="text-gray-900">All</option>
+            <option value="LKG" className="text-gray-900">LKG</option>
+            <option value="UKG" className="text-gray-900">UKG</option>
+            <option value="Reception" className="text-gray-900">Reception</option>
+            {uniqueLevels.filter(level => !['All', 'LKG', 'UKG', 'Reception'].includes(level)).map(level => (
               <option key={level} value={level} className="text-gray-900">
                 {level}
               </option>
             ))}
           </select>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex space-x-2">
             <button
               onClick={() => toggleSort('category')}
               className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors duration-200 ${
@@ -543,7 +547,7 @@ export function ActivityLibrary({
                   onDuplicate={handleActivityDuplicate}
                   isEditing={false}
                   onEditToggle={() => handleEditActivity(activity)}
-                  categoryColor={categoryColors[activity.category] || '#6B7280'}
+                  categoryColor={getCategoryColor(activity.category)}
                   viewMode={viewMode === 'grid' ? 'detailed' : viewMode === 'list' ? 'compact' : 'minimal'}
                   onActivityClick={handleViewActivityDetails}
                   draggable={false}
@@ -552,6 +556,30 @@ export function ActivityLibrary({
             ))}
           </div>
         )}
+      </div>
+
+      {/* Category Legend */}
+      <div className="p-4 border-t border-gray-200 bg-gray-50">
+        <h4 className="text-xs font-medium text-gray-500 uppercase mb-2">Categories</h4>
+        <div className="flex flex-wrap gap-2">
+          {categories.map(category => (
+            <div 
+              key={category.name}
+              className={`flex items-center space-x-1 px-2 py-1 rounded-md bg-white border border-gray-200 text-xs cursor-pointer ${
+                localSelectedCategory === category.name ? 'border-blue-500 bg-blue-50' : ''
+              }`}
+              onClick={() => handleCategoryChange(category.name === localSelectedCategory ? 'all' : category.name)}
+            >
+              <div 
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: category.color }}
+              ></div>
+              <span className={localSelectedCategory === category.name ? "font-medium" : ""}>
+                {category.name}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Activity Details Modal */}
@@ -580,8 +608,8 @@ export function ActivityLibrary({
         <ActivityCreator 
           onSave={handleCreateActivity}
           onClose={() => setShowCreator(false)}
-          categories={categories}
-          levels={levels}
+          categories={uniqueCategories}
+          levels={uniqueLevels}
         />
       )}
 
