@@ -50,7 +50,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
   const imageInputRef = React.useRef<HTMLInputElement>(null);
 
   // Simplified level options - just the core options without duplicates
-  const simplifiedLevels = ['All', 'EYFS L', 'EYFS U', 'Reception'];
+  const simplifiedLevels = ['All', 'EYFS L', 'UKG', 'Reception'];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -127,7 +127,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
           <div className="flex items-center space-x-3">

@@ -251,9 +251,14 @@ export function LessonDropZone({
 }: LessonDropZoneProps) {
   // Fix: Use the correct drag type 'activity' to match ActivityCard
   const [{ isOver }, drop] = useDrop(() => ({
-    accept: 'activity',
-    drop: (item: { activity: Activity }) => {
-      onActivityAdd(item.activity);
+    accept: ['activity', 'lesson'],
+    drop: (item: any) => {
+      if (item.activity) {
+        onActivityAdd(item.activity);
+      } else if (item.lessonNumber) {
+        // Handle dropped lesson - this would be implemented in the parent component
+        console.log('Lesson dropped:', item.lessonNumber);
+      }
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
@@ -312,7 +317,7 @@ export function LessonDropZone({
                   onNotesUpdate(updatedPlan.notes); // Trigger update to mark changes
                 }}
                 placeholder="Unit name"
-                className="w-full text-2xl font-bold text-gray-400 border-b border-gray-300 focus:border-green-500 focus:outline-none bg-transparent"
+                className="w-full text-2xl font-bold text-gray-900 border-b border-gray-300 focus:border-green-500 focus:outline-none bg-transparent"
               />
               <div className="flex items-center flex-wrap gap-3 mt-2">
                 <div className="flex items-center space-x-2 text-gray-600">
@@ -374,6 +379,16 @@ export function LessonDropZone({
               >
                 <Save className="h-3.5 w-3.5" />
                 <span>Save Plan</span>
+              </button>
+            )}
+            
+            {onSaveAndCreate && (
+              <button
+                onClick={onSaveAndCreate}
+                className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 flex items-center space-x-1"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Save & New</span>
               </button>
             )}
           </div>

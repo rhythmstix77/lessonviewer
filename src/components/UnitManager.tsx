@@ -22,6 +22,7 @@ import {
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { LessonDropZone } from './LessonDropZone';
+import { useDrop } from 'react-dnd';
 
 // Define half-term periods
 const HALF_TERMS = [
@@ -63,7 +64,7 @@ interface UnitManagerProps {
 
 export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false }: UnitManagerProps) {
   const { lessonNumbers, allLessonsData, currentSheetInfo } = useData();
-  const { getThemeForClass } = useSettings();
+  const { getThemeForClass, getCategoryColor } = useSettings();
   const [units, setUnits] = useState<Unit[]>([]);
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
   const [newUnit, setNewUnit] = useState<Partial<Unit>>({
@@ -82,6 +83,28 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
   const [unitSearchQuery, setUnitSearchQuery] = useState('');
   const [currentUnit, setCurrentUnit] = useState<Unit | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Set up drop target for lessons
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: 'lesson',
+    drop: (item: { lessonNumber: string }) => {
+      if (currentUnit) {
+        // Add lesson to current unit if not already included
+        if (!currentUnit.lessonNumbers.includes(item.lessonNumber)) {
+          const updatedUnit = {
+            ...currentUnit,
+            lessonNumbers: [...currentUnit.lessonNumbers, item.lessonNumber].sort((a, b) => parseInt(a) - parseInt(b))
+          };
+          setCurrentUnit(updatedUnit);
+          setHasUnsavedChanges(true);
+        }
+      }
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver()
+    })
+  }), [currentUnit]);
 
   // Load units from localStorage
   useEffect(() => {
@@ -150,6 +173,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
     // Show success message
     setSaveStatus('success');
     setTimeout(() => setSaveStatus('idle'), 3000);
+    setHasUnsavedChanges(false);
   };
 
   const handleUpdateUnit = () => {
@@ -168,6 +192,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
     // Show success message
     setSaveStatus('success');
     setTimeout(() => setSaveStatus('idle'), 3000);
+    setHasUnsavedChanges(false);
   };
 
   const handleDeleteUnit = (unitId: string) => {
@@ -197,6 +222,17 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
           
         return { ...prev, lessonNumbers: updatedLessons };
       });
+    } else if (currentUnit) {
+      // When modifying the current unit
+      const updatedLessons = currentUnit.lessonNumbers.includes(lessonNum)
+        ? currentUnit.lessonNumbers.filter(num => num !== lessonNum)
+        : [...currentUnit.lessonNumbers, lessonNum];
+        
+      setCurrentUnit({
+        ...currentUnit,
+        lessonNumbers: updatedLessons
+      });
+      setHasUnsavedChanges(true);
     } else {
       // When creating a new unit
       setNewUnit(prev => {
@@ -244,7 +280,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
 
   // Move a lesson up or down in the order
   const moveLessonInUnit = (unitId: string, lessonNum: string, direction: 'up' | 'down') => {
-    const unit = units.find(u => u.id === unitId);
+    const unit = units.find(u => u.id === unitId) || currentUnit;
     if (!unit) return;
     
     const lessonIndex = unit.lessonNumbers.indexOf(lessonNum);
@@ -264,13 +300,21 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
     [newLessonNumbers[targetIndex], newLessonNumbers[lessonIndex]];
     
     // Update the unit
-    const updatedUnits = units.map(u => 
-      u.id === unitId 
-        ? { ...u, lessonNumbers: newLessonNumbers, updatedAt: new Date() } 
-        : u
-    );
-    
-    saveUnits(updatedUnits);
+    if (unit.id === currentUnit?.id) {
+      setCurrentUnit({
+        ...unit,
+        lessonNumbers: newLessonNumbers
+      });
+      setHasUnsavedChanges(true);
+    } else {
+      const updatedUnits = units.map(u => 
+        u.id === unitId 
+          ? { ...u, lessonNumbers: newLessonNumbers, updatedAt: new Date() } 
+          : u
+      );
+      
+      saveUnits(updatedUnits);
+    }
   };
 
   // Filter lessons based on search query and term filter
@@ -384,11 +428,16 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
       unit.id === updatedUnit.id ? updatedUnit : unit
     );
     
+    if (!units.find(unit => unit.id === updatedUnit.id)) {
+      updatedUnits.push(updatedUnit);
+    }
+    
     saveUnits(updatedUnits);
     
     // Show success message
     setSaveStatus('success');
     setTimeout(() => setSaveStatus('idle'), 3000);
+    setHasUnsavedChanges(false);
   };
 
   // Handle creating a new unit after saving the current one
@@ -406,6 +455,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
     
     setIsCreating(true);
     setCurrentUnit(null);
+    setHasUnsavedChanges(false);
   };
 
   // Handle notes update from LessonDropZone
@@ -416,6 +466,51 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
       ...currentUnit,
       description: notes
     });
+    setHasUnsavedChanges(true);
+  };
+
+  // Render lesson card for drag and drop
+  const renderLessonCard = (lessonNum: string) => {
+    const lessonData = allLessonsData[lessonNum];
+    if (!lessonData) return null;
+    
+    const isSelected = currentUnit?.lessonNumbers.includes(lessonNum);
+    const lessonTerm = LESSON_TO_HALF_TERM[lessonNum] || 'A1';
+    const termInfo = HALF_TERMS.find(t => t.id === lessonTerm);
+    
+    return (
+      <div
+        key={lessonNum}
+        className={`p-3 border rounded-lg cursor-move transition-all duration-200 ${
+          isSelected ? 'bg-indigo-100 border-indigo-300' : 'bg-white border-gray-200 hover:bg-gray-50'
+        }`}
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData('text/plain', lessonNum);
+          e.dataTransfer.effectAllowed = 'move';
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="font-medium text-gray-900">Lesson {lessonNum}</h4>
+            <div className="text-xs text-gray-500 mt-1">{termInfo?.name}</div>
+          </div>
+          <div className="flex items-center space-x-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleLessonSelection(lessonNum);
+              }}
+              className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                isSelected ? 'bg-indigo-600' : 'border-2 border-gray-300'
+              }`}
+            >
+              {isSelected && <Check className="h-3 w-3 text-white" />}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (!embedded && !isOpen) return null;
@@ -428,228 +523,51 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
     ? ""
     : "bg-white rounded-2xl shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden";
 
-  // If we have a current unit, show the LessonDropZone view
-  if (currentUnit) {
-    const mockLessonPlan = createMockLessonPlan(currentUnit);
-    
-    return (
-      <div className={containerClasses}>
-        <div className={contentClasses}>
-          <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
-            <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
+  // Main Unit Builder View
+  return (
+    <div className={containerClasses}>
+      <div className={contentClasses}>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
+          <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Header */}
+            <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 mb-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
                 <div className="flex items-center space-x-4">
-                  <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-3 rounded-xl shadow-lg">
-                    <FolderOpen className="h-8 w-8 text-white" />
+                  <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-3 rounded-xl shadow-md">
+                    <FolderOpen className="h-7 w-7 text-white" />
                   </div>
-                  <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Unit Builder</h1>
-                    <p className="text-gray-600 text-lg">
-                      {currentSheetInfo.display} • Create and manage your units
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={() => {
-                      setCurrentUnit(null);
-                      setIsCreating(true);
-                    }}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Create New Unit</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Main Content */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Unit Details */}
-                <div className="lg:col-span-2">
-                  <LessonDropZone
-                    lessonPlan={mockLessonPlan}
-                    onActivityAdd={() => {}}
-                    onActivityRemove={() => {}}
-                    onActivityReorder={() => {}}
-                    onNotesUpdate={handleNotesUpdate}
-                    isEditing={false}
-                    onSave={handleSaveUnit}
-                    onSaveAndCreate={handleCreateNewAfterSave}
-                  />
-                </div>
-
-                {/* Units List */}
-                <div className="lg:col-span-1">
-                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden sticky top-8">
-                    <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
-                      <h3 className="text-lg font-semibold">Your Units</h3>
-                      <p className="text-indigo-100 text-sm">Select a unit to view or edit</p>
-                      
-                      {/* Search */}
-                      <div className="relative mt-3">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-indigo-300" />
-                        <input
-                          type="text"
-                          placeholder="Search units..."
-                          value={unitSearchQuery}
-                          onChange={(e) => setUnitSearchQuery(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-indigo-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="p-4 max-h-[600px] overflow-y-auto">
-                      {units.length === 0 ? (
-                        <div className="text-center py-8">
-                          <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                          <h3 className="text-lg font-medium text-gray-900 mb-2">No units created yet</h3>
-                          <p className="text-gray-600 mb-4">
-                            Create your first unit by grouping lessons together
-                          </p>
-                          <button
-                            onClick={() => {
-                              setCurrentUnit(null);
-                              setIsCreating(true);
-                            }}
-                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 inline-flex items-center space-x-2"
-                          >
-                            <Plus className="h-4 w-4" />
-                            <span>Create First Unit</span>
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {filteredUnits.map((unit) => (
-                            <div 
-                              key={unit.id} 
-                              className={`bg-white rounded-lg border transition-all duration-200 hover:shadow-md cursor-pointer ${
-                                currentUnit?.id === unit.id ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'
-                              }`}
-                              onClick={() => setCurrentUnit(unit)}
-                            >
-                              <div className="p-3">
-                                <div className="flex items-center space-x-3">
-                                  <div 
-                                    className="w-10 h-10 rounded-lg flex items-center justify-center text-white"
-                                    style={{ backgroundColor: unit.color }}
-                                  >
-                                    <BookOpen className="h-5 w-5" />
-                                  </div>
-                                  <div>
-                                    <h4 className="font-semibold text-gray-900">{unit.name}</h4>
-                                    <div className="flex items-center space-x-3 text-sm text-gray-600">
-                                      <span>{unit.lessonNumbers.length} lessons</span>
-                                      <span>•</span>
-                                      <span>{getUnitStats(unit.lessonNumbers).totalDuration} mins</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Save Status Message */}
-          {saveStatus !== 'idle' && (
-            <div className="fixed bottom-4 right-4 max-w-md">
-              <div className={`p-4 rounded-lg shadow-lg flex items-center space-x-2 ${
-                saveStatus === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
-                'bg-red-50 text-red-700 border border-red-200'
-              }`}>
-                {saveStatus === 'success' ? (
-                  <>
-                    <Check className="h-5 w-5 text-green-600" />
-                    <span>Unit saved successfully!</span>
-                  </>
-                ) : (
-                  <>
-                    <X className="h-5 w-5 text-red-600" />
-                    <span>Failed to save unit. Please try again.</span>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // If we're creating a new unit, show the creation form
-  if (isCreating) {
-    return (
-      <div className={containerClasses}>
-        <div className={contentClasses}>
-          <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
-            <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-4">
-                  <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-3 rounded-xl shadow-lg">
-                    <FolderOpen className="h-8 w-8 text-white" />
-                  </div>
-                  <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Create New Unit</h1>
-                    <p className="text-gray-600 text-lg">
-                      {currentSheetInfo.display} • Group lessons into a unit
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setIsCreating(false);
-                    if (units.length > 0) {
-                      setCurrentUnit(units[0]);
-                    }
-                  }}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-
-              {/* Main Content */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Unit Form */}
-                <div className="lg:col-span-2">
-                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-                    <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
-                      <h2 className="text-xl font-bold">Unit Details</h2>
-                    </div>
-                    
-                    <div className="p-6 space-y-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Unit Name
-                        </label>
-                        <input
-                          type="text"
-                          value={newUnit.name || ''}
-                          onChange={(e) => setNewUnit(prev => ({ ...prev, name: e.target.value }))}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                          placeholder="Enter unit name"
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Term
-                        </label>
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={currentUnit?.name || ''}
+                      onChange={(e) => {
+                        if (currentUnit) {
+                          setCurrentUnit({
+                            ...currentUnit,
+                            name: e.target.value
+                          });
+                          setHasUnsavedChanges(true);
+                        }
+                      }}
+                      placeholder="Enter unit name..."
+                      className="w-full text-2xl font-bold text-gray-900 border-b border-gray-300 focus:border-indigo-500 focus:outline-none bg-transparent"
+                    />
+                    <div className="flex items-center flex-wrap gap-3 mt-2">
+                      <div className="flex items-center space-x-2 text-gray-600">
+                        <span>{currentSheetInfo.display}</span>
+                        <span>•</span>
                         <select
-                          value={newUnit.term || 'A1'}
-                          onChange={(e) => setNewUnit(prev => ({ ...prev, term: e.target.value }))}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          value={currentUnit?.term || 'A1'}
+                          onChange={(e) => {
+                            if (currentUnit) {
+                              setCurrentUnit({
+                                ...currentUnit,
+                                term: e.target.value
+                              });
+                              setHasUnsavedChanges(true);
+                            }
+                          }}
+                          className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                         >
                           {HALF_TERMS.map(term => (
                             <option key={term.id} value={term.id}>
@@ -659,389 +577,395 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                         </select>
                       </div>
                       
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Description
-                        </label>
-                        <textarea
-                          value={newUnit.description || ''}
-                          onChange={(e) => setNewUnit(prev => ({ ...prev, description: e.target.value }))}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 h-24 resize-none"
-                          placeholder="Enter unit description"
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Unit Color
-                        </label>
-                        <div className="flex items-center space-x-3">
-                          <input
-                            type="color"
-                            value={newUnit.color || getThemeForClass(currentSheetInfo.sheet).primary}
-                            onChange={(e) => setNewUnit(prev => ({ ...prev, color: e.target.value }))}
-                            className="w-12 h-12 rounded-lg border border-gray-300 cursor-pointer"
-                          />
-                          <input
-                            type="text"
-                            value={newUnit.color || getThemeForClass(currentSheetInfo.sheet).primary}
-                            onChange={(e) => setNewUnit(prev => ({ ...prev, color: e.target.value }))}
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                            placeholder="#6366F1"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Select Lessons
-                        </label>
-                        
-                        {/* Search and Filter */}
-                        <div className="flex flex-wrap gap-3 mb-3">
-                          <div className="flex-1 min-w-[200px]">
-                            <div className="relative">
-                              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                              <input
-                                type="text"
-                                placeholder="Search lessons..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                              />
-                            </div>
+                      {currentUnit && (
+                        <>
+                          <div className="flex items-center space-x-2 text-gray-600">
+                            <Clock className="h-4 w-4" />
+                            <span>{getUnitStats(currentUnit.lessonNumbers).totalDuration} minutes</span>
                           </div>
                           
-                          <div className="w-48">
-                            <div className="flex items-center space-x-2">
-                              <Filter className="h-4 w-4 text-gray-500" />
-                              <select
-                                value={termFilter}
-                                onChange={(e) => setTermFilter(e.target.value)}
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                              >
-                                <option value="all">All Terms</option>
-                                {HALF_TERMS.map(term => (
-                                  <option key={term.id} value={term.id}>
-                                    {term.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
+                          <div className="flex items-center space-x-2 text-gray-600">
+                            <Users className="h-4 w-4" />
+                            <span>{currentUnit.lessonNumbers.length} lessons</span>
                           </div>
-                        </div>
-                        
-                        <div className="bg-white border border-gray-200 rounded-lg p-4 max-h-60 overflow-y-auto">
-                          <div className="grid grid-cols-6 gap-2">
-                            {filteredLessons.map((lessonNum) => {
-                              const isSelected = (newUnit.lessonNumbers || []).includes(lessonNum);
-                              const lessonTerm = LESSON_TO_HALF_TERM[lessonNum] || 'A1';
-                              const termInfo = HALF_TERMS.find(t => t.id === lessonTerm);
-                              
-                              return (
-                                <div
-                                  key={lessonNum}
-                                  onClick={() => toggleLessonSelection(lessonNum)}
-                                  className={`p-2 border rounded-lg cursor-pointer transition-colors duration-200 text-center ${
-                                    isSelected 
-                                      ? 'bg-indigo-100 border-indigo-300 text-indigo-800' 
-                                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                                  }`}
-                                >
-                                  <div className="flex items-center justify-center mb-1">
-                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                                      isSelected ? 'bg-indigo-600' : 'bg-gray-200'
-                                    }`}>
-                                      {isSelected && <Check className="h-3 w-3 text-white" />}
-                                    </div>
-                                  </div>
-                                  <span className="text-sm font-medium">Lesson {lessonNum}</span>
-                                  <div className="text-xs text-gray-500 mt-1">{termInfo?.name}</div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                          
-                          {filteredLessons.length === 0 && (
-                            <div className="text-center py-4 text-gray-500">
-                              No lessons match your search criteria
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Selected Lessons Summary */}
-                        {(newUnit.lessonNumbers || []).length > 0 && (
-                          <div className="mt-3 p-3 bg-indigo-50 rounded-lg border border-indigo-100">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium text-indigo-900">
-                                {(newUnit.lessonNumbers || []).length} lessons selected
-                              </span>
-                              <button
-                                onClick={() => setNewUnit(prev => ({ ...prev, lessonNumbers: [] }))}
-                                className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center space-x-1 px-2 py-1 hover:bg-indigo-100 rounded transition-colors duration-200"
-                              >
-                                <X className="h-3 w-3" />
-                                <span>Clear</span>
-                              </button>
-                            </div>
-                            <div className="flex flex-wrap gap-1">
-                              {(newUnit.lessonNumbers || [])
-                                .sort((a, b) => parseInt(a) - parseInt(b))
-                                .map((lessonNum) => (
-                                  <span
-                                    key={lessonNum}
-                                    className="inline-flex items-center space-x-1 px-2 py-1 bg-indigo-200 text-indigo-800 text-xs font-medium rounded-full"
-                                  >
-                                    <span>L{lessonNum}</span>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleLessonSelection(lessonNum);
-                                      }}
-                                      className="hover:text-indigo-900 p-0.5 hover:bg-indigo-300 rounded-full transition-colors duration-200"
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </button>
-                                  </span>
-                                ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                        <button
-                          onClick={() => {
-                            setIsCreating(false);
-                            if (units.length > 0) {
-                              setCurrentUnit(units[0]);
-                            }
-                          }}
-                          className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium rounded-lg transition-colors duration-200"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={handleCreateUnit}
-                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                        >
-                          <Save className="h-4 w-4" />
-                          <span>Create Unit</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Units List */}
-                <div className="lg:col-span-1">
-                  <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden sticky top-8">
-                    <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
-                      <h3 className="text-lg font-semibold">Your Units</h3>
-                      <p className="text-indigo-100 text-sm">Select a unit to view or edit</p>
-                      
-                      {/* Search */}
-                      <div className="relative mt-3">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-indigo-300" />
-                        <input
-                          type="text"
-                          placeholder="Search units..."
-                          value={unitSearchQuery}
-                          onChange={(e) => setUnitSearchQuery(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-indigo-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="p-4 max-h-[600px] overflow-y-auto">
-                      {units.length === 0 ? (
-                        <div className="text-center py-8">
-                          <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                          <h3 className="text-lg font-medium text-gray-900 mb-2">No units created yet</h3>
-                          <p className="text-gray-600 mb-4">
-                            Create your first unit by grouping lessons together
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {filteredUnits.map((unit) => (
-                            <div 
-                              key={unit.id} 
-                              className="bg-white rounded-lg border border-gray-200 transition-all duration-200 hover:shadow-md cursor-pointer"
-                              onClick={() => setCurrentUnit(unit)}
-                            >
-                              <div className="p-3">
-                                <div className="flex items-center space-x-3">
-                                  <div 
-                                    className="w-10 h-10 rounded-lg flex items-center justify-center text-white"
-                                    style={{ backgroundColor: unit.color }}
-                                  >
-                                    <BookOpen className="h-5 w-5" />
-                                  </div>
-                                  <div>
-                                    <h4 className="font-semibold text-gray-900">{unit.name}</h4>
-                                    <div className="flex items-center space-x-3 text-sm text-gray-600">
-                                      <span>{unit.lessonNumbers.length} lessons</span>
-                                      <span>•</span>
-                                      <span>{getUnitStats(unit.lessonNumbers).totalDuration} mins</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                        </>
                       )}
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
-  // Default view - unit list
-  return (
-    <div className={containerClasses}>
-      <div className={contentClasses}>
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
-          <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-4">
-                <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-3 rounded-xl shadow-lg">
-                  <FolderOpen className="h-8 w-8 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900">Unit Builder</h1>
-                  <p className="text-gray-600 text-lg">
-                    {currentSheetInfo.display} • Create and manage your units
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setIsCreating(true)}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Create New Unit</span>
-              </button>
-            </div>
-
-            {/* Units Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {units.length === 0 ? (
-                <div className="col-span-full bg-white rounded-xl shadow-lg border border-gray-200 p-12 text-center">
-                  <BookOpen className="h-20 w-20 text-gray-300 mx-auto mb-6" />
-                  <h2 className="text-2xl font-semibold text-gray-900 mb-4">No units created yet</h2>
-                  <p className="text-gray-600 text-lg mb-8">
-                    Create your first unit by grouping lessons together
-                  </p>
+                <div className="flex flex-wrap items-center gap-3">
                   <button
-                    onClick={() => setIsCreating(true)}
-                    className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-colors duration-200 inline-flex items-center space-x-2 text-lg"
+                    onClick={handleSaveUnit}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                    disabled={!currentUnit || !hasUnsavedChanges}
                   >
-                    <Plus className="h-5 w-5" />
-                    <span>Create First Unit</span>
+                    <Save className="h-4 w-4" />
+                    <span>Save Unit</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      if (hasUnsavedChanges) {
+                        if (confirm('You have unsaved changes. Do you want to continue without saving?')) {
+                          setIsCreating(true);
+                          setCurrentUnit(null);
+                        }
+                      } else {
+                        setIsCreating(true);
+                        setCurrentUnit(null);
+                      }
+                    }}
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Create New</span>
                   </button>
                 </div>
-              ) : (
-                filteredUnits.map(unit => {
-                  const { totalDuration, totalActivities } = getUnitStats(unit.lessonNumbers);
-                  const termInfo = HALF_TERMS.find(t => t.id === unit.term);
-                  
-                  return (
-                    <div 
-                      key={unit.id}
-                      className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer"
-                      onClick={() => setCurrentUnit(unit)}
-                    >
-                      <div 
-                        className="p-6 text-white relative overflow-hidden"
-                        style={{ 
-                          background: `linear-gradient(135deg, ${unit.color} 0%, ${unit.color}CC 100%)` 
-                        }}
-                      >
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white bg-opacity-10 rounded-full -translate-y-16 translate-x-16"></div>
-                        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white bg-opacity-10 rounded-full translate-y-12 -translate-x-12"></div>
-                        
-                        <div className="relative z-10">
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-xl font-bold">
-                              {unit.name}
-                            </h3>
-                          </div>
-                          
-                          <p className="text-white text-opacity-90 text-sm font-medium">
-                            {termInfo?.name} ({termInfo?.months})
-                          </p>
-
-                          <div className="flex items-center space-x-6 text-white text-opacity-90 mt-2">
-                            <div className="flex items-center space-x-2">
-                              <Clock className="h-5 w-5" />
-                              <span className="font-medium">{totalDuration} mins</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Users className="h-5 w-5" />
-                              <span className="font-medium">{totalActivities} activities</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="p-4">
-                        <div className="flex flex-wrap gap-2">
-                          {unit.lessonNumbers.slice(0, 5).map((lessonNum) => (
-                            <span
-                              key={lessonNum}
-                              className="px-3 py-1 bg-gray-100 text-gray-800 text-sm font-medium rounded-full border border-gray-200"
-                            >
-                              Lesson {lessonNum}
-                            </span>
-                          ))}
-                          {unit.lessonNumbers.length > 5 && (
-                            <span className="px-3 py-1 bg-gray-100 text-gray-600 text-sm font-medium rounded-full border border-gray-200">
-                              +{unit.lessonNumbers.length - 5} more
-                            </span>
-                          )}
-                        </div>
-                        
-                        {unit.description && (
-                          <p className="mt-3 text-sm text-gray-600 line-clamp-2">
-                            {unit.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
+              </div>
+              
+              {/* Save Status Message */}
+              {saveStatus !== 'idle' && (
+                <div className={`mt-4 p-3 rounded-lg flex items-center space-x-2 ${
+                  saveStatus === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+                  'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {saveStatus === 'success' ? (
+                    <>
+                      <Check className="h-5 w-5 text-green-600" />
+                      <span>Unit saved successfully!</span>
+                    </>
+                  ) : (
+                    <>
+                      <X className="h-5 w-5 text-red-600" />
+                      <span>Failed to save unit. Please ensure you've provided a name.</span>
+                    </>
+                  )}
+                </div>
               )}
             </div>
+
+            {/* Main Content */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Panel - Lessons List */}
+              <div className="lg:col-span-1">
+                <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden sticky top-8">
+                  <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+                    <h3 className="text-lg font-semibold mb-2">Available Lessons</h3>
+                    <p className="text-blue-100 text-sm">Drag lessons to add to your unit</p>
+                    
+                    {/* Search and Filter */}
+                    <div className="mt-3 space-y-3">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-blue-300" />
+                        <input
+                          type="text"
+                          placeholder="Search lessons..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
+                        />
+                      </div>
+                      
+                      <select
+                        value={termFilter}
+                        onChange={(e) => setTermFilter(e.target.value)}
+                        className="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
+                      >
+                        <option value="all" className="text-gray-900">All Terms</option>
+                        {HALF_TERMS.map(term => (
+                          <option key={term.id} value={term.id} className="text-gray-900">
+                            {term.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 max-h-[600px] overflow-y-auto">
+                    <div className="grid grid-cols-1 gap-2">
+                      {filteredLessons.map(lessonNum => renderLessonCard(lessonNum))}
+                    </div>
+                    
+                    {filteredLessons.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        No lessons match your search criteria
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Middle Panel - Unit Drop Zone */}
+              <div className="lg:col-span-1">
+                <div 
+                  ref={drop}
+                  className={`bg-white rounded-xl shadow-md border-2 ${isOver ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200'} p-6 min-h-[600px] transition-all duration-200`}
+                >
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Unit Contents</h3>
+                  <p className="text-gray-600 mb-4">Drag lessons here to add them to your unit</p>
+                  
+                  {currentUnit?.lessonNumbers.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-gray-300 rounded-lg">
+                      <FolderOpen className="h-16 w-16 text-gray-300 mb-4" />
+                      <p className="text-gray-500 text-center">
+                        {isOver ? 'Drop lesson here' : 'No lessons added yet'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {currentUnit?.lessonNumbers.sort((a, b) => parseInt(a) - parseInt(b)).map(lessonNum => {
+                        const lessonData = allLessonsData[lessonNum];
+                        if (!lessonData) return null;
+                        
+                        return (
+                          <div 
+                            key={lessonNum}
+                            className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <div 
+                                  className="w-8 h-8 rounded-full flex items-center justify-center text-white font-medium"
+                                  style={{ backgroundColor: getThemeForClass(currentSheetInfo.sheet).primary }}
+                                >
+                                  {lessonNum}
+                                </div>
+                                <div>
+                                  <h4 className="font-medium text-gray-900">Lesson {lessonNum}</h4>
+                                  <div className="flex items-center space-x-2 text-xs text-gray-500">
+                                    <span>{lessonData.totalTime} mins</span>
+                                    <span>•</span>
+                                    <span>
+                                      {Object.values(lessonData.grouped).reduce((sum, activities) => sum + activities.length, 0)} activities
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center space-x-1">
+                                <button
+                                  onClick={() => moveLessonInUnit(currentUnit.id, lessonNum, 'up')}
+                                  className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+                                  title="Move Up"
+                                >
+                                  <ArrowUp className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => moveLessonInUnit(currentUnit.id, lessonNum, 'down')}
+                                  className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+                                  title="Move Down"
+                                >
+                                  <ArrowDown className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => toggleLessonSelection(lessonNum)}
+                                  className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
+                                  title="Remove"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                            
+                            {/* Categories */}
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {lessonData.categoryOrder.slice(0, 3).map(category => (
+                                <span 
+                                  key={category}
+                                  className="px-2 py-0.5 text-xs rounded-full"
+                                  style={{
+                                    backgroundColor: `${getCategoryColor(category)}20`,
+                                    color: getCategoryColor(category)
+                                  }}
+                                >
+                                  {category}
+                                </span>
+                              ))}
+                              {lessonData.categoryOrder.length > 3 && (
+                                <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
+                                  +{lessonData.categoryOrder.length - 3}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Panel - Units List */}
+              <div className="lg:col-span-1">
+                <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden sticky top-8">
+                  <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+                    <h3 className="text-lg font-semibold mb-2">Your Units</h3>
+                    <p className="text-indigo-100 text-sm">Select a unit to edit</p>
+                    
+                    {/* Search */}
+                    <div className="relative mt-3">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-indigo-300" />
+                      <input
+                        type="text"
+                        placeholder="Search units..."
+                        value={unitSearchQuery}
+                        onChange={(e) => setUnitSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-indigo-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 max-h-[600px] overflow-y-auto">
+                    {units.length === 0 ? (
+                      <div className="text-center py-8">
+                        <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No units created yet</h3>
+                        <p className="text-gray-600 mb-4">
+                          Create your first unit by adding lessons
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {filteredUnits.map((unit) => (
+                          <div 
+                            key={unit.id} 
+                            className={`bg-white rounded-lg border transition-all duration-200 hover:shadow-md cursor-pointer ${
+                              currentUnit?.id === unit.id ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200'
+                            }`}
+                            onClick={() => {
+                              if (hasUnsavedChanges) {
+                                if (confirm('You have unsaved changes. Do you want to continue without saving?')) {
+                                  setCurrentUnit(unit);
+                                  setHasUnsavedChanges(false);
+                                }
+                              } else {
+                                setCurrentUnit(unit);
+                              }
+                            }}
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData('text/plain', JSON.stringify({
+                                type: 'unit',
+                                id: unit.id
+                              }));
+                              e.dataTransfer.effectAllowed = 'move';
+                            }}
+                          >
+                            <div className="p-3">
+                              <div className="flex items-center space-x-3">
+                                <div 
+                                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white"
+                                  style={{ backgroundColor: unit.color }}
+                                >
+                                  <BookOpen className="h-5 w-5" />
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold text-gray-900">{unit.name}</h4>
+                                  <div className="flex items-center space-x-3 text-sm text-gray-600">
+                                    <span>{unit.lessonNumbers.length} lessons</span>
+                                    <span>•</span>
+                                    <span>{getUnitStats(unit.lessonNumbers).totalDuration} mins</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Unit Description */}
+            {currentUnit && (
+              <div className="mt-6 bg-white rounded-xl shadow-md border border-gray-200 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Unit Description</h3>
+                <textarea
+                  value={currentUnit.description}
+                  onChange={(e) => {
+                    setCurrentUnit({
+                      ...currentUnit,
+                      description: e.target.value
+                    });
+                    setHasUnsavedChanges(true);
+                  }}
+                  className="w-full h-32 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+                  placeholder="Enter a description for this unit..."
+                />
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Save Status Message */}
-        {saveStatus !== 'idle' && (
-          <div className="fixed bottom-4 right-4 max-w-md">
-            <div className={`p-4 rounded-lg shadow-lg flex items-center space-x-2 ${
-              saveStatus === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
-              'bg-red-50 text-red-700 border border-red-200'
-            }`}>
-              {saveStatus === 'success' ? (
-                <>
-                  <Check className="h-5 w-5 text-green-600" />
-                  <span>Unit saved successfully!</span>
-                </>
-              ) : (
-                <>
-                  <X className="h-5 w-5 text-red-600" />
-                  <span>Failed to save unit. Please try again.</span>
-                </>
-              )}
+        {/* Add to Calendar Modal */}
+        {selectedUnitForCalendar && (
+          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
+            <div className="bg-white rounded-xl shadow-lg p-6 max-w-md w-full">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Add Unit to Calendar</h3>
+                <button
+                  onClick={() => setSelectedUnitForCalendar(null)}
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Unit
+                  </label>
+                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex items-center space-x-3">
+                      <div 
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-white"
+                        style={{ backgroundColor: selectedUnitForCalendar.color }}
+                      >
+                        <BookOpen className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-gray-900">{selectedUnitForCalendar.name}</h4>
+                        <p className="text-sm text-gray-600">{selectedUnitForCalendar.lessonNumbers.length} lessons</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={calendarDate}
+                    onChange={(e) => setCalendarDate(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Lessons will be scheduled starting from this date
+                  </p>
+                </div>
+                
+                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => setSelectedUnitForCalendar(null)}
+                    className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium rounded-lg transition-colors duration-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAddToCalendar}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <Calendar className="h-4 w-4" />
+                    <span>Add to Calendar</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

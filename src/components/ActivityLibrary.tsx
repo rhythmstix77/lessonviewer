@@ -550,7 +550,7 @@ export function ActivityLibrary({
                   categoryColor={getCategoryColor(activity.category)}
                   viewMode={viewMode === 'grid' ? 'detailed' : viewMode === 'list' ? 'compact' : 'minimal'}
                   onActivityClick={handleViewActivityDetails}
-                  draggable={false}
+                  draggable={true}
                 />
               </div>
             ))}
