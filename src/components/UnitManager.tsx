@@ -84,6 +84,38 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [selectedLessons, setSelectedLessons] = useState<string[]>([]);
 
+  // Handle saving the current unit
+  const handleSaveUnit = () => {
+    if (!currentUnit || !currentUnit.name.trim()) {
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+      return;
+    }
+
+    const updatedUnits = units.map(unit => 
+      unit.id === currentUnit.id 
+        ? { ...currentUnit, updatedAt: new Date() } 
+        : unit
+    );
+
+    // If this is a new unit (not in the units array yet), add it
+    if (!units.find(unit => unit.id === currentUnit.id)) {
+      updatedUnits.push({
+        ...currentUnit,
+        id: currentUnit.id || `unit-${Date.now()}`,
+        createdAt: currentUnit.createdAt || new Date(),
+        updatedAt: new Date()
+      });
+    }
+
+    saveUnits(updatedUnits);
+    
+    // Show success message
+    setSaveStatus('success');
+    setTimeout(() => setSaveStatus('idle'), 3000);
+    setHasUnsavedChanges(false);
+  };
+
   // Load units from localStorage
   useEffect(() => {
     if (!embedded && !isOpen) return;
