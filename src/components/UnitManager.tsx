@@ -84,6 +84,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
   const [currentUnit, setCurrentUnit] = useState<Unit | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [selectedLessons, setSelectedLessons] = useState<string[]>([]);
 
   // Set up drop target for lessons
   const [{ isOver }, drop] = useDrop(() => ({
@@ -140,7 +141,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
   };
 
   const handleCreateUnit = () => {
-    if (!newUnit.name || !newUnit.lessonNumbers?.length) {
+    if (!newUnit.name || selectedLessons.length === 0) {
       alert('Please provide a name and select at least one lesson');
       return;
     }
@@ -149,7 +150,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
       id: `unit-${Date.now()}`,
       name: newUnit.name || 'Unnamed Unit',
       description: newUnit.description || '',
-      lessonNumbers: newUnit.lessonNumbers || [],
+      lessonNumbers: selectedLessons,
       color: newUnit.color || getThemeForClass(currentSheetInfo.sheet).primary,
       term: newUnit.term || 'A1',
       createdAt: new Date(),
@@ -169,6 +170,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
       term: 'A1'
     });
     setIsCreating(false);
+    setSelectedLessons([]);
     
     // Show success message
     setSaveStatus('success');
@@ -235,14 +237,11 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
       setHasUnsavedChanges(true);
     } else {
       // When creating a new unit
-      setNewUnit(prev => {
-        const currentLessons = prev.lessonNumbers || [];
-        const updatedLessons = currentLessons.includes(lessonNum)
-          ? currentLessons.filter(num => num !== lessonNum)
-          : [...currentLessons, lessonNum];
-          
-        return { ...prev, lessonNumbers: updatedLessons };
-      });
+      setSelectedLessons(prev => 
+        prev.includes(lessonNum)
+          ? prev.filter(num => num !== lessonNum)
+          : [...prev, lessonNum]
+      );
     }
   };
 
@@ -469,48 +468,40 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
     setHasUnsavedChanges(true);
   };
 
-  // Render lesson card for drag and drop
-  const renderLessonCard = (lessonNum: string) => {
-    const lessonData = allLessonsData[lessonNum];
-    if (!lessonData) return null;
+  // Add selected lessons to the current unit
+  const addSelectedLessonsToUnit = () => {
+    if (!currentUnit || selectedLessons.length === 0) return;
     
-    const isSelected = currentUnit?.lessonNumbers.includes(lessonNum);
-    const lessonTerm = LESSON_TO_HALF_TERM[lessonNum] || 'A1';
-    const termInfo = HALF_TERMS.find(t => t.id === lessonTerm);
+    // Add selected lessons to the current unit
+    const updatedLessons = [...currentUnit.lessonNumbers];
     
-    return (
-      <div
-        key={lessonNum}
-        className={`p-3 border rounded-lg cursor-move transition-all duration-200 ${
-          isSelected ? 'bg-indigo-100 border-indigo-300' : 'bg-white border-gray-200 hover:bg-gray-50'
-        }`}
-        draggable
-        onDragStart={(e) => {
-          e.dataTransfer.setData('text/plain', lessonNum);
-          e.dataTransfer.effectAllowed = 'move';
-        }}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <h4 className="font-medium text-gray-900">Lesson {lessonNum}</h4>
-            <div className="text-xs text-gray-500 mt-1">{termInfo?.name}</div>
-          </div>
-          <div className="flex items-center space-x-1">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleLessonSelection(lessonNum);
-              }}
-              className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                isSelected ? 'bg-indigo-600' : 'border-2 border-gray-300'
-              }`}
-            >
-              {isSelected && <Check className="h-3 w-3 text-white" />}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    selectedLessons.forEach(lessonNum => {
+      if (!updatedLessons.includes(lessonNum)) {
+        updatedLessons.push(lessonNum);
+      }
+    });
+    
+    // Sort lessons by number
+    updatedLessons.sort((a, b) => parseInt(a) - parseInt(b));
+    
+    // Update the current unit
+    setCurrentUnit({
+      ...currentUnit,
+      lessonNumbers: updatedLessons
+    });
+    
+    setHasUnsavedChanges(true);
+    setSelectedLessons([]);
+  };
+
+  // Select all filtered lessons
+  const selectAllLessons = () => {
+    setSelectedLessons(filteredLessons);
+  };
+
+  // Clear all selected lessons
+  const clearSelectedLessons = () => {
+    setSelectedLessons([]);
   };
 
   if (!embedded && !isOpen) return null;
@@ -647,65 +638,16 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
 
             {/* Main Content */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left Panel - Lessons List */}
-              <div className="lg:col-span-1">
-                <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden sticky top-8">
-                  <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-                    <h3 className="text-lg font-semibold mb-2">Available Lessons</h3>
-                    <p className="text-blue-100 text-sm">Drag lessons to add to your unit</p>
-                    
-                    {/* Search and Filter */}
-                    <div className="mt-3 space-y-3">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-blue-300" />
-                        <input
-                          type="text"
-                          placeholder="Search lessons..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
-                        />
-                      </div>
-                      
-                      <select
-                        value={termFilter}
-                        onChange={(e) => setTermFilter(e.target.value)}
-                        className="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
-                      >
-                        <option value="all" className="text-gray-900">All Terms</option>
-                        {HALF_TERMS.map(term => (
-                          <option key={term.id} value={term.id} className="text-gray-900">
-                            {term.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  
-                  <div className="p-4 max-h-[600px] overflow-y-auto">
-                    <div className="grid grid-cols-1 gap-2">
-                      {filteredLessons.map(lessonNum => renderLessonCard(lessonNum))}
-                    </div>
-                    
-                    {filteredLessons.length === 0 && (
-                      <div className="text-center py-8 text-gray-500">
-                        No lessons match your search criteria
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Middle Panel - Unit Drop Zone */}
+              {/* Left Panel - Unit Contents */}
               <div className="lg:col-span-1">
                 <div 
                   ref={drop}
                   className={`bg-white rounded-xl shadow-md border-2 ${isOver ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200'} p-6 min-h-[600px] transition-all duration-200`}
                 >
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Unit Contents</h3>
-                  <p className="text-gray-600 mb-4">Drag lessons here to add them to your unit</p>
+                  <p className="text-gray-600 mb-4">Tick lessons to add them to your unit</p>
                   
-                  {currentUnit?.lessonNumbers.length === 0 ? (
+                  {currentUnit?.lessonNumbers.length === 0 && selectedLessons.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-gray-300 rounded-lg">
                       <FolderOpen className="h-16 w-16 text-gray-300 mb-4" />
                       <p className="text-gray-500 text-center">
@@ -773,7 +715,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                               {lessonData.categoryOrder.slice(0, 3).map(category => (
                                 <span 
                                   key={category}
-                                  className="px-2 py-0.5 text-xs rounded-full"
+                                  className="px-1.5 py-0.5 text-xs rounded-full"
                                   style={{
                                     backgroundColor: `${getCategoryColor(category)}20`,
                                     color: getCategoryColor(category)
@@ -783,7 +725,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                                 </span>
                               ))}
                               {lessonData.categoryOrder.length > 3 && (
-                                <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
+                                <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
                                   +{lessonData.categoryOrder.length - 3}
                                 </span>
                               )}
@@ -793,6 +735,148 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                       })}
                     </div>
                   )}
+                  
+                  {/* Add Selected Lessons Button */}
+                  {selectedLessons.length > 0 && (
+                    <div className="mt-4">
+                      <button
+                        onClick={addSelectedLessonsToUnit}
+                        className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span>Add {selectedLessons.length} Selected {selectedLessons.length === 1 ? 'Lesson' : 'Lessons'}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Middle Panel - Available Lessons */}
+              <div className="lg:col-span-1">
+                <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden sticky top-8">
+                  <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+                    <h3 className="text-lg font-semibold mb-2">Available Lessons</h3>
+                    <p className="text-blue-100 text-sm">Select lessons to add to your unit</p>
+                    
+                    {/* Search and Filter */}
+                    <div className="mt-3 space-y-3">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-blue-300" />
+                        <input
+                          type="text"
+                          placeholder="Search lessons..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
+                        />
+                      </div>
+                      
+                      <select
+                        value={termFilter}
+                        onChange={(e) => setTermFilter(e.target.value)}
+                        className="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
+                      >
+                        <option value="all" className="text-gray-900">All Terms</option>
+                        {HALF_TERMS.map(term => (
+                          <option key={term.id} value={term.id} className="text-gray-900">
+                            {term.name}
+                          </option>
+                        ))}
+                      </select>
+                      
+                      {/* Selection Controls */}
+                      <div className="flex justify-between">
+                        <button
+                          onClick={selectAllLessons}
+                          className="px-3 py-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-sm text-white"
+                        >
+                          Select All
+                        </button>
+                        <button
+                          onClick={clearSelectedLessons}
+                          className="px-3 py-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-sm text-white"
+                          disabled={selectedLessons.length === 0}
+                        >
+                          Clear All
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 max-h-[600px] overflow-y-auto">
+                    <div className="grid grid-cols-1 gap-2">
+                      {filteredLessons.map(lessonNum => {
+                        const lessonData = allLessonsData[lessonNum];
+                        if (!lessonData) return null;
+                        
+                        const isSelected = selectedLessons.includes(lessonNum);
+                        const isInCurrentUnit = currentUnit?.lessonNumbers.includes(lessonNum);
+                        const lessonTerm = LESSON_TO_HALF_TERM[lessonNum] || 'A1';
+                        const termInfo = HALF_TERMS.find(t => t.id === lessonTerm);
+                        
+                        return (
+                          <div
+                            key={lessonNum}
+                            className={`p-3 border rounded-lg transition-all duration-200 ${
+                              isSelected ? 'bg-indigo-100 border-indigo-300 text-indigo-800' : 
+                              isInCurrentUnit ? 'bg-gray-100 border-gray-300 text-gray-500' : 
+                              'bg-white border-gray-200 hover:bg-gray-50'
+                            }`}
+                            onClick={() => toggleLessonSelection(lessonNum)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                                  isSelected ? 'bg-indigo-600' : 'border-2 border-gray-300'
+                                }`}>
+                                  {isSelected && <Check className="h-3 w-3 text-white" />}
+                                </div>
+                                <div>
+                                  <h4 className="font-medium text-gray-900">Lesson {lessonNum}</h4>
+                                  <div className="text-xs text-gray-500 mt-1">{termInfo?.name}</div>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center space-x-2 text-xs text-gray-500">
+                                <span>{lessonData.totalTime} mins</span>
+                                <span>•</span>
+                                <span>
+                                  {Object.values(lessonData.grouped).reduce((sum, activities) => sum + activities.length, 0)} activities
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {/* Categories */}
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {lessonData.categoryOrder.slice(0, 3).map(category => (
+                                <span 
+                                  key={category}
+                                  className="px-1.5 py-0.5 text-xs rounded-full"
+                                  style={{
+                                    backgroundColor: `${getCategoryColor(category)}20`,
+                                    color: getCategoryColor(category)
+                                  }}
+                                >
+                                  {category}
+                                </span>
+                              ))}
+                              {lessonData.categoryOrder.length > 3 && (
+                                <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
+                                  +{lessonData.categoryOrder.length - 3}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    
+                    {filteredLessons.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        No lessons match your search criteria
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -842,14 +926,6 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                               } else {
                                 setCurrentUnit(unit);
                               }
-                            }}
-                            draggable
-                            onDragStart={(e) => {
-                              e.dataTransfer.setData('text/plain', JSON.stringify({
-                                type: 'unit',
-                                id: unit.id
-                              }));
-                              e.dataTransfer.effectAllowed = 'move';
                             }}
                           >
                             <div className="p-3">
