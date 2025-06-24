@@ -37,6 +37,7 @@ interface LessonPlan {
   unitName?: string;
   lessonNumber?: string;
   title?: string;
+  time?: string; // Added time field for scheduled lessons
 }
 
 interface LessonPlannerCalendarProps {
@@ -323,15 +324,40 @@ export function LessonPlannerCalendar({
     };
   };
 
+  // Group plans by time
+  const groupPlansByTime = (plans: LessonPlan[]) => {
+    const grouped: Record<string, LessonPlan[]> = {};
+    
+    // Sort plans by time
+    const sortedPlans = [...plans].sort((a, b) => {
+      const timeA = a.time || '00:00';
+      const timeB = b.time || '00:00';
+      return timeA.localeCompare(timeB);
+    });
+    
+    // Group by time
+    sortedPlans.forEach(plan => {
+      const time = plan.time || 'Unscheduled';
+      if (!grouped[time]) {
+        grouped[time] = [];
+      }
+      grouped[time].push(plan);
+    });
+    
+    return grouped;
+  };
+
   // Render the lesson summary box
   const renderLessonSummary = () => {
     if (!selectedDateWithPlans || !isLessonSummaryOpen) return null;
     
     const { date, plans } = selectedDateWithPlans;
+    const groupedPlans = groupPlansByTime(plans);
+    const timeSlots = Object.keys(groupedPlans).sort();
     
     return (
-      <div className="absolute left-1/2 transform -translate-x-1/2 top-32 z-10 w-[90%] max-w-4xl">
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden w-[90%] max-w-4xl max-h-[90vh] flex flex-col">
           {/* Header */}
           <div 
             className="p-4 text-white relative"
@@ -358,184 +384,169 @@ export function LessonPlannerCalendar({
           </div>
           
           {/* Lesson Plans */}
-          <div className="p-6 max-h-[70vh] overflow-y-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {plans.map((plan) => (
-                <div 
-                  key={plan.id}
-                  className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200"
-                >
-                  {/* Plan Header */}
-                  <div 
-                    className="p-4 border-b border-gray-200"
-                    style={{ 
-                      background: plan.unitId 
-                        ? `linear-gradient(to right, ${theme.primary}15, ${theme.primary}05)` 
-                        : `linear-gradient(to right, ${theme.secondary}15, ${theme.secondary}05)`,
-                      borderLeft: `4px solid ${plan.unitId ? theme.primary : theme.secondary}`
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold text-gray-900">
-                          {plan.title || (plan.lessonNumber ? `Lesson ${plan.lessonNumber}` : `Week ${plan.week} Lesson`)}
-                        </h3>
-                        <div className="flex items-center space-x-2 text-sm text-gray-600">
-                          <span>Week {plan.week}</span>
-                          {plan.unitName && (
-                            <>
-                              <span>•</span>
-                              <span>{plan.unitName}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDateSelect(date);
-                            setIsLessonSummaryOpen(false);
-                          }}
-                          className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                          title="Edit Lesson"
-                        >
-                          <Edit3 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeletePlan(plan.id);
-                          }}
-                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors duration-200"
-                          title="Delete Lesson"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Plan Content */}
-                  <div className="p-4">
-                    {/* Stats */}
-                    <div className="flex items-center space-x-4 mb-3 text-sm text-gray-600">
-                      <div className="flex items-center space-x-1">
-                        <Clock className="h-4 w-4 text-gray-500" />
-                        <span>{plan.duration} mins</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <Users className="h-4 w-4 text-gray-500" />
-                        <span>{plan.activities.length} activities</span>
-                      </div>
-                    </div>
+          <div className="p-6 overflow-y-auto flex-1">
+            {timeSlots.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No lessons scheduled for this date</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {timeSlots.map(timeSlot => (
+                  <div key={timeSlot} className="space-y-4">
+                    <h3 className="font-medium text-gray-900 flex items-center space-x-2">
+                      <Clock className="h-4 w-4 text-gray-500" />
+                      <span>{timeSlot === 'Unscheduled' ? 'Unscheduled' : timeSlot}</span>
+                    </h3>
                     
-                    {/* Categories or Activities */}
-                    {plan.lessonNumber && getLessonDetails(plan.lessonNumber) ? (
-                      <div>
-                        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                          Categories
-                        </h4>
-                        <div className="flex flex-wrap gap-1.5 mb-3">
-                          {getLessonDetails(plan.lessonNumber)!.categories.slice(0, 4).map((category) => (
-                            <span
-                              key={category}
-                              className="px-2 py-1 text-xs font-medium rounded-full"
-                              style={{
-                                backgroundColor: `${getCategoryColor(category)}20`,
-                                color: getCategoryColor(category)
-                              }}
-                            >
-                              {category}
-                            </span>
-                          ))}
-                          {getLessonDetails(plan.lessonNumber)!.categories.length > 4 && (
-                            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
-                              +{getLessonDetails(plan.lessonNumber)!.categories.length - 4}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ) : plan.activities.length > 0 ? (
-                      <div>
-                        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                          Activities
-                        </h4>
-                        <div className="space-y-2 max-h-32 overflow-y-auto">
-                          {plan.activities.slice(0, 3).map((activity, index) => (
-                            <div 
-                              key={index}
-                              className="p-2 bg-gray-50 rounded-lg border border-gray-100 text-sm"
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="font-medium text-gray-900">{activity.activity}</span>
-                                {activity.time > 0 && (
-                                  <span className="text-xs text-gray-500">{activity.time}m</span>
-                                )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {groupedPlans[timeSlot].map((plan) => (
+                        <div 
+                          key={plan.id}
+                          className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200"
+                        >
+                          {/* Plan Header */}
+                          <div 
+                            className="p-3 border-b border-gray-200"
+                            style={{ 
+                              background: plan.unitId 
+                                ? `linear-gradient(to right, ${theme.primary}15, ${theme.primary}05)` 
+                                : `linear-gradient(to right, ${theme.secondary}15, ${theme.secondary}05)`,
+                              borderLeft: `4px solid ${plan.unitId ? theme.primary : theme.secondary}`
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h3 className="font-semibold text-gray-900">
+                                  {plan.title || (plan.lessonNumber ? `Lesson ${plan.lessonNumber}` : `Week ${plan.week} Lesson`)}
+                                </h3>
+                                <div className="flex items-center space-x-2 text-xs text-gray-600">
+                                  <span>Week {plan.week}</span>
+                                  {plan.unitName && (
+                                    <>
+                                      <span>•</span>
+                                      <span>{plan.unitName}</span>
+                                    </>
+                                  )}
+                                </div>
                               </div>
-                              <span className="text-xs text-gray-600">{activity.category}</span>
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDateSelect(date);
+                                    setIsLessonSummaryOpen(false);
+                                  }}
+                                  className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                                  title="Edit Lesson"
+                                >
+                                  <Edit3 className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeletePlan(plan.id);
+                                  }}
+                                  className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                                  title="Delete Lesson"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
                             </div>
-                          ))}
-                          {plan.activities.length > 3 && (
-                            <div className="text-center text-xs text-blue-600 py-1">
-                              +{plan.activities.length - 3} more activities
+                          </div>
+                          
+                          {/* Plan Content */}
+                          <div className="p-3">
+                            {/* Stats */}
+                            <div className="flex items-center space-x-4 mb-2 text-xs text-gray-600">
+                              <div className="flex items-center space-x-1">
+                                <Clock className="h-3.5 w-3.5 text-gray-500" />
+                                <span>{plan.duration} mins</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Users className="h-3.5 w-3.5 text-gray-500" />
+                                <span>{plan.activities.length} activities</span>
+                              </div>
                             </div>
-                          )}
+                            
+                            {/* Categories or Activities */}
+                            {plan.lessonNumber && getLessonDetails(plan.lessonNumber) ? (
+                              <div className="mb-2">
+                                <div className="flex flex-wrap gap-1">
+                                  {getLessonDetails(plan.lessonNumber)!.categories.slice(0, 3).map((category) => (
+                                    <span
+                                      key={category}
+                                      className="px-1.5 py-0.5 text-xs font-medium rounded-full"
+                                      style={{
+                                        backgroundColor: `${getCategoryColor(category)}20`,
+                                        color: getCategoryColor(category)
+                                      }}
+                                    >
+                                      {category}
+                                    </span>
+                                  ))}
+                                  {getLessonDetails(plan.lessonNumber)!.categories.length > 3 && (
+                                    <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
+                                      +{getLessonDetails(plan.lessonNumber)!.categories.length - 3}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ) : plan.activities.length > 0 ? (
+                              <div className="mb-2">
+                                <div className="flex flex-wrap gap-1">
+                                  {Array.from(new Set(plan.activities.map(a => a.category))).slice(0, 3).map((category, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="px-1.5 py-0.5 text-xs font-medium rounded-full"
+                                      style={{
+                                        backgroundColor: `${getCategoryColor(category)}20`,
+                                        color: getCategoryColor(category)
+                                      }}
+                                    >
+                                      {category}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null}
+                            
+                            {/* Edit Button */}
+                            <div className="mt-2 text-center">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDateSelect(date);
+                                  setIsLessonSummaryOpen(false);
+                                }}
+                                className="w-full px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors duration-200 flex items-center justify-center space-x-1"
+                              >
+                                <Edit3 className="h-3.5 w-3.5" />
+                                <span>Edit Lesson</span>
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-2 text-gray-500 text-sm">
-                        No activities added yet
-                      </div>
-                    )}
-                    
-                    {/* Notes Preview */}
-                    {plan.notes && (
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                          Notes
-                        </h4>
-                        <p className="text-xs text-gray-600 line-clamp-2">
-                          {plan.notes.replace(/<[^>]*>/g, '')}
-                        </p>
-                      </div>
-                    )}
-                    
-                    {/* View Button */}
-                    <div className="mt-4 text-center">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDateSelect(date);
-                          setIsLessonSummaryOpen(false);
-                        }}
-                        className="inline-flex items-center space-x-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                        <span>Edit Lesson</span>
-                      </button>
+                      ))}
                     </div>
                   </div>
-                </div>
-              ))}
-              
-              {/* Add New Lesson Card */}
-              <div 
-                className="bg-white rounded-xl shadow-md border-2 border-dashed border-gray-300 hover:border-blue-400 overflow-hidden hover:shadow-lg transition-all duration-200 flex flex-col items-center justify-center p-6 cursor-pointer"
+                ))}
+              </div>
+            )}
+            
+            {/* Add New Lesson Button */}
+            <div className="mt-6 text-center">
+              <button
                 onClick={() => {
                   onDateSelect(selectedDateWithPlans.date);
                   onCreateLessonPlan(selectedDateWithPlans.date);
                   setIsLessonSummaryOpen(false);
                 }}
+                className="inline-flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200"
               >
-                <div className="bg-blue-100 p-3 rounded-full mb-3">
-                  <Plus className="h-6 w-6 text-blue-600" />
-                </div>
-                <h3 className="font-medium text-gray-900 mb-1">Add New Lesson</h3>
-                <p className="text-sm text-gray-600 text-center">
-                  Create a new lesson plan for {format(selectedDateWithPlans.date, 'MMMM d, yyyy')}
-                </p>
-              </div>
+                <Plus className="h-5 w-5" />
+                <span>Add New Lesson</span>
+              </button>
             </div>
           </div>
         </div>
@@ -658,6 +669,31 @@ export function LessonPlannerCalendar({
             </div>
             
             <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Lesson Title
+                </label>
+                <input
+                  type="text"
+                  value={editingPlan.title || ''}
+                  onChange={(e) => setEditingPlan(prev => prev ? { ...prev, title: e.target.value } : null)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter lesson title"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Scheduled Time
+                </label>
+                <input
+                  type="time"
+                  value={editingPlan.time || ''}
+                  onChange={(e) => setEditingPlan(prev => prev ? { ...prev, time: e.target.value } : null)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Week Number
