@@ -281,6 +281,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                   onChange={handleChange}
                   className={`w-full px-4 py-3 border ${errors.activity ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
                   placeholder="Enter activity name"
+                  dir="ltr"
                 />
                 {errors.activity && (
                   <p className="mt-1 text-sm text-red-500">{errors.activity}</p>
@@ -297,6 +298,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                   value={activity.category}
                   onChange={handleChange}
                   className={`w-full px-4 py-3 border ${errors.category ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500`}
+                  dir="ltr"
                 >
                   <option value="">Select a category</option>
                   {allCategories.map(category => (
@@ -318,6 +320,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                   value={activity.level}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  dir="ltr"
                 >
                   <option value="">Select a level</option>
                   <option value="All">All</option>
@@ -343,6 +346,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                   min="0"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   placeholder="Enter duration in minutes"
+                  dir="ltr"
                 />
               </div>
 
@@ -358,6 +362,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   placeholder="Enter unit name (optional)"
+                  dir="ltr"
                 />
               </div>
             </div>
@@ -428,6 +433,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                     document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
                   }
                 }}
+                dir="ltr"
               />
             </div>
 
@@ -497,6 +503,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                     document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
                   }
                 }}
+                dir="ltr"
               />
             </div>
 
@@ -554,6 +561,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                       onChange={handleChange}
                       placeholder="Or paste image URL"
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      dir="ltr"
                     />
                   </div>
                 </div>
@@ -581,6 +589,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                       onChange={handleChange}
                       className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       placeholder={label}
+                      dir="ltr"
                     />
                   </div>
                 ))}

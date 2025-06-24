@@ -372,6 +372,7 @@ export function LessonDropZone({
                 }}
                 placeholder="Unit name"
                 className="w-full text-2xl font-bold text-gray-900 border-b border-gray-300 focus:border-green-500 focus:outline-none bg-transparent"
+                dir="ltr"
               />
               <div className="flex items-center flex-wrap gap-3 mt-2">
                 <div className="flex items-center space-x-2 text-gray-600">
@@ -388,6 +389,7 @@ export function LessonDropZone({
                       }}
                       className="w-12 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 focus:border-green-500 text-sm"
                       min="1"
+                      dir="ltr"
                     />
                   </div>
                 </div>
@@ -401,6 +403,7 @@ export function LessonDropZone({
                       onNotesUpdate(updatedPlan.notes); // Trigger update to mark changes
                     }}
                     className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                    dir="ltr"
                   >
                     <option value="A1">Autumn 1 (Sep-Oct)</option>
                     <option value="A2">Autumn 2 (Nov-Dec)</option>
@@ -625,6 +628,7 @@ export function LessonDropZone({
                     document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
                   }
                 }}
+                dir="ltr"
               />
               
               <div className="flex justify-end mt-2">
@@ -644,6 +648,7 @@ export function LessonDropZone({
                 className="w-full h-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
                 placeholder="Add notes about this lesson plan..."
                 disabled={!isEditing}
+                dir="ltr"
               />
               {isEditing && (
                 <div className="flex justify-end mt-2">
