@@ -170,12 +170,12 @@ export function Dashboard() {
               </TabsTrigger>
               
               <TabsTrigger 
-                value="calendar"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-600 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200"
+                value="lesson-builder"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200"
               >
                 <div className="flex items-center space-x-2">
-                  <Calendar className="h-5 w-5" />
-                  <span>Calendar</span>
+                  <Edit3 className="h-5 w-5" />
+                  <span>Lesson Builder</span>
                 </div>
               </TabsTrigger>
               
@@ -190,12 +190,12 @@ export function Dashboard() {
               </TabsTrigger>
               
               <TabsTrigger 
-                value="lesson-builder"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200"
+                value="calendar"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-600 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200"
               >
                 <div className="flex items-center space-x-2">
-                  <Edit3 className="h-5 w-5" />
-                  <span>Lesson Builder</span>
+                  <Calendar className="h-5 w-5" />
+                  <span>Calendar</span>
                 </div>
               </TabsTrigger>
             </TabsList>
@@ -213,15 +213,8 @@ export function Dashboard() {
               />
             </TabsContent>
 
-            <TabsContent value="calendar" className="mt-6">
-              <LessonPlannerCalendar
-                onDateSelect={handleDateSelect}
-                selectedDate={selectedDate}
-                lessonPlans={lessonPlans}
-                onUpdateLessonPlan={handleUpdateLessonPlan}
-                onCreateLessonPlan={handleCreateLessonPlan}
-                className={currentSheetInfo.sheet}
-              />
+            <TabsContent value="lesson-builder" className="mt-6">
+              <LessonPlanBuilder />
             </TabsContent>
 
             <TabsContent value="activity-library" className="mt-6">
@@ -234,8 +227,15 @@ export function Dashboard() {
               />
             </TabsContent>
 
-            <TabsContent value="lesson-builder" className="mt-6">
-              <LessonPlanBuilder />
+            <TabsContent value="calendar" className="mt-6">
+              <LessonPlannerCalendar
+                onDateSelect={handleDateSelect}
+                selectedDate={selectedDate}
+                lessonPlans={lessonPlans}
+                onUpdateLessonPlan={handleUpdateLessonPlan}
+                onCreateLessonPlan={handleCreateLessonPlan}
+                className={currentSheetInfo.sheet}
+              />
             </TabsContent>
           </Tabs>
         </div>
