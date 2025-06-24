@@ -21,8 +21,6 @@ import {
 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { LessonDropZone } from './LessonDropZone';
-import { useDrop } from 'react-dnd';
 
 // Define half-term periods
 const HALF_TERMS = [
@@ -85,27 +83,6 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [selectedLessons, setSelectedLessons] = useState<string[]>([]);
-
-  // Set up drop target for lessons
-  const [{ isOver }, drop] = useDrop(() => ({
-    accept: 'lesson',
-    drop: (item: { lessonNumber: string }) => {
-      if (currentUnit) {
-        // Add lesson to current unit if not already included
-        if (!currentUnit.lessonNumbers.includes(item.lessonNumber)) {
-          const updatedUnit = {
-            ...currentUnit,
-            lessonNumbers: [...currentUnit.lessonNumbers, item.lessonNumber].sort((a, b) => parseInt(a) - parseInt(b))
-          };
-          setCurrentUnit(updatedUnit);
-          setHasUnsavedChanges(true);
-        }
-      }
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver()
-    })
-  }), [currentUnit]);
 
   // Load units from localStorage
   useEffect(() => {
@@ -359,116 +336,6 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
     );
   }, [units, unitSearchQuery]);
 
-  // Create a mock lesson plan from the current unit for LessonDropZone
-  const createMockLessonPlan = (unit: Unit | null) => {
-    if (!unit) {
-      return {
-        id: `unit-${Date.now()}`,
-        date: new Date(),
-        week: 1,
-        className: currentSheetInfo.sheet,
-        activities: [],
-        duration: 0,
-        notes: '',
-        status: 'draft' as const,
-        title: '',
-        term: 'A1',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-    }
-    
-    // Collect all activities from the lessons in this unit
-    const activities: any[] = [];
-    let totalDuration = 0;
-    
-    unit.lessonNumbers.forEach(lessonNum => {
-      const lessonData = allLessonsData[lessonNum];
-      if (lessonData) {
-        Object.values(lessonData.grouped).forEach(categoryActivities => {
-          categoryActivities.forEach(activity => {
-            // Add a unique ID to each activity
-            activities.push({
-              ...activity,
-              _uniqueId: `${activity.activity}-${activity.category}-${Date.now()}-${Math.random()}`
-            });
-            totalDuration += activity.time || 0;
-          });
-        });
-      }
-    });
-    
-    return {
-      id: unit.id,
-      date: new Date(),
-      week: 1,
-      className: currentSheetInfo.sheet,
-      activities,
-      duration: totalDuration,
-      notes: unit.description || '',
-      status: 'draft' as const,
-      title: unit.name,
-      term: unit.term || 'A1',
-      createdAt: unit.createdAt,
-      updatedAt: unit.updatedAt
-    };
-  };
-
-  // Handle saving the unit from the LessonDropZone
-  const handleSaveUnit = () => {
-    if (!currentUnit) return;
-    
-    // Update the current unit with any changes
-    const updatedUnit = {
-      ...currentUnit,
-      updatedAt: new Date()
-    };
-    
-    const updatedUnits = units.map(unit => 
-      unit.id === updatedUnit.id ? updatedUnit : unit
-    );
-    
-    if (!units.find(unit => unit.id === updatedUnit.id)) {
-      updatedUnits.push(updatedUnit);
-    }
-    
-    saveUnits(updatedUnits);
-    
-    // Show success message
-    setSaveStatus('success');
-    setTimeout(() => setSaveStatus('idle'), 3000);
-    setHasUnsavedChanges(false);
-  };
-
-  // Handle creating a new unit after saving the current one
-  const handleCreateNewAfterSave = () => {
-    handleSaveUnit();
-    
-    // Create a new empty unit
-    setNewUnit({
-      name: '',
-      description: '',
-      lessonNumbers: [],
-      color: getThemeForClass(currentSheetInfo.sheet).primary,
-      term: currentUnit?.term || 'A1'
-    });
-    
-    setIsCreating(true);
-    setCurrentUnit(null);
-    setHasUnsavedChanges(false);
-  };
-
-  // Handle notes update from LessonDropZone
-  const handleNotesUpdate = (notes: string) => {
-    if (!currentUnit) return;
-    
-    setCurrentUnit({
-      ...currentUnit,
-      description: notes
-    });
-    setHasUnsavedChanges(true);
-  };
-
   // Add selected lessons to the current unit
   const addSelectedLessonsToUnit = () => {
     if (!currentUnit || selectedLessons.length === 0) return;
@@ -641,10 +508,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Left Panel - Unit Contents */}
               <div className="lg:col-span-1">
-                <div 
-                  ref={drop}
-                  className={`bg-white rounded-xl shadow-md border-2 ${isOver ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200'} p-6 h-[600px] flex flex-col transition-all duration-200`}
-                >
+                <div className="bg-white rounded-xl shadow-md border-2 border-gray-200 p-6 h-[600px] flex flex-col transition-all duration-200">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Unit Contents</h3>
                   
                   <div className="flex-1 overflow-y-auto">
@@ -652,7 +516,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                       <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-gray-300 rounded-lg">
                         <FolderOpen className="h-16 w-16 text-gray-300 mb-4" />
                         <p className="text-gray-500 text-center">
-                          {isOver ? 'Drop lesson here' : 'No lessons added yet'}
+                          No lessons added yet
                         </p>
                       </div>
                     ) : (
@@ -871,7 +735,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                     )}
                   </div>
                   
-                  {/* Add Lesson Button */}
+                  {/* Add to Unit Button */}
                   {selectedLessons.length > 0 && currentUnit && (
                     <div className="p-4 border-t border-gray-200 bg-gray-50">
                       <button
@@ -879,7 +743,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                         className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
                       >
                         <Plus className="h-4 w-4" />
-                        <span>Add to Unit</span>
+                        <span>Add {selectedLessons.length} Selected {selectedLessons.length === 1 ? 'Lesson' : 'Lessons'}</span>
                       </button>
                     </div>
                   )}
