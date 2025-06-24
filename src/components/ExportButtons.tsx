@@ -1,12 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Download, FileText, File, Loader2, ChevronDown, Check, X, List } from 'lucide-react';
+import { 
+  Download, 
+  FileText, 
+  File, 
+  Loader2, 
+  ChevronDown, 
+  Check, 
+  X, 
+  List 
+} from 'lucide-react';
 import { useData } from '../contexts/DataContext';
+import { useSettings } from '../contexts/SettingsContext';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 
 export function ExportButtons() {
   const { currentSheetInfo, lessonNumbers, allLessonsData } = useData();
+  const { getCategoryColor } = useSettings();
   const [exportLoading, setExportLoading] = useState<string>('');
   const [showLessonSelector, setShowLessonSelector] = useState(false);
   const [selectedLessons, setSelectedLessons] = useState<string[]>([]);
@@ -90,7 +101,13 @@ export function ExportButtons() {
         
         // Category header
         doc.setFontSize(14);
-        doc.setTextColor(0, 0, 150);
+        const categoryColor = getCategoryColor(category);
+        const colorRGB = hexToRgb(categoryColor);
+        if (colorRGB) {
+          doc.setTextColor(colorRGB.r, colorRGB.g, colorRGB.b);
+        } else {
+          doc.setTextColor(0, 0, 150);
+        }
         doc.text(category, 14, yPos);
         yPos += 8;
         doc.setTextColor(0, 0, 0);
@@ -124,6 +141,34 @@ export function ExportButtons() {
             yPos += 6;
           });
           
+          // Add resources if available
+          const resources = [];
+          if (activity.videoLink) resources.push(`Video: ${activity.videoLink}`);
+          if (activity.musicLink) resources.push(`Music: ${activity.musicLink}`);
+          if (activity.backingLink) resources.push(`Backing: ${activity.backingLink}`);
+          if (activity.resourceLink) resources.push(`Resource: ${activity.resourceLink}`);
+          if (activity.link) resources.push(`Link: ${activity.link}`);
+          if (activity.vocalsLink) resources.push(`Vocals: ${activity.vocalsLink}`);
+          if (activity.imageLink) resources.push(`Image: ${activity.imageLink}`);
+          
+          if (resources.length > 0) {
+            yPos += 3;
+            doc.setFont(undefined, 'italic');
+            doc.text('Resources:', 25, yPos);
+            yPos += 5;
+            
+            resources.forEach(resource => {
+              if (yPos > 270) {
+                doc.addPage();
+                yPos = 20;
+              }
+              doc.text(resource, 30, yPos, { maxWidth: 165 });
+              yPos += 5;
+            });
+            
+            doc.setFont(undefined, 'normal');
+          }
+          
           yPos += 5;
         });
         
@@ -147,7 +192,7 @@ export function ExportButtons() {
       const data = [];
       
       // Add header row
-      data.push(['Category', 'Activity', 'Time (mins)', 'Description', 'Level']);
+      data.push(['Category', 'Activity', 'Time (mins)', 'Description', 'Level', 'Video', 'Music', 'Backing', 'Resource', 'Link']);
       
       // Add activities
       lessonData.categoryOrder.forEach(category => {
@@ -159,7 +204,12 @@ export function ExportButtons() {
             activity.activity,
             activity.time.toString(),
             activity.description.replace(/<[^>]*>/g, ''),
-            activity.level || ''
+            activity.level || '',
+            activity.videoLink || '',
+            activity.musicLink || '',
+            activity.backingLink || '',
+            activity.resourceLink || '',
+            activity.link || ''
           ]);
         });
       });
@@ -173,7 +223,12 @@ export function ExportButtons() {
         { wch: 25 }, // Activity
         { wch: 10 }, // Time
         { wch: 50 }, // Description
-        { wch: 15 }  // Level
+        { wch: 15 }, // Level
+        { wch: 30 }, // Video
+        { wch: 30 }, // Music
+        { wch: 30 }, // Backing
+        { wch: 30 }, // Resource
+        { wch: 30 }  // Link
       ];
       
       ws['!cols'] = colWidths;
@@ -200,6 +255,16 @@ export function ExportButtons() {
 
   const clearSelection = () => {
     setSelectedLessons([]);
+  };
+
+  // Helper function to convert hex color to RGB
+  const hexToRgb = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
   };
 
   const ExportButton = ({ 

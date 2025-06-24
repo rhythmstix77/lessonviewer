@@ -57,6 +57,24 @@ interface ActivityItemProps {
   isDraggable?: boolean;
 }
 
+const categoryColors: Record<string, string> = {
+  'Welcome': '#F59E0B',
+  'Kodaly Songs': '#8B5CF6',
+  'Kodaly Action Songs': '#F97316',
+  'Action/Games Songs': '#F97316',
+  'Rhythm Sticks': '#D97706',
+  'Scarf Songs': '#10B981',
+  'General Game': '#3B82F6',
+  'Core Songs': '#84CC16',
+  'Parachute Games': '#EF4444',
+  'Percussion Games': '#06B6D4',
+  'Teaching Units': '#6366F1',
+  'Goodbye': '#14B8A6',
+  'Kodaly Rhythms': '#9333EA',
+  'Kodaly Games': '#F59E0B',
+  'IWB Games': '#FBBF24'
+};
+
 function ActivityItem({ 
   activity, 
   index, 
@@ -124,24 +142,6 @@ function ActivityItem({
       'data-handler-id': handlerId,
     };
   }
-
-  const categoryColors: Record<string, string> = {
-    'Welcome': '#F59E0B',
-    'Kodaly Songs': '#8B5CF6',
-    'Kodaly Action Songs': '#F97316',
-    'Action/Games Songs': '#F97316',
-    'Rhythm Sticks': '#D97706',
-    'Scarf Songs': '#10B981',
-    'General Game': '#3B82F6',
-    'Core Songs': '#84CC16',
-    'Parachute Games': '#EF4444',
-    'Percussion Games': '#06B6D4',
-    'Teaching Units': '#6366F1',
-    'Goodbye': '#14B8A6',
-    'Kodaly Rhythms': '#9333EA',
-    'Kodaly Games': '#F59E0B',
-    'IWB Games': '#FBBF24'
-  };
 
   const categoryColor = categoryColors[activity.category] || '#6B7280';
 
