@@ -17,7 +17,8 @@ import {
   ArrowUp,
   ArrowDown,
   Filter,
-  FolderOpen
+  FolderOpen,
+  AlertCircle
 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -368,32 +369,68 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
     );
   }, [units, unitSearchQuery]);
 
-  // Add selected lessons to the current unit
+  // Add selected lessons to the current unit or create a new unit
   const addSelectedLessonsToUnit = () => {
-    if (!currentUnit || selectedLessons.length === 0) {
-      alert("Please select a unit and at least one lesson to add");
+    if (selectedLessons.length === 0) {
+      alert("Please select at least one lesson to add");
       return;
     }
     
-    // Add selected lessons to the current unit
-    const updatedLessons = [...currentUnit.lessonNumbers];
-    
-    selectedLessons.forEach(lessonNum => {
-      if (!updatedLessons.includes(lessonNum)) {
-        updatedLessons.push(lessonNum);
+    if (currentUnit) {
+      // Add selected lessons to the current unit
+      const updatedLessons = [...currentUnit.lessonNumbers];
+      
+      selectedLessons.forEach(lessonNum => {
+        if (!updatedLessons.includes(lessonNum)) {
+          updatedLessons.push(lessonNum);
+        }
+      });
+      
+      // Sort lessons by number
+      updatedLessons.sort((a, b) => parseInt(a) - parseInt(b));
+      
+      // Update the current unit
+      setCurrentUnit({
+        ...currentUnit,
+        lessonNumbers: updatedLessons
+      });
+      
+      setHasUnsavedChanges(true);
+    } else {
+      // Create a new unit with the selected lessons
+      if (!newUnit.name || !newUnit.name.trim()) {
+        alert("Please provide a unit name before adding lessons");
+        return;
       }
-    });
-    
-    // Sort lessons by number
-    updatedLessons.sort((a, b) => parseInt(a) - parseInt(b));
-    
-    // Update the current unit
-    setCurrentUnit({
-      ...currentUnit,
-      lessonNumbers: updatedLessons
-    });
-    
-    setHasUnsavedChanges(true);
+      
+      const unit: Unit = {
+        id: `unit-${Date.now()}`,
+        name: newUnit.name,
+        description: newUnit.description || '',
+        lessonNumbers: [...selectedLessons].sort((a, b) => parseInt(a) - parseInt(b)),
+        color: newUnit.color || getThemeForClass(currentSheetInfo.sheet).primary,
+        term: newUnit.term || 'A1',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      // Add the new unit to the units array
+      const updatedUnits = [...units, unit];
+      saveUnits(updatedUnits);
+      
+      // Set the new unit as the current unit
+      setCurrentUnit(unit);
+      setHasUnsavedChanges(false);
+      
+      // Reset the new unit form
+      setNewUnit({
+        name: '',
+        description: '',
+        lessonNumbers: [],
+        color: getThemeForClass(currentSheetInfo.sheet).primary,
+        term: 'A1'
+      });
+    }
     
     // Clear selected lessons after adding
     setSelectedLessons([]);
@@ -447,6 +484,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                       }}
                       placeholder="Enter unit name..."
                       className="w-full text-2xl font-bold text-gray-900 border-b border-gray-300 focus:border-indigo-500 focus:outline-none bg-transparent"
+                      dir="ltr"
                     />
                     <div className="flex items-center flex-wrap gap-3 mt-2">
                       <div className="flex items-center space-x-2 text-gray-600">
@@ -464,6 +502,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                             }
                           }}
                           className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                          dir="ltr"
                         >
                           {HALF_TERMS.map(term => (
                             <option key={term.id} value={term.id}>
@@ -549,7 +588,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Unit Contents</h3>
                   
                   <div className="flex-1 overflow-y-auto">
-                    {currentUnit?.lessonNumbers.length === 0 && selectedLessons.length === 0 ? (
+                    {(!currentUnit || currentUnit.lessonNumbers.length === 0) && selectedLessons.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-gray-300 rounded-lg">
                         <FolderOpen className="h-16 w-16 text-gray-300 mb-4" />
                         <p className="text-gray-500 text-center">
@@ -660,6 +699,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-blue-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
+                          dir="ltr"
                         />
                       </div>
                       
@@ -667,6 +707,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                         value={termFilter}
                         onChange={(e) => setTermFilter(e.target.value)}
                         className="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
+                        dir="ltr"
                       >
                         <option value="all" className="text-gray-900">All Terms</option>
                         {HALF_TERMS.map(term => (
@@ -772,8 +813,8 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                     )}
                   </div>
                   
-                  {/* Add to Unit Button */}
-                  {selectedLessons.length > 0 && currentUnit && (
+                  {/* Add to Unit Button - Now shown whenever there are selected lessons */}
+                  {selectedLessons.length > 0 && (
                     <div className="p-4 border-t border-gray-200 bg-gray-50">
                       <button
                         onClick={addSelectedLessonsToUnit}
@@ -803,6 +844,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                         value={unitSearchQuery}
                         onChange={(e) => setUnitSearchQuery(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-indigo-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent text-sm"
+                        dir="ltr"
                       />
                     </div>
                   </div>
@@ -877,6 +919,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                   }}
                   className="w-full h-32 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
                   placeholder="Enter a description for this unit..."
+                  dir="ltr"
                 />
               </div>
             )}
@@ -927,6 +970,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                     value={calendarDate}
                     onChange={(e) => setCalendarDate(e.target.value)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    dir="ltr"
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     Lessons will be scheduled starting from this date
