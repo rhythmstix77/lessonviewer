@@ -73,6 +73,19 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
     color: getThemeForClass(currentSheetInfo.sheet).primary,
     term: 'A1' // Default to Autumn 1
   });
+  
+  // Initialize currentUnit with a default empty unit instead of null
+  const [currentUnit, setCurrentUnit] = useState<Unit>({
+    id: `unit-${Date.now()}`,
+    name: '',
+    description: '',
+    lessonNumbers: [],
+    color: getThemeForClass(currentSheetInfo.sheet).primary,
+    term: 'A1',
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
+  
   const [isCreating, setIsCreating] = useState(false);
   const [expandedUnit, setExpandedUnit] = useState<string | null>(null);
   const [calendarDate, setCalendarDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -80,7 +93,6 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
   const [searchQuery, setSearchQuery] = useState('');
   const [termFilter, setTermFilter] = useState<string>('all');
   const [unitSearchQuery, setUnitSearchQuery] = useState('');
-  const [currentUnit, setCurrentUnit] = useState<Unit | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [selectedLessons, setSelectedLessons] = useState<string[]>([]);
@@ -134,7 +146,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
         setUnits(unitsWithDates);
         
         // If there are units, set the first one as current
-        if (unitsWithDates.length > 0 && !currentUnit) {
+        if (unitsWithDates.length > 0) {
           setCurrentUnit(unitsWithDates[0]);
         }
       } catch (error) {
@@ -142,7 +154,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
         setUnits([]);
       }
     }
-  }, [isOpen, currentSheetInfo.sheet, embedded, currentUnit]);
+  }, [isOpen, currentSheetInfo.sheet, embedded]);
 
   // Save units to localStorage
   const saveUnits = (updatedUnits: Unit[]) => {
@@ -217,7 +229,16 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
       }
       
       if (currentUnit?.id === unitId) {
-        setCurrentUnit(updatedUnits.length > 0 ? updatedUnits[0] : null);
+        setCurrentUnit(updatedUnits.length > 0 ? updatedUnits[0] : {
+          id: `unit-${Date.now()}`,
+          name: '',
+          description: '',
+          lessonNumbers: [],
+          color: getThemeForClass(currentSheetInfo.sheet).primary,
+          term: 'A1',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
       }
     }
   };
@@ -544,11 +565,29 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                       if (hasUnsavedChanges) {
                         if (confirm('You have unsaved changes. Do you want to continue without saving?')) {
                           setIsCreating(true);
-                          setCurrentUnit(null);
+                          setCurrentUnit({
+                            id: `unit-${Date.now()}`,
+                            name: '',
+                            description: '',
+                            lessonNumbers: [],
+                            color: getThemeForClass(currentSheetInfo.sheet).primary,
+                            term: 'A1',
+                            createdAt: new Date(),
+                            updatedAt: new Date()
+                          });
                         }
                       } else {
                         setIsCreating(true);
-                        setCurrentUnit(null);
+                        setCurrentUnit({
+                          id: `unit-${Date.now()}`,
+                          name: '',
+                          description: '',
+                          lessonNumbers: [],
+                          color: getThemeForClass(currentSheetInfo.sheet).primary,
+                          term: 'A1',
+                          createdAt: new Date(),
+                          updatedAt: new Date()
+                        });
                       }
                     }}
                     className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
@@ -572,7 +611,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                     </>
                   ) : (
                     <>
-                      <X className="h-5 w-5 text-red-600" />
+                      <AlertCircle className="h-5 w-5 text-red-600" />
                       <span>Failed to save unit. Please ensure you've provided a name.</span>
                     </>
                   )}
