@@ -41,6 +41,7 @@ export function AdminContentEditor({ isOpen, onClose }: AdminContentEditorProps)
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const editorRef = useRef<HTMLDivElement>(null);
+  const [activeButtons, setActiveButtons] = useState<string[]>([]);
 
   // Check if user is admin
   const isAdmin = user?.email === 'admin@rhythmstix.co.uk' || 
@@ -109,6 +110,36 @@ export function AdminContentEditor({ isOpen, onClose }: AdminContentEditorProps)
     }
   }, []);
 
+  // Set up event listeners for selection changes to update active buttons
+  useEffect(() => {
+    if (selectedContent && editorRef.current) {
+      const handleSelectionChange = () => {
+        const activeCommands: string[] = [];
+        
+        if (document.queryCommandState('bold')) activeCommands.push('bold');
+        if (document.queryCommandState('italic')) activeCommands.push('italic');
+        if (document.queryCommandState('underline')) activeCommands.push('underline');
+        if (document.queryCommandState('insertUnorderedList')) activeCommands.push('insertUnorderedList');
+        if (document.queryCommandState('insertOrderedList')) activeCommands.push('insertOrderedList');
+        if (document.queryCommandState('justifyLeft')) activeCommands.push('justifyLeft');
+        if (document.queryCommandState('justifyCenter')) activeCommands.push('justifyCenter');
+        if (document.queryCommandState('justifyRight')) activeCommands.push('justifyRight');
+        
+        setActiveButtons(activeCommands);
+      };
+      
+      document.addEventListener('selectionchange', handleSelectionChange);
+      
+      // Focus the editor
+      editorRef.current.focus();
+      
+      // Clean up
+      return () => {
+        document.removeEventListener('selectionchange', handleSelectionChange);
+      };
+    }
+  }, [selectedContent]);
+
   // Save content to localStorage
   const saveContent = () => {
     localStorage.setItem('admin-editable-content', JSON.stringify(editableContents));
@@ -116,10 +147,37 @@ export function AdminContentEditor({ isOpen, onClose }: AdminContentEditorProps)
 
   // Rich text editor commands
   const execCommand = (command: string, value?: string) => {
-    document.execCommand(command, false, value);
-    if (editorRef.current && selectedContent) {
-      const updatedContent = editorRef.current.innerHTML;
-      setSelectedContent({ ...selectedContent, content: updatedContent });
+    if (editorRef.current) {
+      // Focus the editor to ensure commands work properly
+      editorRef.current.focus();
+      
+      // Save the current selection
+      const selection = window.getSelection();
+      const range = selection?.getRangeAt(0);
+      
+      // Execute the command
+      document.execCommand(command, false, value);
+      
+      // Update active buttons state
+      if (activeButtons.includes(command)) {
+        setActiveButtons(prev => prev.filter(cmd => cmd !== command));
+      } else {
+        setActiveButtons(prev => [...prev, command]);
+      }
+      
+      if (editorRef.current && selectedContent) {
+        const updatedContent = editorRef.current.innerHTML;
+        setSelectedContent({ ...selectedContent, content: updatedContent });
+      }
+      
+      // Restore focus to the editor
+      editorRef.current.focus();
+      
+      // Restore selection if possible
+      if (range && selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
     }
   };
 
@@ -280,21 +338,27 @@ export function AdminContentEditor({ isOpen, onClose }: AdminContentEditorProps)
                       
                       <button
                         onClick={() => execCommand('bold')}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors duration-200"
+                        className={`p-2 rounded transition-colors duration-200 ${
+                          activeButtons.includes('bold') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'
+                        }`}
                         title="Bold"
                       >
                         <Bold className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => execCommand('italic')}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors duration-200"
+                        className={`p-2 rounded transition-colors duration-200 ${
+                          activeButtons.includes('italic') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'
+                        }`}
                         title="Italic"
                       >
                         <Italic className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => execCommand('underline')}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors duration-200"
+                        className={`p-2 rounded transition-colors duration-200 ${
+                          activeButtons.includes('underline') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'
+                        }`}
                         title="Underline"
                       >
                         <Underline className="h-4 w-4" />
@@ -304,14 +368,18 @@ export function AdminContentEditor({ isOpen, onClose }: AdminContentEditorProps)
                       
                       <button
                         onClick={() => execCommand('insertUnorderedList')}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors duration-200"
+                        className={`p-2 rounded transition-colors duration-200 ${
+                          activeButtons.includes('insertUnorderedList') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'
+                        }`}
                         title="Bullet List"
                       >
                         <List className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => execCommand('insertOrderedList')}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors duration-200"
+                        className={`p-2 rounded transition-colors duration-200 ${
+                          activeButtons.includes('insertOrderedList') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'
+                        }`}
                         title="Numbered List"
                       >
                         <ListOrdered className="h-4 w-4" />
@@ -321,21 +389,27 @@ export function AdminContentEditor({ isOpen, onClose }: AdminContentEditorProps)
                       
                       <button
                         onClick={() => execCommand('justifyLeft')}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors duration-200"
+                        className={`p-2 rounded transition-colors duration-200 ${
+                          activeButtons.includes('justifyLeft') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'
+                        }`}
                         title="Align Left"
                       >
                         <AlignLeft className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => execCommand('justifyCenter')}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors duration-200"
+                        className={`p-2 rounded transition-colors duration-200 ${
+                          activeButtons.includes('justifyCenter') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'
+                        }`}
                         title="Align Center"
                       >
                         <AlignCenter className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => execCommand('justifyRight')}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors duration-200"
+                        className={`p-2 rounded transition-colors duration-200 ${
+                          activeButtons.includes('justifyRight') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'
+                        }`}
                         title="Align Right"
                       >
                         <AlignRight className="h-4 w-4" />
@@ -376,6 +450,13 @@ export function AdminContentEditor({ isOpen, onClose }: AdminContentEditorProps)
                       onInput={(e) => {
                         const target = e.target as HTMLDivElement;
                         setSelectedContent({ ...selectedContent, content: target.innerHTML });
+                      }}
+                      onKeyDown={(e) => {
+                        // Prevent default behavior for Tab key to avoid losing focus
+                        if (e.key === 'Tab') {
+                          e.preventDefault();
+                          document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
+                        }
                       }}
                     />
                   ) : (
