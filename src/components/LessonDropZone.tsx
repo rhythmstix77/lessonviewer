@@ -134,7 +134,10 @@ function ActivityItem({
     'Parachute Games': '#EF4444',
     'Percussion Games': '#06B6D4',
     'Teaching Units': '#6366F1',
-    'Goodbye': '#14B8A6'
+    'Goodbye': '#14B8A6',
+    'Kodaly Rhythms': '#9333EA',
+    'Kodaly Games': '#F59E0B',
+    'IWB Games': '#FBBF24'
   };
 
   const categoryColor = categoryColors[activity.category] || '#6B7280';
