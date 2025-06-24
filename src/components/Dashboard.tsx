@@ -4,10 +4,11 @@ import { UnitViewer } from "./UnitViewer";
 import { LessonPlanBuilder } from "./LessonPlanBuilder";
 import { LessonPlannerCalendar } from "./LessonPlannerCalendar";
 import { ActivityLibrary } from "./ActivityLibrary";
+import { LessonLibrary } from "./LessonLibrary";
 import { UnitManager } from "./UnitManager";
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Calendar, BookOpen, Edit3, GraduationCap, FolderOpen, Tag } from 'lucide-react';
+import { Calendar, BookOpen, Edit3, GraduationCap, FolderOpen, Tag, Book } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../hooks/useAuth';
@@ -138,6 +139,13 @@ export function Dashboard() {
     setActiveTab('calendar');
   };
 
+  const handleLessonSelect = (lessonNumber: string) => {
+    // Navigate to lesson builder with the selected lesson
+    setActiveTab('lesson-builder');
+    // The LessonPlanBuilder would need to be updated to accept an initialLessonId prop
+    // and load that lesson when it mounts
+  };
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
@@ -168,6 +176,17 @@ export function Dashboard() {
                 <div className="flex items-center space-x-2">
                   <FolderOpen className="h-5 w-5" />
                   <span>Unit Builder</span>
+                </div>
+              </TabsTrigger>
+              
+              <TabsTrigger 
+                value="lesson-library"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200"
+                data-tab="lesson-library"
+              >
+                <div className="flex items-center space-x-2">
+                  <Book className="h-5 w-5" />
+                  <span>Lesson Library</span>
                 </div>
               </TabsTrigger>
               
@@ -215,6 +234,13 @@ export function Dashboard() {
                 onClose={() => {}} 
                 onAddToCalendar={handleAddUnitToCalendar}
                 embedded={true}
+              />
+            </TabsContent>
+
+            <TabsContent value="lesson-library" className="mt-6">
+              <LessonLibrary 
+                onLessonSelect={handleLessonSelect}
+                className={currentSheetInfo.sheet}
               />
             </TabsContent>
 
