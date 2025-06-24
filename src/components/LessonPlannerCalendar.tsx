@@ -13,11 +13,15 @@ import {
   X,
   FolderOpen,
   Tag,
-  Info
+  Info,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink
 } from 'lucide-react';
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from 'date-fns';
 import { useDrop } from 'react-dnd';
 import { useData } from '../contexts/DataContext';
+import { useSettings } from '../contexts/SettingsContext';
 import type { Activity } from '../contexts/DataContext';
 
 interface LessonPlan {
@@ -32,6 +36,7 @@ interface LessonPlan {
   unitId?: string;
   unitName?: string;
   lessonNumber?: string;
+  title?: string;
 }
 
 interface LessonPlannerCalendarProps {
@@ -52,11 +57,17 @@ export function LessonPlannerCalendar({
   className
 }: LessonPlannerCalendarProps) {
   const { allLessonsData } = useData();
+  const { getThemeForClass, getCategoryColor } = useSettings();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [editingPlan, setEditingPlan] = useState<LessonPlan | null>(null);
   const [unitFilter, setUnitFilter] = useState<string>('all');
   const [selectedPlan, setSelectedPlan] = useState<LessonPlan | null>(null);
+  const [selectedDateWithPlans, setSelectedDateWithPlans] = useState<{date: Date, plans: LessonPlan[]} | null>(null);
+  const [isLessonSummaryOpen, setIsLessonSummaryOpen] = useState(false);
+
+  // Get theme colors
+  const theme = getThemeForClass(className);
 
   // Get unique units from lesson plans
   const units = React.useMemo(() => {
@@ -108,38 +119,21 @@ export function LessonPlannerCalendar({
     }
   }, [lessonPlans, unitFilter]);
 
-  const getLessonPlanForDate = (date: Date) => {
+  const getLessonPlansForDate = (date: Date): LessonPlan[] => {
     // Get all plans for this date
-    const plansForDate = filteredLessonPlans.filter(plan => 
+    return filteredLessonPlans.filter(plan => 
       isSameDay(new Date(plan.date), date) && plan.className === className
     );
-    
-    // Return the first plan if there's only one
-    if (plansForDate.length === 1) {
-      return plansForDate[0];
-    }
-    
-    // If there are multiple plans, return them all
-    if (plansForDate.length > 1) {
-      return plansForDate;
-    }
-    
-    // No plans for this date
-    return null;
   };
 
-  const handleDateClick = (date: Date, plan: LessonPlan | LessonPlan[] | null) => {
-    // If there's a single plan, show its details
-    if (plan && !Array.isArray(plan)) {
-      setSelectedPlan(plan);
-    } 
-    // If there are multiple plans, show a selection dialog
-    else if (plan && Array.isArray(plan) && plan.length > 0) {
-      // For now, just select the first one
-      setSelectedPlan(plan[0]);
-    }
-    // If no plan exists, create a new one
-    else {
+  const handleDateClick = (date: Date) => {
+    const plansForDate = getLessonPlansForDate(date);
+    
+    if (plansForDate.length > 0) {
+      setSelectedDateWithPlans({date, plans: plansForDate});
+      setIsLessonSummaryOpen(true);
+    } else {
+      // If no plans exist, create a new one
       onDateSelect(date);
       onCreateLessonPlan(date);
     }
@@ -171,18 +165,33 @@ export function LessonPlannerCalendar({
       if (selectedPlan && selectedPlan.id === planId) {
         setSelectedPlan(null);
       }
+      
+      // Close the lesson summary if all plans for the date are deleted
+      if (selectedDateWithPlans) {
+        const remainingPlans = updatedPlans.filter(plan => 
+          isSameDay(new Date(plan.date), selectedDateWithPlans.date) && plan.className === className
+        );
+        
+        if (remainingPlans.length === 0) {
+          setIsLessonSummaryOpen(false);
+          setSelectedDateWithPlans(null);
+        } else {
+          setSelectedDateWithPlans({...selectedDateWithPlans, plans: remainingPlans});
+        }
+      }
     }
   };
 
   const renderCalendarDay = (date: Date, isCurrentMonth: boolean = true) => {
-    const plansForDate = getLessonPlanForDate(date);
+    const plansForDate = getLessonPlansForDate(date);
     const isSelected = selectedDate && isSameDay(date, selectedDate);
     const isToday = isSameDay(date, new Date());
+    const isSelectedWithPlans = selectedDateWithPlans && isSameDay(date, selectedDateWithPlans.date);
     
-    // Handle multiple plans for the same day
-    const hasMultiplePlans = Array.isArray(plansForDate) && plansForDate.length > 1;
-    const singlePlan = !hasMultiplePlans ? plansForDate as LessonPlan | null : null;
-    const multiplePlans = hasMultiplePlans ? plansForDate as LessonPlan[] : [];
+    // Check if there are plans for this date
+    const hasPlans = plansForDate.length > 0;
+    const hasMultiplePlans = plansForDate.length > 1;
+    const singlePlan = plansForDate.length === 1 ? plansForDate[0] : null;
 
     // Set up drop target for activities
     const [{ isOver }, drop] = useDrop(() => ({
@@ -228,14 +237,15 @@ export function LessonPlannerCalendar({
       <div
         ref={drop}
         key={date.toISOString()}
-        onClick={() => handleDateClick(date, plansForDate)}
+        onClick={() => handleDateClick(date)}
         className={`
-          relative w-full h-24 p-2 border border-gray-200 hover:bg-blue-50 transition-colors duration-200 group
+          relative w-full h-16 p-1 border border-gray-200 hover:bg-blue-50 transition-colors duration-200 group cursor-pointer
           ${isSelected ? 'bg-blue-100 border-blue-300' : ''}
           ${isToday ? 'ring-2 ring-blue-400' : ''}
-          ${singlePlan ? 'bg-green-50' : ''}
+          ${hasPlans ? 'bg-green-50' : ''}
           ${!isCurrentMonth ? 'opacity-40' : ''}
           ${isOver ? 'bg-blue-100 border-blue-300' : ''}
+          ${isSelectedWithPlans && isLessonSummaryOpen ? 'bg-blue-100 border-blue-300 ring-2 ring-blue-500' : ''}
         `}
       >
         <div className="flex flex-col h-full">
@@ -243,44 +253,22 @@ export function LessonPlannerCalendar({
             {format(date, 'd')}
           </span>
           
-          {singlePlan && (
-            <div className="flex-1 mt-1">
-              <div className={`
-                text-xs px-2 py-1 rounded-full text-white font-medium
-                ${singlePlan.status === 'completed' ? 'bg-green-500' : 
-                  singlePlan.status === 'cancelled' ? 'bg-red-500' : 'bg-blue-500'}
-              `}>
-                Week {singlePlan.week}
-              </div>
-              <div className="text-xs text-gray-600 mt-1">
-                {singlePlan.activities.length} activities
-              </div>
-              {singlePlan.unitName && (
-                <div className="flex items-center mt-1">
-                  <Tag className="h-3 w-3 text-indigo-500 mr-1" />
-                  <span className="text-xs text-indigo-600 truncate">{singlePlan.unitName}</span>
-                </div>
+          {hasPlans && (
+            <div className="flex-1 mt-1 flex flex-wrap gap-1">
+              {plansForDate.slice(0, 2).map((plan, index) => (
+                <div 
+                  key={index}
+                  className={`
+                    h-2 w-2 rounded-full
+                    ${plan.status === 'completed' ? 'bg-green-500' : 
+                      plan.status === 'cancelled' ? 'bg-red-500' : 'bg-blue-500'}
+                  `}
+                  title={plan.title || `Week ${plan.week} Lesson`}
+                ></div>
+              ))}
+              {plansForDate.length > 2 && (
+                <div className="h-2 w-2 rounded-full bg-purple-500" title={`+${plansForDate.length - 2} more plans`}></div>
               )}
-            </div>
-          )}
-          
-          {hasMultiplePlans && (
-            <div className="flex-1 mt-1">
-              <div className="text-xs px-2 py-1 rounded-full bg-purple-500 text-white font-medium">
-                {multiplePlans.length} Plans
-              </div>
-              {multiplePlans.some(plan => plan.unitName) && (
-                <div className="flex items-center mt-1">
-                  <FolderOpen className="h-3 w-3 text-indigo-500 mr-1" />
-                  <span className="text-xs text-indigo-600 truncate">Unit Plans</span>
-                </div>
-              )}
-            </div>
-          )}
-          
-          {!singlePlan && !hasMultiplePlans && (
-            <div className="flex-1 flex items-center justify-center">
-              <Plus className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100" />
             </div>
           )}
         </div>
@@ -290,14 +278,14 @@ export function LessonPlannerCalendar({
 
   const renderWeekView = () => {
     return (
-      <div className="grid grid-cols-7 gap-4">
+      <div className="grid grid-cols-7 gap-1">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} className="text-center font-medium text-gray-700 py-2">
+          <div key={day} className="text-center font-medium text-gray-700 py-1 text-xs">
             {day}
           </div>
         ))}
         {weekDays.map(date => (
-          <div key={date.toISOString()} className="min-h-[200px]">
+          <div key={date.toISOString()}>
             {renderCalendarDay(date)}
           </div>
         ))}
@@ -309,7 +297,7 @@ export function LessonPlannerCalendar({
     return (
       <div className="grid grid-cols-7 gap-1">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} className="text-center font-medium text-gray-700 py-2">
+          <div key={day} className="text-center font-medium text-gray-700 py-1 text-xs">
             {day}
           </div>
         ))}
@@ -335,64 +323,281 @@ export function LessonPlannerCalendar({
     };
   };
 
+  // Render the lesson summary box
+  const renderLessonSummary = () => {
+    if (!selectedDateWithPlans || !isLessonSummaryOpen) return null;
+    
+    const { date, plans } = selectedDateWithPlans;
+    
+    return (
+      <div className="absolute left-1/2 transform -translate-x-1/2 top-32 z-10 w-[90%] max-w-4xl">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+          {/* Header */}
+          <div 
+            className="p-4 text-white relative"
+            style={{ 
+              background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.secondary} 100%)` 
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold mb-1">
+                  {format(date, 'MMMM d, yyyy')}
+                </h2>
+                <p className="text-white text-opacity-90 text-sm">
+                  {plans.length} {plans.length === 1 ? 'lesson' : 'lessons'} planned
+                </p>
+              </div>
+              <button
+                onClick={() => setIsLessonSummaryOpen(false)}
+                className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200"
+              >
+                <X className="h-5 w-5 text-white" />
+              </button>
+            </div>
+          </div>
+          
+          {/* Lesson Plans */}
+          <div className="p-6 max-h-[70vh] overflow-y-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {plans.map((plan) => (
+                <div 
+                  key={plan.id}
+                  className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200"
+                >
+                  {/* Plan Header */}
+                  <div 
+                    className="p-4 border-b border-gray-200"
+                    style={{ 
+                      background: plan.unitId 
+                        ? `linear-gradient(to right, ${theme.primary}15, ${theme.primary}05)` 
+                        : `linear-gradient(to right, ${theme.secondary}15, ${theme.secondary}05)`,
+                      borderLeft: `4px solid ${plan.unitId ? theme.primary : theme.secondary}`
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-gray-900">
+                          {plan.title || (plan.lessonNumber ? `Lesson ${plan.lessonNumber}` : `Week ${plan.week} Lesson`)}
+                        </h3>
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <span>Week {plan.week}</span>
+                          {plan.unitName && (
+                            <>
+                              <span>•</span>
+                              <span>{plan.unitName}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDateSelect(date);
+                            setIsLessonSummaryOpen(false);
+                          }}
+                          className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                          title="Edit Lesson"
+                        >
+                          <Edit3 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeletePlan(plan.id);
+                          }}
+                          className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                          title="Delete Lesson"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Plan Content */}
+                  <div className="p-4">
+                    {/* Stats */}
+                    <div className="flex items-center space-x-4 mb-3 text-sm text-gray-600">
+                      <div className="flex items-center space-x-1">
+                        <Clock className="h-4 w-4 text-gray-500" />
+                        <span>{plan.duration} mins</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Users className="h-4 w-4 text-gray-500" />
+                        <span>{plan.activities.length} activities</span>
+                      </div>
+                    </div>
+                    
+                    {/* Categories or Activities */}
+                    {plan.lessonNumber && getLessonDetails(plan.lessonNumber) ? (
+                      <div>
+                        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                          Categories
+                        </h4>
+                        <div className="flex flex-wrap gap-1.5 mb-3">
+                          {getLessonDetails(plan.lessonNumber)!.categories.slice(0, 4).map((category) => (
+                            <span
+                              key={category}
+                              className="px-2 py-1 text-xs font-medium rounded-full"
+                              style={{
+                                backgroundColor: `${getCategoryColor(category)}20`,
+                                color: getCategoryColor(category)
+                              }}
+                            >
+                              {category}
+                            </span>
+                          ))}
+                          {getLessonDetails(plan.lessonNumber)!.categories.length > 4 && (
+                            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
+                              +{getLessonDetails(plan.lessonNumber)!.categories.length - 4}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ) : plan.activities.length > 0 ? (
+                      <div>
+                        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                          Activities
+                        </h4>
+                        <div className="space-y-2 max-h-32 overflow-y-auto">
+                          {plan.activities.slice(0, 3).map((activity, index) => (
+                            <div 
+                              key={index}
+                              className="p-2 bg-gray-50 rounded-lg border border-gray-100 text-sm"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium text-gray-900">{activity.activity}</span>
+                                {activity.time > 0 && (
+                                  <span className="text-xs text-gray-500">{activity.time}m</span>
+                                )}
+                              </div>
+                              <span className="text-xs text-gray-600">{activity.category}</span>
+                            </div>
+                          ))}
+                          {plan.activities.length > 3 && (
+                            <div className="text-center text-xs text-blue-600 py-1">
+                              +{plan.activities.length - 3} more activities
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-2 text-gray-500 text-sm">
+                        No activities added yet
+                      </div>
+                    )}
+                    
+                    {/* Notes Preview */}
+                    {plan.notes && (
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                          Notes
+                        </h4>
+                        <p className="text-xs text-gray-600 line-clamp-2">
+                          {plan.notes.replace(/<[^>]*>/g, '')}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* View Button */}
+                    <div className="mt-4 text-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDateSelect(date);
+                          setIsLessonSummaryOpen(false);
+                        }}
+                        className="inline-flex items-center space-x-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                        <span>Edit Lesson</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              {/* Add New Lesson Card */}
+              <div 
+                className="bg-white rounded-xl shadow-md border-2 border-dashed border-gray-300 hover:border-blue-400 overflow-hidden hover:shadow-lg transition-all duration-200 flex flex-col items-center justify-center p-6 cursor-pointer"
+                onClick={() => {
+                  onDateSelect(selectedDateWithPlans.date);
+                  onCreateLessonPlan(selectedDateWithPlans.date);
+                  setIsLessonSummaryOpen(false);
+                }}
+              >
+                <div className="bg-blue-100 p-3 rounded-full mb-3">
+                  <Plus className="h-6 w-6 text-blue-600" />
+                </div>
+                <h3 className="font-medium text-gray-900 mb-1">Add New Lesson</h3>
+                <p className="text-sm text-gray-600 text-center">
+                  Create a new lesson plan for {format(selectedDateWithPlans.date, 'MMMM d, yyyy')}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-      {/* Calendar Header */}
-      <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <Calendar className="h-6 w-6" />
-            <div>
-              <h2 className="text-xl font-bold">Lesson Planner</h2>
-              <p className="text-blue-100 text-sm">{className} - {format(currentDate, 'MMMM yyyy')}</p>
-            </div>
+      {/* Calendar Header - THINNER */}
+      <div className="p-3 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Calendar className="h-5 w-5" />
+            <h2 className="text-lg font-bold">Lesson Planner</h2>
           </div>
           
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setViewMode(viewMode === 'month' ? 'week' : 'month')}
-              className="px-3 py-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg text-sm font-medium transition-colors duration-200"
+              className="px-2 py-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg text-xs font-medium transition-colors duration-200"
             >
               {viewMode === 'month' ? 'Week View' : 'Month View'}
             </button>
+            
+            <div className="flex items-center">
+              <button
+                onClick={() => setCurrentDate(viewMode === 'month' ? subWeeks(currentDate, 4) : subWeeks(currentDate, 1))}
+                className="p-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              
+              <h3 className="text-base font-medium mx-2">
+                {viewMode === 'month' 
+                  ? format(currentDate, 'MMMM yyyy')
+                  : `Week of ${format(weekStart, 'MMM d, yyyy')}`
+                }
+              </h3>
+              
+              <button
+                onClick={() => setCurrentDate(viewMode === 'month' ? addWeeks(currentDate, 4) : addWeeks(currentDate, 1))}
+                className="p-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => setCurrentDate(viewMode === 'month' ? subWeeks(currentDate, 4) : subWeeks(currentDate, 1))}
-            className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          
-          <h3 className="text-lg font-semibold">
-            {viewMode === 'month' 
-              ? format(currentDate, 'MMMM yyyy')
-              : `Week of ${format(weekStart, 'MMM d, yyyy')}`
-            }
-          </h3>
-          
-          <button
-            onClick={() => setCurrentDate(viewMode === 'month' ? addWeeks(currentDate, 4) : addWeeks(currentDate, 1))}
-            className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
         </div>
       </div>
 
       {/* Unit Filter */}
       {units.length > 0 && (
-        <div className="p-4 bg-indigo-50 border-b border-indigo-100">
+        <div className="p-2 bg-indigo-50 border-b border-indigo-100">
           <div className="flex items-center space-x-3">
-            <label className="text-sm font-medium text-gray-700">
+            <label className="text-xs font-medium text-gray-700">
               Filter by Unit:
             </label>
             <select
               value={unitFilter}
               onChange={(e) => setUnitFilter(e.target.value)}
-              className="px-3 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+              className="px-2 py-1 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs"
             >
               <option value="all">All Plans</option>
               <option value="none">No Unit</option>
@@ -406,103 +611,35 @@ export function LessonPlannerCalendar({
         </div>
       )}
 
-      {/* Selected Plan Details */}
-      {selectedPlan && (
-        <div className="p-4 bg-blue-50 border-b border-blue-200">
-          <div className="flex justify-between items-start">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center">
-                <Info className="h-5 w-5 text-blue-600 mr-2" />
-                {selectedPlan.lessonNumber ? 
-                  `Lesson ${selectedPlan.lessonNumber}` : 
-                  `Week ${selectedPlan.week} Plan`}
-              </h3>
-              
-              <div className="space-y-2">
-                <p className="text-sm text-gray-700">
-                  <strong>Date:</strong> {format(new Date(selectedPlan.date), 'MMMM d, yyyy')}
-                </p>
-                <p className="text-sm text-gray-700">
-                  <strong>Duration:</strong> {selectedPlan.duration} minutes
-                </p>
-                <p className="text-sm text-gray-700">
-                  <strong>Activities:</strong> {selectedPlan.activities.length}
-                </p>
-                
-                {selectedPlan.unitName && (
-                  <p className="text-sm text-gray-700">
-                    <strong>Unit:</strong> {selectedPlan.unitName}
-                  </p>
-                )}
-                
-                {selectedPlan.lessonNumber && (
-                  <div className="mt-3">
-                    <h4 className="text-sm font-medium text-gray-700 mb-1">Lesson Categories:</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {getLessonDetails(selectedPlan.lessonNumber)?.categories.slice(0, 5).map(category => (
-                        <span key={category} className="px-2 py-0.5 bg-white text-xs rounded-full border border-blue-200">
-                          {category}
-                        </span>
-                      ))}
-                      {getLessonDetails(selectedPlan.lessonNumber)?.categories.length > 5 && (
-                        <span className="px-2 py-0.5 bg-white text-xs rounded-full border border-blue-200">
-                          +{getLessonDetails(selectedPlan.lessonNumber)?.categories.length - 5} more
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <div className="flex space-x-2">
-              <button
-                onClick={() => {
-                  onDateSelect(new Date(selectedPlan.date));
-                  setSelectedPlan(null);
-                }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-              >
-                <Edit3 className="h-4 w-4" />
-                <span>Edit Plan</span>
-              </button>
-              <button
-                onClick={() => setSelectedPlan(null)}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Calendar Grid */}
-      <div className="p-6">
+      <div className="p-4">
         {viewMode === 'month' ? renderMonthView() : renderWeekView()}
       </div>
 
       {/* Legend */}
-      <div className="px-6 pb-6">
-        <div className="flex items-center justify-center space-x-6 text-sm">
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+      <div className="px-4 pb-4">
+        <div className="flex items-center justify-center space-x-4 text-xs">
+          <div className="flex items-center space-x-1">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
             <span className="text-gray-600">Planned</span>
           </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+          <div className="flex items-center space-x-1">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
             <span className="text-gray-600">Completed</span>
           </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+          <div className="flex items-center space-x-1">
+            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
             <span className="text-gray-600">Cancelled</span>
           </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-            <span className="text-gray-600">Multiple Plans</span>
+          <div className="flex items-center space-x-1">
+            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+            <span className="text-gray-600">Multiple</span>
           </div>
         </div>
       </div>
+
+      {/* Lesson Summary Box */}
+      {renderLessonSummary()}
 
       {/* Edit Plan Modal */}
       {editingPlan && (
