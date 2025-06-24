@@ -19,7 +19,6 @@ export function WalkthroughGuide({ isOpen, onClose }: WalkthroughGuideProps) {
   const [targetElement, setTargetElement] = useState<HTMLElement | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const [tooltipArrowPosition, setTooltipArrowPosition] = useState('top');
-  const [overlayElements, setOverlayElements] = useState<HTMLElement[]>([]);
 
   // Define the walkthrough steps
   const steps: WalkthroughStep[] = [
@@ -102,60 +101,6 @@ export function WalkthroughGuide({ isOpen, onClose }: WalkthroughGuideProps) {
     }
   ];
 
-  // Create overlay elements to dim the screen except for the target
-  const createOverlayElements = (targetRect: DOMRect) => {
-    // Remove any existing overlay elements
-    overlayElements.forEach(el => el.remove());
-    
-    // Create four overlay elements to cover everything except the target
-    const overlays = [
-      // Top overlay
-      document.createElement('div'),
-      // Right overlay
-      document.createElement('div'),
-      // Bottom overlay
-      document.createElement('div'),
-      // Left overlay
-      document.createElement('div')
-    ];
-    
-    // Style the overlays
-    overlays.forEach(overlay => {
-      overlay.style.position = 'fixed';
-      overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-      overlay.style.zIndex = '49';
-      overlay.style.pointerEvents = 'auto';
-      document.body.appendChild(overlay);
-    });
-    
-    // Position the overlays
-    // Top overlay
-    overlays[0].style.top = '0';
-    overlays[0].style.left = '0';
-    overlays[0].style.width = '100%';
-    overlays[0].style.height = `${targetRect.top}px`;
-    
-    // Right overlay
-    overlays[1].style.top = `${targetRect.top}px`;
-    overlays[1].style.left = `${targetRect.right}px`;
-    overlays[1].style.width = `${window.innerWidth - targetRect.right}px`;
-    overlays[1].style.height = `${targetRect.height}px`;
-    
-    // Bottom overlay
-    overlays[2].style.top = `${targetRect.bottom}px`;
-    overlays[2].style.left = '0';
-    overlays[2].style.width = '100%';
-    overlays[2].style.height = `${window.innerHeight - targetRect.bottom}px`;
-    
-    // Left overlay
-    overlays[3].style.top = `${targetRect.top}px`;
-    overlays[3].style.left = '0';
-    overlays[3].style.width = `${targetRect.left}px`;
-    overlays[3].style.height = `${targetRect.height}px`;
-    
-    setOverlayElements(overlays);
-  };
-
   // Find and position the tooltip relative to the target element
   useEffect(() => {
     if (!isOpen) return;
@@ -173,10 +118,6 @@ export function WalkthroughGuide({ isOpen, onClose }: WalkthroughGuideProps) {
         });
         setTooltipArrowPosition('none');
         setTargetElement(document.body);
-        
-        // Remove any existing overlay elements
-        overlayElements.forEach(el => el.remove());
-        setOverlayElements([]);
         return;
       }
       
@@ -191,9 +132,6 @@ export function WalkthroughGuide({ isOpen, onClose }: WalkthroughGuideProps) {
       // Calculate position
       const rect = element.getBoundingClientRect();
       const position = steps[currentStep].position;
-      
-      // Create overlay elements
-      createOverlayElements(rect);
       
       let top = 0;
       let left = 0;
@@ -232,39 +170,19 @@ export function WalkthroughGuide({ isOpen, onClose }: WalkthroughGuideProps) {
     // Find target element on step change
     findTargetElement();
     
-    // Highlight the target element
-    if (targetElement && targetElement !== document.body) {
-      targetElement.classList.add('ring-4', 'ring-blue-500', 'ring-opacity-70', 'z-50', 'highlight-pulse');
-      targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-    
     // Add resize listener
     window.addEventListener('resize', findTargetElement);
     
     // Cleanup
     return () => {
       window.removeEventListener('resize', findTargetElement);
-      if (targetElement && targetElement !== document.body) {
-        targetElement.classList.remove('ring-4', 'ring-blue-500', 'ring-opacity-70', 'z-50', 'highlight-pulse');
-      }
     };
-  }, [isOpen, currentStep, steps, targetElement, overlayElements]);
-
-  // Clean up overlay elements when component unmounts
-  useEffect(() => {
-    return () => {
-      overlayElements.forEach(el => el.remove());
-    };
-  }, [overlayElements]);
+  }, [isOpen, currentStep, steps]);
 
   if (!isOpen) return null;
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
-      // Remove highlight from current target
-      if (targetElement && targetElement !== document.body) {
-        targetElement.classList.remove('ring-4', 'ring-blue-500', 'ring-opacity-70', 'z-50', 'highlight-pulse');
-      }
       setCurrentStep(currentStep + 1);
     } else {
       handleClose();
@@ -273,24 +191,11 @@ export function WalkthroughGuide({ isOpen, onClose }: WalkthroughGuideProps) {
 
   const handlePrevious = () => {
     if (currentStep > 0) {
-      // Remove highlight from current target
-      if (targetElement && targetElement !== document.body) {
-        targetElement.classList.remove('ring-4', 'ring-blue-500', 'ring-opacity-70', 'z-50', 'highlight-pulse');
-      }
       setCurrentStep(currentStep - 1);
     }
   };
 
   const handleClose = () => {
-    // Remove highlight from current target
-    if (targetElement && targetElement !== document.body) {
-      targetElement.classList.remove('ring-4', 'ring-blue-500', 'ring-opacity-70', 'z-50', 'highlight-pulse');
-    }
-    
-    // Remove overlay elements
-    overlayElements.forEach(el => el.remove());
-    setOverlayElements([]);
-    
     onClose();
   };
 
