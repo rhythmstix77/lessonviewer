@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Search, 
   Filter, 
@@ -173,6 +173,15 @@ export function ActivityLibrary({
 
     return filtered;
   }, [libraryActivities, searchQuery, localSelectedCategory, selectedLevel, sortBy, sortOrder]);
+
+  const toggleSort = (field: 'name' | 'category' | 'time' | 'level') => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
 
   const handleActivityUpdate = async (updatedActivity: Activity) => {
     try {
