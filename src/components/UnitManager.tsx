@@ -882,6 +882,19 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                       </div>
                     )}
                   </div>
+                  
+                  {/* Add Lesson Button */}
+                  {selectedLessons.length > 0 && currentUnit && (
+                    <div className="p-4 border-t border-gray-200 bg-gray-50">
+                      <button
+                        onClick={addSelectedLessonsToUnit}
+                        className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span>Add Lesson{selectedLessons.length > 1 ? 's' : ''}</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
