@@ -643,107 +643,109 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
               <div className="lg:col-span-1">
                 <div 
                   ref={drop}
-                  className={`bg-white rounded-xl shadow-md border-2 ${isOver ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200'} p-6 min-h-[600px] transition-all duration-200`}
+                  className={`bg-white rounded-xl shadow-md border-2 ${isOver ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200'} p-6 h-[600px] flex flex-col transition-all duration-200`}
                 >
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Unit Contents</h3>
                   <p className="text-gray-600 mb-4">Drag lessons here or select from available lessons</p>
                   
-                  {currentUnit?.lessonNumbers.length === 0 && selectedLessons.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-gray-300 rounded-lg">
-                      <FolderOpen className="h-16 w-16 text-gray-300 mb-4" />
-                      <p className="text-gray-500 text-center">
-                        {isOver ? 'Drop lesson here' : 'No lessons added yet'}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {currentUnit?.lessonNumbers.sort((a, b) => parseInt(a) - parseInt(b)).map(lessonNum => {
-                        const lessonData = allLessonsData[lessonNum];
-                        if (!lessonData) return null;
-                        
-                        return (
-                          <div 
-                            key={lessonNum}
-                            className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm"
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-3">
-                                <div 
-                                  className="w-8 h-8 rounded-full flex items-center justify-center text-white font-medium"
-                                  style={{ backgroundColor: getThemeForClass(currentSheetInfo.sheet).primary }}
-                                >
-                                  {lessonNum}
-                                </div>
-                                <div>
-                                  <h4 className="font-medium text-gray-900">
-                                    {lessonData.title || `Lesson ${lessonNum}`}
-                                  </h4>
-                                  <div className="flex items-center space-x-2 text-xs text-gray-500">
-                                    <span>{lessonData.totalTime} mins</span>
-                                    <span>•</span>
-                                    <span>
-                                      {Object.values(lessonData.grouped).reduce((sum, activities) => sum + activities.length, 0)} activities
-                                    </span>
+                  <div className="flex-1 overflow-y-auto">
+                    {currentUnit?.lessonNumbers.length === 0 && selectedLessons.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-gray-300 rounded-lg">
+                        <FolderOpen className="h-16 w-16 text-gray-300 mb-4" />
+                        <p className="text-gray-500 text-center">
+                          {isOver ? 'Drop lesson here' : 'No lessons added yet'}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {currentUnit?.lessonNumbers.sort((a, b) => parseInt(a) - parseInt(b)).map(lessonNum => {
+                          const lessonData = allLessonsData[lessonNum];
+                          if (!lessonData) return null;
+                          
+                          return (
+                            <div 
+                              key={lessonNum}
+                              className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                  <div 
+                                    className="w-8 h-8 rounded-full flex items-center justify-center text-white font-medium"
+                                    style={{ backgroundColor: getThemeForClass(currentSheetInfo.sheet).primary }}
+                                  >
+                                    {lessonNum}
                                   </div>
+                                  <div>
+                                    <h4 className="font-medium text-gray-900">
+                                      {lessonData.title || `Lesson ${lessonNum}`}
+                                    </h4>
+                                    <div className="flex items-center space-x-2 text-xs text-gray-500">
+                                      <span>{lessonData.totalTime} mins</span>
+                                      <span>•</span>
+                                      <span>
+                                        {Object.values(lessonData.grouped).reduce((sum, activities) => sum + activities.length, 0)} activities
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-center space-x-1">
+                                  <button
+                                    onClick={() => moveLessonInUnit(currentUnit.id, lessonNum, 'up')}
+                                    className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+                                    title="Move Up"
+                                  >
+                                    <ArrowUp className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => moveLessonInUnit(currentUnit.id, lessonNum, 'down')}
+                                    className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+                                    title="Move Down"
+                                  >
+                                    <ArrowDown className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => toggleLessonSelection(lessonNum)}
+                                    className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
+                                    title="Remove"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
                                 </div>
                               </div>
                               
-                              <div className="flex items-center space-x-1">
-                                <button
-                                  onClick={() => moveLessonInUnit(currentUnit.id, lessonNum, 'up')}
-                                  className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
-                                  title="Move Up"
-                                >
-                                  <ArrowUp className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => moveLessonInUnit(currentUnit.id, lessonNum, 'down')}
-                                  className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
-                                  title="Move Down"
-                                >
-                                  <ArrowDown className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => toggleLessonSelection(lessonNum)}
-                                  className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
-                                  title="Remove"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
+                              {/* Categories */}
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {lessonData.categoryOrder.slice(0, 3).map(category => (
+                                  <span 
+                                    key={category}
+                                    className="px-1.5 py-0.5 text-xs rounded-full"
+                                    style={{
+                                      backgroundColor: `${getCategoryColor(category)}20`,
+                                      color: getCategoryColor(category)
+                                    }}
+                                  >
+                                    {category}
+                                  </span>
+                                ))}
+                                {lessonData.categoryOrder.length > 3 && (
+                                  <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
+                                    +{lessonData.categoryOrder.length - 3}
+                                  </span>
+                                )}
                               </div>
                             </div>
-                            
-                            {/* Categories */}
-                            <div className="mt-2 flex flex-wrap gap-1">
-                              {lessonData.categoryOrder.slice(0, 3).map(category => (
-                                <span 
-                                  key={category}
-                                  className="px-1.5 py-0.5 text-xs rounded-full"
-                                  style={{
-                                    backgroundColor: `${getCategoryColor(category)}20`,
-                                    color: getCategoryColor(category)
-                                  }}
-                                >
-                                  {category}
-                                </span>
-                              ))}
-                              {lessonData.categoryOrder.length > 3 && (
-                                <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
-                                  +{lessonData.categoryOrder.length - 3}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* Middle Panel - Available Lessons */}
               <div className="lg:col-span-1">
-                <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden sticky top-8">
+                <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden h-[600px] flex flex-col">
                   <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
                     <h3 className="text-lg font-semibold mb-2">Available Lessons</h3>
                     <p className="text-blue-100 text-sm">Select lessons to add to your unit</p>
@@ -804,7 +806,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                     </div>
                   </div>
                   
-                  <div className="p-4 max-h-[600px] overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto p-4">
                     <div className="grid grid-cols-1 gap-2">
                       {filteredLessons.map(lessonNum => {
                         const lessonData = allLessonsData[lessonNum];
@@ -885,7 +887,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
 
               {/* Right Panel - Units List */}
               <div className="lg:col-span-1">
-                <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden sticky top-8">
+                <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden h-[600px] flex flex-col">
                   <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
                     <h3 className="text-lg font-semibold mb-2">Your Units</h3>
                     <p className="text-indigo-100 text-sm">Select a unit to edit</p>
@@ -903,7 +905,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                     </div>
                   </div>
                   
-                  <div className="p-4 max-h-[600px] overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto p-4">
                     {units.length === 0 ? (
                       <div className="text-center py-8">
                         <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
