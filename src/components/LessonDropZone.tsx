@@ -360,23 +360,31 @@ export function LessonDropZone({
             {onSave && (
               <button
                 onClick={onSave}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 flex items-center space-x-1"
               >
-                <Save className="h-4 w-4" />
+                <Save className="h-3.5 w-3.5" />
                 <span>Save Plan</span>
               </button>
             )}
-            
-            {onSaveAndCreate && (
-              <button
-                onClick={onSaveAndCreate}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Save & New</span>
-              </button>
-            )}
           </div>
+        </div>
+      </div>
+
+      {/* Unit Details Section */}
+      <div className="p-4 border-b border-gray-200 bg-gray-50">
+        <h3 className="font-medium text-gray-700 mb-2">Unit Details</h3>
+        <div className="flex flex-wrap gap-2">
+          {/* Navigation buttons */}
+          <button
+            className="px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm rounded transition-colors duration-200 flex items-center space-x-1"
+          >
+            <span>Previous</span>
+          </button>
+          <button
+            className="px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm rounded transition-colors duration-200 flex items-center space-x-1"
+          >
+            <span>Next</span>
+          </button>
         </div>
       </div>
 

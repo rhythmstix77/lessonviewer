@@ -18,7 +18,9 @@ import {
   Edit3,
   FolderOpen,
   AlertCircle,
-  Calendar
+  Calendar,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { ActivityCard } from './ActivityCard';
 import { LessonDropZone } from './LessonDropZone';
@@ -94,6 +96,8 @@ export function LessonPlanBuilder() {
   const [libraryActivities, setLibraryActivities] = useState<Activity[]>([]);
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Load lesson plans from localStorage
   useEffect(() => {
@@ -147,7 +151,7 @@ export function LessonPlanBuilder() {
     try {
       // Validate that the plan has a title
       if (!updatedPlan.title.trim()) {
-        alert('Please provide a title for the lesson plan');
+        alert('Please provide a unit name');
         setSaveStatus('error');
         setTimeout(() => setSaveStatus('idle'), 3000);
         return false;
@@ -164,6 +168,7 @@ export function LessonPlanBuilder() {
       saveLessonPlans(updatedPlans);
       setCurrentLessonPlan(updatedPlan);
       setSaveStatus('success');
+      setHasUnsavedChanges(false);
       setTimeout(() => setSaveStatus('idle'), 3000);
       return true;
     } catch (error) {
@@ -191,6 +196,7 @@ export function LessonPlanBuilder() {
     };
     
     setCurrentLessonPlan(updatedPlan);
+    setHasUnsavedChanges(true);
   };
 
   const handleActivityRemove = (activityIndex: number) => {
@@ -201,6 +207,7 @@ export function LessonPlanBuilder() {
       duration: currentLessonPlan.duration - (removedActivity.time || 0),
     };
     setCurrentLessonPlan(updatedPlan);
+    setHasUnsavedChanges(true);
   };
 
   const handleActivityReorder = (dragIndex: number, hoverIndex: number) => {
@@ -215,10 +222,14 @@ export function LessonPlanBuilder() {
     };
     
     setCurrentLessonPlan(updatedPlan);
+    setHasUnsavedChanges(true);
   };
 
   const handleSaveLessonPlan = () => {
     const success = handleUpdateLessonPlan(currentLessonPlan);
+    if (success) {
+      setHasUnsavedChanges(false);
+    }
   };
 
   // Create a new lesson plan after saving the current one
@@ -244,6 +255,7 @@ export function LessonPlanBuilder() {
       };
       
       setCurrentLessonPlan(newPlan);
+      setHasUnsavedChanges(false);
     }
   };
 
@@ -345,9 +357,47 @@ export function LessonPlanBuilder() {
     };
     
     setCurrentLessonPlan(updatedPlan);
+    setHasUnsavedChanges(true);
     
     // Clear selections after adding
     setSelectedActivities([]);
+  };
+
+  // Navigation between lessons
+  const navigateToLesson = (direction: 'prev' | 'next') => {
+    // Check for unsaved changes
+    if (hasUnsavedChanges) {
+      const confirmNavigation = window.confirm('You have unsaved changes. Do you want to continue without saving?');
+      if (!confirmNavigation) {
+        return;
+      }
+    }
+    
+    // Find the current lesson in the list of saved lessons
+    const currentIndex = lessonPlans.findIndex(plan => plan.id === currentLessonPlan.id);
+    
+    if (currentIndex === -1) {
+      // Current lesson is not saved yet
+      if (direction === 'prev' && lessonPlans.length > 0) {
+        // Navigate to the last saved lesson
+        setCurrentLessonPlan(lessonPlans[lessonPlans.length - 1]);
+      } else if (direction === 'next') {
+        // Create a new lesson
+        handleCreateNewAfterSave();
+      }
+    } else {
+      // Current lesson is in the list
+      if (direction === 'prev' && currentIndex > 0) {
+        setCurrentLessonPlan(lessonPlans[currentIndex - 1]);
+      } else if (direction === 'next' && currentIndex < lessonPlans.length - 1) {
+        setCurrentLessonPlan(lessonPlans[currentIndex + 1]);
+      } else if (direction === 'next' && currentIndex === lessonPlans.length - 1) {
+        // Create a new lesson
+        handleCreateNewAfterSave();
+      }
+    }
+    
+    setHasUnsavedChanges(false);
   };
 
   return (
@@ -366,6 +416,7 @@ export function LessonPlanBuilder() {
                 onNotesUpdate={(notes) => {
                   const updatedPlan = { ...currentLessonPlan, notes };
                   setCurrentLessonPlan(updatedPlan);
+                  setHasUnsavedChanges(true);
                 }}
                 isEditing={true}
                 onActivityClick={(activity) => setSelectedActivity(activity)}
@@ -533,6 +584,28 @@ export function LessonPlanBuilder() {
             setSelectedActivity(null);
           }}
         />
+      )}
+
+      {/* Save Status Message */}
+      {saveStatus !== 'idle' && (
+        <div className="fixed bottom-4 right-4 max-w-md">
+          <div className={`p-4 rounded-lg shadow-lg flex items-center space-x-2 ${
+            saveStatus === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
+            'bg-red-50 text-red-700 border border-red-200'
+          }`}>
+            {saveStatus === 'success' ? (
+              <>
+                <Check className="h-5 w-5 text-green-600" />
+                <span>Unit saved successfully!</span>
+              </>
+            ) : (
+              <>
+                <AlertCircle className="h-5 w-5 text-red-600" />
+                <span>Failed to save unit. Please ensure you've provided a unit name.</span>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </DndProvider>
   );
