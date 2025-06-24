@@ -52,7 +52,6 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
   const { getThemeForClass } = useSettings();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedHalfTerm, setSelectedHalfTerm] = useState<string>('all');
-  const [dominantCategory, setDominantCategory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'number' | 'title' | 'activities' | 'time'>('number');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
@@ -61,41 +60,6 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
 
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
-
-  // Get unique categories across all lessons
-  const allCategories = useMemo(() => {
-    const categories = new Set<string>();
-    Object.values(allLessonsData).forEach(lessonData => {
-      lessonData.categoryOrder.forEach(category => {
-        categories.add(category);
-      });
-    });
-    return Array.from(categories).sort();
-  }, [allLessonsData]);
-
-  // Determine dominant category for each lesson
-  const getDominantCategory = (lessonNumber: string) => {
-    const lessonData = allLessonsData[lessonNumber];
-    if (!lessonData) return '';
-    
-    // Count activities per category
-    const categoryCounts: Record<string, number> = {};
-    Object.entries(lessonData.grouped).forEach(([category, activities]) => {
-      categoryCounts[category] = activities.length;
-    });
-    
-    // Find category with most activities
-    let maxCount = 0;
-    let dominantCat = '';
-    Object.entries(categoryCounts).forEach(([category, count]) => {
-      if (count > maxCount) {
-        maxCount = count;
-        dominantCat = category;
-      }
-    });
-    
-    return dominantCat;
-  };
 
   // Filter and sort lessons
   const filteredAndSortedLessons = useMemo(() => {
@@ -122,12 +86,6 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
       if (selectedHalfTerm !== 'all') {
         const lessonTerm = LESSON_TO_HALF_TERM[lessonNum] || 'A1';
         if (lessonTerm !== selectedHalfTerm) return false;
-      }
-      
-      // Filter by dominant category
-      if (dominantCategory !== 'all') {
-        const dominant = getDominantCategory(lessonNum);
-        if (dominant !== dominantCategory) return false;
       }
       
       return true;
@@ -163,7 +121,7 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
     });
 
     return filtered;
-  }, [lessonNumbers, allLessonsData, searchQuery, selectedHalfTerm, dominantCategory, sortBy, sortOrder]);
+  }, [lessonNumbers, allLessonsData, searchQuery, selectedHalfTerm, sortBy, sortOrder]);
 
   const toggleSort = (field: 'number' | 'title' | 'activities' | 'time') => {
     if (sortBy === field) {
@@ -227,7 +185,7 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
         </div>
 
         {/* Search and Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-green-300" />
             <input
@@ -250,20 +208,6 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
             {HALF_TERMS.map(term => (
               <option key={term.id} value={term.id} className="text-gray-900">
                 {term.name} ({term.months})
-              </option>
-            ))}
-          </select>
-          
-          <select
-            value={dominantCategory}
-            onChange={(e) => setDominantCategory(e.target.value)}
-            className="px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
-            dir="ltr"
-          >
-            <option value="all" className="text-gray-900">All Categories</option>
-            {allCategories.map(category => (
-              <option key={category} value={category} className="text-gray-900">
-                {category}
               </option>
             ))}
           </select>
@@ -307,7 +251,7 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
             <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No lessons found</h3>
             <p className="text-gray-600">
-              {searchQuery || selectedHalfTerm !== 'all' || dominantCategory !== 'all'
+              {searchQuery || selectedHalfTerm !== 'all'
                 ? 'Try adjusting your search or filters'
                 : 'No lessons available in the library'
               }
