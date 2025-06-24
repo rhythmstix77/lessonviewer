@@ -646,7 +646,6 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                   className={`bg-white rounded-xl shadow-md border-2 ${isOver ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200'} p-6 h-[600px] flex flex-col transition-all duration-200`}
                 >
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Unit Contents</h3>
-                  <p className="text-gray-600 mb-4">Drag lessons here or select from available lessons</p>
                   
                   <div className="flex-1 overflow-y-auto">
                     {currentUnit?.lessonNumbers.length === 0 && selectedLessons.length === 0 ? (
@@ -792,17 +791,6 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                           Clear All
                         </button>
                       </div>
-                      
-                      {/* Add Selected Lessons Button */}
-                      {selectedLessons.length > 0 && currentUnit && (
-                        <button
-                          onClick={addSelectedLessonsToUnit}
-                          className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
-                        >
-                          <Plus className="h-4 w-4" />
-                          <span>Add {selectedLessons.length} Selected {selectedLessons.length === 1 ? 'Lesson' : 'Lessons'}</span>
-                        </button>
-                      )}
                     </div>
                   </div>
                   
