@@ -234,7 +234,7 @@ export function WalkthroughGuide({ isOpen, onClose }: WalkthroughGuideProps) {
     
     // Highlight the target element
     if (targetElement && targetElement !== document.body) {
-      targetElement.classList.add('ring-4', 'ring-blue-500', 'ring-opacity-70', 'z-50');
+      targetElement.classList.add('ring-4', 'ring-blue-500', 'ring-opacity-70', 'z-50', 'highlight-pulse');
       targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
     
@@ -245,7 +245,7 @@ export function WalkthroughGuide({ isOpen, onClose }: WalkthroughGuideProps) {
     return () => {
       window.removeEventListener('resize', findTargetElement);
       if (targetElement && targetElement !== document.body) {
-        targetElement.classList.remove('ring-4', 'ring-blue-500', 'ring-opacity-70', 'z-50');
+        targetElement.classList.remove('ring-4', 'ring-blue-500', 'ring-opacity-70', 'z-50', 'highlight-pulse');
       }
     };
   }, [isOpen, currentStep, steps, targetElement, overlayElements]);
@@ -263,7 +263,7 @@ export function WalkthroughGuide({ isOpen, onClose }: WalkthroughGuideProps) {
     if (currentStep < steps.length - 1) {
       // Remove highlight from current target
       if (targetElement && targetElement !== document.body) {
-        targetElement.classList.remove('ring-4', 'ring-blue-500', 'ring-opacity-70', 'z-50');
+        targetElement.classList.remove('ring-4', 'ring-blue-500', 'ring-opacity-70', 'z-50', 'highlight-pulse');
       }
       setCurrentStep(currentStep + 1);
     } else {
@@ -275,7 +275,7 @@ export function WalkthroughGuide({ isOpen, onClose }: WalkthroughGuideProps) {
     if (currentStep > 0) {
       // Remove highlight from current target
       if (targetElement && targetElement !== document.body) {
-        targetElement.classList.remove('ring-4', 'ring-blue-500', 'ring-opacity-70', 'z-50');
+        targetElement.classList.remove('ring-4', 'ring-blue-500', 'ring-opacity-70', 'z-50', 'highlight-pulse');
       }
       setCurrentStep(currentStep - 1);
     }
@@ -284,7 +284,7 @@ export function WalkthroughGuide({ isOpen, onClose }: WalkthroughGuideProps) {
   const handleClose = () => {
     // Remove highlight from current target
     if (targetElement && targetElement !== document.body) {
-      targetElement.classList.remove('ring-4', 'ring-blue-500', 'ring-opacity-70', 'z-50');
+      targetElement.classList.remove('ring-4', 'ring-blue-500', 'ring-opacity-70', 'z-50', 'highlight-pulse');
     }
     
     // Remove overlay elements

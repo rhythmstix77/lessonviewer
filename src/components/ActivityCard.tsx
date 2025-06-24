@@ -23,6 +23,7 @@ import {
   Tag
 } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
+import { useDrag } from 'react-dnd';
 import type { Activity } from '../contexts/DataContext';
 
 interface ActivityCardProps {
@@ -61,8 +62,15 @@ export function ActivityCard({
   const [isExpanded, setIsExpanded] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
 
-  // Only set up drag if draggable is true
-  const dragRef = useRef<HTMLDivElement>(null);
+  // Set up drag and drop
+  const [{ isDragging }, drag] = useDrag(() => ({
+    type: 'activity',
+    item: { activity },
+    collect: (monitor) => ({
+      isDragging: !!monitor.isDragging(),
+    }),
+    canDrag: () => draggable
+  }), [activity, draggable]);
   
   useEffect(() => {
     setEditedActivity(activity);
@@ -158,8 +166,10 @@ export function ActivityCard({
   if (viewMode === 'minimal') {
     return (
       <div
-        ref={dragRef}
-        className={`bg-white rounded-lg shadow-sm border-l-4 p-3 transition-all duration-200 hover:shadow-md ${draggable ? 'cursor-move' : 'cursor-pointer'} h-full`}
+        ref={draggable ? drag : undefined}
+        className={`bg-white rounded-lg shadow-sm border-l-4 p-3 transition-all duration-200 hover:shadow-md ${draggable ? 'cursor-move' : 'cursor-pointer'} h-full ${
+          isDragging ? 'opacity-50' : ''
+        }`}
         style={{ borderLeftColor: cardColor }}
         onClick={handleCardClick}
       >
@@ -181,8 +191,10 @@ export function ActivityCard({
   if (viewMode === 'compact') {
     return (
       <div
-        ref={dragRef}
-        className={`bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl ${draggable ? 'cursor-move' : 'cursor-pointer'} ${isEditing ? 'ring-4 ring-blue-300' : 'border-gray-200 hover:border-gray-300'} h-full flex flex-col`}
+        ref={draggable ? drag : undefined}
+        className={`bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl ${draggable ? 'cursor-move' : 'cursor-pointer'} ${
+          isEditing ? 'ring-4 ring-blue-300' : 'border-gray-200 hover:border-gray-300'
+        } ${isDragging ? 'opacity-50' : ''} h-full flex flex-col`}
         style={{ borderLeftColor: cardColor, borderLeftWidth: '6px' }}
         onClick={handleCardClick}
       >
@@ -241,8 +253,10 @@ export function ActivityCard({
   // Detailed view (default)
   return (
     <div
-      ref={dragRef}
-      className={`bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl ${draggable ? 'cursor-move' : 'cursor-pointer'} overflow-hidden ${isEditing ? 'ring-4 ring-blue-300' : 'border-gray-200 hover:border-gray-300'} h-full flex flex-col`}
+      ref={draggable ? drag : undefined}
+      className={`bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl ${draggable ? 'cursor-move' : 'cursor-pointer'} overflow-hidden ${
+        isEditing ? 'ring-4 ring-blue-300' : 'border-gray-200 hover:border-gray-300'
+      } ${isDragging ? 'opacity-50' : ''} h-full flex flex-col`}
       style={{ borderLeftColor: cardColor, borderLeftWidth: '6px' }}
       onClick={handleCardClick}
     >
@@ -421,9 +435,22 @@ export function ActivityCard({
         )}
 
         {/* Resources */}
-        {(showResources || isEditing) && (
+        {(showResources || isEditing || resources.length > 0) && (
           <div className="space-y-3 mt-auto">
-            <h4 className="text-sm font-medium text-gray-700">Resources</h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium text-gray-700">Resources</h4>
+              {!isEditing && resources.length > 0 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowResources(!showResources);
+                  }}
+                  className="text-xs text-blue-600 hover:text-blue-800"
+                >
+                  {showResources ? 'Hide' : 'Show'}
+                </button>
+              )}
+            </div>
             
             {isEditing ? (
               <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
@@ -449,27 +476,29 @@ export function ActivityCard({
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
-                {resources.map((resource, index) => {
-                  const IconComponent = resource.icon;
-                  return (
-                    <button
-                      key={index}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (onResourceClick) {
-                          onResourceClick(resource.url, `${activity.activity} - ${resource.label}`, resource.type);
-                        }
-                      }}
-                      className={`flex items-center space-x-2 p-2 rounded-lg border transition-all duration-200 hover:scale-105 hover:shadow-sm ${resource.color}`}
-                    >
-                      <IconComponent className="h-4 w-4 flex-shrink-0" />
-                      <span className="text-sm font-medium truncate">{resource.label}</span>
-                      <ExternalLink className="h-3 w-3 flex-shrink-0 opacity-60" />
-                    </button>
-                  );
-                })}
-              </div>
+              showResources && (
+                <div className="grid grid-cols-2 gap-2">
+                  {resources.map((resource, index) => {
+                    const IconComponent = resource.icon;
+                    return (
+                      <button
+                        key={index}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onResourceClick) {
+                            onResourceClick(resource.url, `${activity.activity} - ${resource.label}`, resource.type);
+                          }
+                        }}
+                        className={`flex items-center space-x-2 p-2 rounded-lg border transition-all duration-200 hover:scale-105 hover:shadow-sm ${resource.color}`}
+                      >
+                        <IconComponent className="h-4 w-4 flex-shrink-0" />
+                        <span className="text-sm font-medium truncate">{resource.label}</span>
+                        <ExternalLink className="h-3 w-3 flex-shrink-0 opacity-60" />
+                      </button>
+                    );
+                  })}
+                </div>
+              )
             )}
           </div>
         )}

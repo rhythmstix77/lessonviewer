@@ -1,5 +1,6 @@
 import React from 'react';
 import { useData } from '../contexts/DataContext';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface CategoryListProps {
   selectedCategory: string;
@@ -7,26 +8,12 @@ interface CategoryListProps {
   className?: string;
 }
 
-const categoryColors: Record<string, string> = {
-  'Welcome': '#F59E0B',
-  'Kodaly Songs': '#8B5CF6',
-  'Kodaly Action Songs': '#F97316',
-  'Action/Games Songs': '#F97316',
-  'Rhythm Sticks': '#D97706',
-  'Scarf Songs': '#10B981',
-  'General Game': '#3B82F6',
-  'Core Songs': '#84CC16',
-  'Parachute Games': '#EF4444',
-  'Percussion Games': '#06B6D4',
-  'Teaching Units': '#6366F1',
-  'Goodbye': '#14B8A6'
-};
-
 export function CategoryList({ selectedCategory, onCategoryChange, className = '' }: CategoryListProps) {
   const { allLessonsData } = useData();
+  const { categories, getCategoryColor } = useSettings();
   
   // Extract all categories from all lessons
-  const categories = React.useMemo(() => {
+  const availableCategories = React.useMemo(() => {
     const cats = new Set<string>();
     
     Object.values(allLessonsData).forEach(lessonData => {
@@ -54,22 +41,27 @@ export function CategoryList({ selectedCategory, onCategoryChange, className = '
           <span>All Categories</span>
         </button>
         
-        {categories.map(category => (
-          <button
-            key={category}
-            onClick={() => onCategoryChange(category === selectedCategory ? 'all' : category)}
-            className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200`}
-            style={{
-              backgroundColor: category === selectedCategory 
-                ? categoryColors[category] || '#6B7280'
-                : 'transparent',
-              color: category === selectedCategory ? 'white' : 'inherit',
-              borderLeft: `4px solid ${categoryColors[category] || '#6B7280'}`
-            }}
-          >
-            <span>{category}</span>
-          </button>
-        ))}
+        {categories.map(category => {
+          // Only show categories that are actually used in lessons
+          if (!availableCategories.includes(category.name)) return null;
+          
+          return (
+            <button
+              key={category.name}
+              onClick={() => onCategoryChange(category.name === selectedCategory ? 'all' : category.name)}
+              className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200`}
+              style={{
+                backgroundColor: category.name === selectedCategory 
+                  ? category.color
+                  : 'transparent',
+                color: category.name === selectedCategory ? 'white' : 'inherit',
+                borderLeft: `4px solid ${category.color}`
+              }}
+            >
+              <span>{category.name}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

@@ -29,6 +29,7 @@ export function ActivityDetails({
   const containerRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const [activeButtons, setActiveButtons] = useState<string[]>([]);
 
   // Fullscreen functionality
   const toggleFullscreen = async () => {
@@ -66,11 +67,64 @@ export function ActivityDetails({
     setIsEditMode(isEditing);
   }, [activity, isEditing]);
 
+  // Set up event listeners for selection changes to update active buttons
+  useEffect(() => {
+    if (isEditMode && descriptionRef.current) {
+      const handleSelectionChange = () => {
+        const activeCommands: string[] = [];
+        
+        if (document.queryCommandState('bold')) activeCommands.push('bold');
+        if (document.queryCommandState('italic')) activeCommands.push('italic');
+        if (document.queryCommandState('underline')) activeCommands.push('underline');
+        if (document.queryCommandState('insertUnorderedList')) activeCommands.push('insertUnorderedList');
+        if (document.queryCommandState('insertOrderedList')) activeCommands.push('insertOrderedList');
+        
+        setActiveButtons(activeCommands);
+      };
+      
+      document.addEventListener('selectionchange', handleSelectionChange);
+      
+      // Focus the editor
+      descriptionRef.current.focus();
+      
+      // Clean up
+      return () => {
+        document.removeEventListener('selectionchange', handleSelectionChange);
+      };
+    }
+  }, [isEditMode]);
+
   const execCommand = (command: string, value?: string) => {
-    document.execCommand(command, false, value);
     if (descriptionRef.current) {
+      // Focus the editor to ensure commands work properly
+      descriptionRef.current.focus();
+      
+      // Save the current selection
+      const selection = window.getSelection();
+      const range = selection?.getRangeAt(0);
+      
+      // Execute the command
+      document.execCommand(command, false, value);
+      
+      // Update active buttons state
+      if (activeButtons.includes(command)) {
+        setActiveButtons(prev => prev.filter(cmd => cmd !== command));
+      } else {
+        setActiveButtons(prev => [...prev, command]);
+      }
+      
+      // Get the updated content
       const updatedContent = descriptionRef.current.innerHTML;
       setEditedActivity(prev => ({ ...prev, description: updatedContent }));
+      
+      // Restore focus to the editor
+      descriptionRef.current.focus();
+      
+      // Restore selection if possible
+      if (range && selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
     }
   };
 
@@ -108,21 +162,21 @@ export function ActivityDetails({
           <div className="flex items-center space-x-1 mb-2 p-2 bg-gray-50 rounded-lg">
             <button
               onClick={() => execCommand('bold')}
-              className="p-1 hover:bg-gray-200 rounded"
+              className={`p-1 rounded ${activeButtons.includes('bold') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
               title="Bold"
             >
               <Bold className="h-4 w-4" />
             </button>
             <button
               onClick={() => execCommand('italic')}
-              className="p-1 hover:bg-gray-200 rounded"
+              className={`p-1 rounded ${activeButtons.includes('italic') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
               title="Italic"
             >
               <Italic className="h-4 w-4" />
             </button>
             <button
               onClick={() => execCommand('underline')}
-              className="p-1 hover:bg-gray-200 rounded"
+              className={`p-1 rounded ${activeButtons.includes('underline') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
               title="Underline"
             >
               <Underline className="h-4 w-4" />
@@ -130,14 +184,14 @@ export function ActivityDetails({
             <div className="w-px h-6 bg-gray-300 mx-1"></div>
             <button
               onClick={() => execCommand('insertUnorderedList')}
-              className="p-1 hover:bg-gray-200 rounded"
+              className={`p-1 rounded ${activeButtons.includes('insertUnorderedList') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
               title="Bullet List"
             >
               <List className="h-4 w-4" />
             </button>
             <button
               onClick={() => execCommand('insertOrderedList')}
-              className="p-1 hover:bg-gray-200 rounded"
+              className={`p-1 rounded ${activeButtons.includes('insertOrderedList') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
               title="Numbered List"
             >
               <ListOrdered className="h-4 w-4" />
@@ -152,6 +206,13 @@ export function ActivityDetails({
             onInput={(e) => {
               const target = e.target as HTMLDivElement;
               setEditedActivity(prev => ({ ...prev, description: target.innerHTML }));
+            }}
+            onKeyDown={(e) => {
+              // Prevent default behavior for Tab key to avoid losing focus
+              if (e.key === 'Tab') {
+                e.preventDefault();
+                document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
+              }
             }}
           />
         </div>
@@ -227,10 +288,10 @@ export function ActivityDetails({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 modal-overlay">
         <div 
           ref={containerRef}
-          className={`bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden ${
+          className={`bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden modal-content modal-responsive ${
             isFullscreen ? 'fixed inset-0 rounded-none max-w-none max-h-none' : ''
           }`}
         >
@@ -267,6 +328,9 @@ export function ActivityDetails({
                     <option value="Percussion Games">Percussion Games</option>
                     <option value="Teaching Units">Teaching Units</option>
                     <option value="Goodbye">Goodbye</option>
+                    <option value="Kodaly Rhythms">Kodaly Rhythms</option>
+                    <option value="Kodaly Games">Kodaly Games</option>
+                    <option value="IWB Games">IWB Games</option>
                   </select>
                 ) : (
                   <p className="text-sm text-gray-600">{activity.category}</p>
@@ -284,8 +348,8 @@ export function ActivityDetails({
                   >
                     <option value="">Select Level</option>
                     <option value="All">All</option>
-                    <option value="EYFS L">EYFS L</option>
-                    <option value="EYFS U">EYFS U</option>
+                    <option value="LKG">LKG</option>
+                    <option value="UKG">UKG</option>
                     <option value="Reception">Reception</option>
                   </select>
                 )}
@@ -873,10 +937,10 @@ function ResourceViewer({ url, title, type, onClose }: ResourceViewerProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60]">
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60] modal-overlay">
       <div
         ref={containerRef}
-        className={`bg-white rounded-xl shadow-2xl overflow-hidden transition-all duration-300 ${
+        className={`bg-white rounded-xl shadow-2xl overflow-hidden transition-all duration-300 modal-content modal-responsive ${
           isFullscreen 
             ? 'w-full h-full rounded-none' 
             : 'w-[95vw] h-[90vh] max-w-6xl'

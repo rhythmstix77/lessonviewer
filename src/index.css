@@ -36,3 +36,54 @@
 .highlight-pulse {
   animation: highlight-pulse 1.5s infinite;
 }
+
+/* Modal animations */
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-slide-in {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-overlay {
+  animation: modal-fade-in 0.3s ease-out;
+}
+
+.modal-content {
+  animation: modal-slide-in 0.3s ease-out;
+}
+
+/* Responsive modal sizing */
+@media (min-width: 640px) {
+  .modal-responsive {
+    max-width: 90%;
+    width: 600px;
+  }
+}
+
+@media (min-width: 768px) {
+  .modal-responsive {
+    max-width: 80%;
+    width: 700px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .modal-responsive {
+    max-width: 70%;
+    width: 800px;
+  }
+}
