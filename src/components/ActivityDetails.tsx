@@ -427,7 +427,7 @@ export function ActivityDetails({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 modal-overlay">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <div 
           ref={containerRef}
           className={`bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden modal-content modal-responsive ${
