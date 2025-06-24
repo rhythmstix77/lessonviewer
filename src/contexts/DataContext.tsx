@@ -29,6 +29,7 @@ export interface LessonData {
   categoryOrder: string[];
   totalTime: number;
   eyfsStatements?: string[];
+  title?: string; // Added title field for lessons
 }
 
 export interface SheetInfo {
@@ -51,6 +52,7 @@ interface DataContextType {
   addEyfsToLesson: (lessonNumber: string, eyfsStatement: string) => void;
   removeEyfsFromLesson: (lessonNumber: string, eyfsStatement: string) => void;
   updateAllEyfsStatements: (statements: string[]) => void;
+  updateLessonTitle: (lessonNumber: string, title: string) => void; // New function to update lesson title
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -146,6 +148,35 @@ const SAMPLE_DATA = {
     ['2', 'Percussion Games', 'Beat Makers', "Creating rhythms with percussion", 'Reception', '6', '', 'https://example.com/percussion', '', '', ''],
     ['2', 'Goodbye', 'Goodbye Friends', "Farewell song", 'All', '2', '', 'https://example.com/goodbye-friends', '', '', '']
   ]
+};
+
+// Default lesson titles based on categories
+const generateDefaultLessonTitle = (lessonData: LessonData): string => {
+  // Get the main categories in this lesson
+  const categories = lessonData.categoryOrder;
+  
+  if (categories.length === 0) return "Untitled Lesson";
+  
+  // If it has Welcome and Goodbye, it's a standard lesson
+  if (categories.includes('Welcome') && categories.includes('Goodbye')) {
+    // Find the main content category (not Welcome or Goodbye)
+    const mainCategories = categories.filter(cat => cat !== 'Welcome' && cat !== 'Goodbye');
+    if (mainCategories.length > 0) {
+      return `${mainCategories[0]} Lesson`;
+    }
+    return "Standard Lesson";
+  }
+  
+  // If it has a specific focus
+  if (categories.includes('Kodaly Songs')) return "Kodaly Lesson";
+  if (categories.includes('Rhythm Sticks')) return "Rhythm Sticks Lesson";
+  if (categories.includes('Percussion Games')) return "Percussion Lesson";
+  if (categories.includes('Scarf Songs')) return "Movement with Scarves";
+  if (categories.includes('Parachute Games')) return "Parachute Activities";
+  if (categories.includes('Action/Games Songs')) return "Action Games Lesson";
+  
+  // Default to the first category
+  return `${categories[0]} Lesson`;
 };
 
 export function DataProvider({ children }: DataProviderProps) {
@@ -298,7 +329,8 @@ export function DataProvider({ children }: DataProviderProps) {
           },
           categoryOrder: ['Welcome'],
           totalTime: 5,
-          eyfsStatements: []
+          eyfsStatements: [],
+          title: 'Sample Lesson'
         }
       });
       setEyfsStatements({});
@@ -445,11 +477,20 @@ export function DataProvider({ children }: DataProviderProps) {
         // Sort categories according to the predefined order
         const categoryOrder = sortCategoriesByOrder(Array.from(categoriesInLesson));
 
-        lessonsData[lessonNum] = {
+        // Generate a title for the lesson based on its content
+        const title = generateDefaultLessonTitle({
           grouped,
           categoryOrder,
           totalTime,
           eyfsStatements: []
+        });
+
+        lessonsData[lessonNum] = {
+          grouped,
+          categoryOrder,
+          totalTime,
+          eyfsStatements: [],
+          title // Add the generated title
         };
       });
 
@@ -496,7 +537,8 @@ export function DataProvider({ children }: DataProviderProps) {
           },
           categoryOrder: ['Welcome'],
           totalTime: 0,
-          eyfsStatements: []
+          eyfsStatements: [],
+          title: 'Error Loading Lesson'
         }
       });
       setEyfsStatements({});
@@ -708,6 +750,35 @@ export function DataProvider({ children }: DataProviderProps) {
     localStorage.setItem(`eyfs-standards-${currentSheetInfo.sheet}`, JSON.stringify(structureEyfsStatements(statements)));
   };
 
+  // Update lesson title
+  const updateLessonTitle = (lessonNumber: string, title: string) => {
+    setAllLessonsData(prev => {
+      const updatedLessonsData = { ...prev };
+      if (updatedLessonsData[lessonNumber]) {
+        updatedLessonsData[lessonNumber] = {
+          ...updatedLessonsData[lessonNumber],
+          title
+        };
+        
+        // Save to server and localStorage
+        saveDataToServer(
+          updatedLessonsData,
+          lessonNumbers,
+          teachingUnits,
+          eyfsStatements
+        );
+        
+        saveDataToLocalStorage(
+          updatedLessonsData,
+          lessonNumbers,
+          teachingUnits,
+          eyfsStatements
+        );
+      }
+      return updatedLessonsData;
+    });
+  };
+
   // Helper to structure EYFS statements by area
   const structureEyfsStatements = (statements: string[]) => {
     const structuredStatements: Record<string, string[]> = {};
@@ -738,7 +809,8 @@ export function DataProvider({ children }: DataProviderProps) {
     uploadExcelFile,
     addEyfsToLesson,
     removeEyfsFromLesson,
-    updateAllEyfsStatements
+    updateAllEyfsStatements,
+    updateLessonTitle
   };
 
   return (

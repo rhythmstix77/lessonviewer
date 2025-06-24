@@ -326,6 +326,7 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
       if (searchQuery) {
         const matchesSearch = 
           lessonNum.includes(searchQuery) || 
+          (lessonData.title && lessonData.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
           Object.values(lessonData.grouped).some(activities => 
             activities.some(activity => 
               activity.activity.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -674,7 +675,9 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                                   {lessonNum}
                                 </div>
                                 <div>
-                                  <h4 className="font-medium text-gray-900">Lesson {lessonNum}</h4>
+                                  <h4 className="font-medium text-gray-900">
+                                    {lessonData.title || `Lesson ${lessonNum}`}
+                                  </h4>
                                   <div className="flex items-center space-x-2 text-xs text-gray-500">
                                     <span>{lessonData.totalTime} mins</span>
                                     <span>•</span>
@@ -830,7 +833,9 @@ export function UnitManager({ isOpen, onClose, onAddToCalendar, embedded = false
                                   {isSelected && <Check className="h-3 w-3 text-white" />}
                                 </div>
                                 <div>
-                                  <h4 className="font-medium text-gray-900">Lesson {lessonNum}</h4>
+                                  <h4 className="font-medium text-gray-900">
+                                    {lessonData.title || `Lesson ${lessonNum}`}
+                                  </h4>
                                   <div className="text-xs text-gray-500 mt-1">{termInfo?.name}</div>
                                 </div>
                               </div>
