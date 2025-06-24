@@ -17,6 +17,7 @@ import {
   Tag,
   Upload
 } from 'lucide-react';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface ActivityCreatorProps {
   onClose: () => void;
@@ -26,6 +27,7 @@ interface ActivityCreatorProps {
 }
 
 export function ActivityCreator({ onClose, onSave, categories, levels }: ActivityCreatorProps) {
+  const { categories: allCategories } = useSettings();
   const [activity, setActivity] = useState({
     activity: '',
     description: '',
@@ -47,22 +49,6 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
   const [errors, setErrors] = useState<Record<string, string>>({});
   const descriptionRef = React.useRef<HTMLDivElement>(null);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
-
-  // All available categories
-  const allCategories = [
-    'Welcome',
-    'Kodaly Songs',
-    'Kodaly Action Songs',
-    'Action/Games Songs',
-    'Rhythm Sticks',
-    'Scarf Songs',
-    'General Game',
-    'Core Songs',
-    'Parachute Games',
-    'Percussion Games',
-    'Teaching Units',
-    'Goodbye'
-  ];
 
   // Simplified level options - just the core options without duplicates
   const simplifiedLevels = ['All', 'EYFS L', 'EYFS U', 'Reception'];
@@ -193,7 +179,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                 >
                   <option value="">Select a category</option>
                   {allCategories.map(category => (
-                    <option key={category} value={category}>{category}</option>
+                    <option key={category.name} value={category.name}>{category.name}</option>
                   ))}
                 </select>
                 {errors.category && (
@@ -213,7 +199,11 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   <option value="">Select a level</option>
-                  {simplifiedLevels.map(level => (
+                  <option value="All">All</option>
+                  <option value="LKG">LKG</option>
+                  <option value="UKG">UKG</option>
+                  <option value="Reception">Reception</option>
+                  {simplifiedLevels.filter(level => !['All', 'LKG', 'UKG', 'Reception'].includes(level)).map(level => (
                     <option key={level} value={level}>{level}</option>
                   ))}
                 </select>
