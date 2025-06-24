@@ -188,11 +188,11 @@ function ActivityItem({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between mb-2">
             <div className="flex-1 min-w-0">
-              <h4 className="font-semibold text-gray-900 text-base leading-tight">
+              <h4 className="font-semibold text-gray-900 text-base leading-tight" dir="ltr">
                 {activity.activity}
               </h4>
               <div className="flex items-center space-x-3 mt-1">
-                <span className="text-sm text-gray-600">{activity.category}</span>
+                <span className="text-sm text-gray-600" dir="ltr">{activity.category}</span>
                 {activity.level && (
                   <span 
                     className="px-2 py-1 text-white text-xs font-medium rounded-full"
@@ -230,6 +230,7 @@ function ActivityItem({
             <div 
               className="text-sm text-gray-600 leading-relaxed prose prose-sm max-w-none"
               dangerouslySetInnerHTML={{ __html: formatDescription(activity.description) }}
+              dir="ltr"
             />
           )}
         </div>
@@ -510,7 +511,7 @@ export function LessonDropZone({
             {/* Activities organized by category */}
             {categories.map(category => (
               <div key={category} className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 pb-2 border-b border-gray-200" dir="ltr">
                   {category}
                 </h3>
                 

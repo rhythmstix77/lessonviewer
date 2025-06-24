@@ -287,6 +287,7 @@ export function ActivityDetails({
         <div
           className="prose prose-sm max-w-none"
           dangerouslySetInnerHTML={{ __html: activity.htmlDescription }}
+          dir="ltr" // Explicitly set text direction to left-to-right
         />
       );
     }
@@ -297,6 +298,7 @@ export function ActivityDetails({
         <div
           className="prose prose-sm max-w-none"
           dangerouslySetInnerHTML={{ __html: activity.description }}
+          dir="ltr" // Explicitly set text direction to left-to-right
         />
       );
     }
@@ -312,6 +314,7 @@ export function ActivityDetails({
       <div
         className="prose prose-sm max-w-none"
         dangerouslySetInnerHTML={{ __html: formattedDescription }}
+        dir="ltr" // Explicitly set text direction to left-to-right
       />
     );
   };
@@ -388,6 +391,7 @@ export function ActivityDetails({
         <div
           className="prose prose-sm max-w-none"
           dangerouslySetInnerHTML={{ __html: activity.activityText }}
+          dir="ltr" // Explicitly set text direction to left-to-right
         />
       );
     }
@@ -568,7 +572,7 @@ export function ActivityDetails({
                           </svg>
                         )}
                       </div>
-                      <span className="text-sm text-gray-700">{statement}</span>
+                      <span className="text-sm text-gray-700" dir="ltr">{statement}</span>
                     </div>
                   ))}
                 </div>
@@ -647,7 +651,7 @@ export function ActivityDetails({
                     dir="ltr" // Explicitly set text direction to left-to-right
                   />
                 ) : (
-                  <p className="text-gray-700">{activity.unitName}</p>
+                  <p className="text-gray-700" dir="ltr">{activity.unitName}</p>
                 )}
               </div>
             )}
@@ -666,7 +670,7 @@ export function ActivityDetails({
                         <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                        <span className="text-sm text-gray-700">{standard}</span>
+                        <span className="text-sm text-gray-700" dir="ltr">{standard}</span>
                       </li>
                     ))}
                   </ul>
@@ -777,7 +781,7 @@ export function ActivityDetails({
                             className={`flex items-center space-x-2 p-2 rounded-lg border transition-all duration-200 hover:scale-105 hover:shadow-sm ${resource.color}`}
                           >
                             <IconComponent className="h-4 w-4 flex-shrink-0" />
-                            <span className="text-sm font-medium truncate">{resource.label}</span>
+                            <span className="text-sm font-medium truncate" dir="ltr">{resource.label}</span>
                             <ExternalLink className="h-3 w-3 flex-shrink-0 opacity-60" />
                           </button>
                         );
@@ -1114,8 +1118,8 @@ function ResourceViewer({ url, title, type, onClose }: ResourceViewerProps) {
               {getTypeIcon()}
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-semibold text-gray-900 truncate">{title}</h2>
-              <p className="text-sm text-gray-600 truncate">{url}</p>
+              <h2 className="text-lg font-semibold text-gray-900 truncate" dir="ltr">{title}</h2>
+              <p className="text-sm text-gray-600 truncate" dir="ltr">{url}</p>
             </div>
           </div>
 

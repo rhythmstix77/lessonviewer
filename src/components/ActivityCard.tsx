@@ -175,8 +175,8 @@ export function ActivityCard({
       >
         <div className="flex items-center justify-between h-full">
           <div className="flex-1 min-w-0">
-            <h4 className="font-medium text-gray-900 text-sm truncate">{activity.activity}</h4>
-            <p className="text-xs text-gray-500">{activity.category}</p>
+            <h4 className="font-medium text-gray-900 text-sm truncate" dir="ltr">{activity.activity}</h4>
+            <p className="text-xs text-gray-500" dir="ltr">{activity.category}</p>
           </div>
           {activity.time > 0 && (
             <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full ml-2">
@@ -200,7 +200,7 @@ export function ActivityCard({
       >
         <div className="p-4 flex flex-col flex-grow">
           <div className="flex items-start justify-between mb-2">
-            <h4 className="font-semibold text-gray-900 text-base leading-tight">{activity.activity}</h4>
+            <h4 className="font-semibold text-gray-900 text-base leading-tight" dir="ltr">{activity.activity}</h4>
             <div className="flex items-center space-x-1 ml-2">
               {activity.time > 0 && (
                 <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
@@ -210,7 +210,7 @@ export function ActivityCard({
             </div>
           </div>
           
-          <p className="text-sm text-gray-600 mb-2">{activity.category}</p>
+          <p className="text-sm text-gray-600 mb-2" dir="ltr">{activity.category}</p>
           
           {activity.level && (
             <span 
@@ -280,13 +280,14 @@ export function ActivityCard({
                   className="w-full bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-70 border border-white border-opacity-30 rounded-lg px-3 py-2 text-lg font-bold"
                   placeholder="Activity name"
                   onClick={(e) => e.stopPropagation()}
+                  dir="ltr"
                 />
               ) : (
-                <h3 className="text-lg font-bold leading-tight">{activity.activity}</h3>
+                <h3 className="text-lg font-bold leading-tight" dir="ltr">{activity.activity}</h3>
               )}
               
               <div className="flex items-center space-x-3 mt-2">
-                <span className="text-sm opacity-90">{activity.category}</span>
+                <span className="text-sm opacity-90" dir="ltr">{activity.category}</span>
                 {activity.level && (
                   <span className="px-2 py-1 bg-white bg-opacity-20 text-xs font-medium rounded-full">
                     {activity.level}
@@ -347,13 +348,14 @@ export function ActivityCard({
                   const target = e.target as HTMLDivElement;
                   setEditedActivity(prev => ({ ...prev, description: target.innerHTML }));
                 }}
+                dir="ltr"
               />
             </div>
           ) : (
             <>
               {isDescriptionLong && !isExpanded ? (
                 <div>
-                  <div className="text-gray-700 leading-relaxed line-clamp-3">
+                  <div className="text-gray-700 leading-relaxed line-clamp-3" dir="ltr">
                     {getTruncatedDescription()}
                   </div>
                   <button 
@@ -372,6 +374,7 @@ export function ActivityCard({
                   <div 
                     className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
                     dangerouslySetInnerHTML={{ __html: formatDescription(activity.description) }}
+                    dir="ltr"
                   />
                   {isDescriptionLong && isExpanded && (
                     <button 
@@ -405,9 +408,10 @@ export function ActivityCard({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Unit name"
                 onClick={(e) => e.stopPropagation()}
+                dir="ltr"
               />
             ) : (
-              <p className="text-sm text-gray-700 font-medium">{activity.unitName}</p>
+              <p className="text-sm text-gray-700 font-medium" dir="ltr">{activity.unitName}</p>
             )}
           </div>
         )}
@@ -421,7 +425,7 @@ export function ActivityCard({
             </label>
             <div className="flex flex-wrap gap-1">
               {activity.eyfsStandards.slice(0, 2).map((standard, index) => (
-                <span key={index} className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                <span key={index} className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full" dir="ltr">
                   {standard.split(':')[1] || standard}
                 </span>
               ))}
@@ -471,6 +475,7 @@ export function ActivityCard({
                       onChange={(e) => setEditedActivity(prev => ({ ...prev, [key]: e.target.value }))}
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                       placeholder={`${label} URL`}
+                      dir="ltr"
                     />
                   </div>
                 ))}
@@ -492,7 +497,7 @@ export function ActivityCard({
                         className={`flex items-center space-x-2 p-2 rounded-lg border transition-all duration-200 hover:scale-105 hover:shadow-sm ${resource.color}`}
                       >
                         <IconComponent className="h-4 w-4 flex-shrink-0" />
-                        <span className="text-sm font-medium truncate">{resource.label}</span>
+                        <span className="text-sm font-medium truncate" dir="ltr">{resource.label}</span>
                         <ExternalLink className="h-3 w-3 flex-shrink-0 opacity-60" />
                       </button>
                     );

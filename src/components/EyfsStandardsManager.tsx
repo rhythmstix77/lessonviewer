@@ -289,6 +289,7 @@ export function EyfsStandardsManager({ isOpen, onClose }: EyfsStandardsManagerPr
                   accept=".json"
                   onChange={importStandards}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  dir="ltr"
                 />
                 <button
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
