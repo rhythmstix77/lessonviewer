@@ -270,7 +270,7 @@ export function LessonDropZone({
   };
 
   // Group activities by category for side-by-side display
-  const groupedActivities = React.useMemo(() => {
+  const groupedActivities: Record<string, Activity[]> = React.useMemo(() => {
     const grouped: Record<string, Activity[]> = {};
     
     lessonPlan.activities.forEach(activity => {
@@ -303,7 +303,7 @@ export function LessonDropZone({
                   // This would need to be connected to a handler in the parent component
                   // For now, we'll just show the input field
                 }}
-                placeholder="Enter lesson title or learning objective..."
+                placeholder="Unit name"
                 className="w-full text-2xl font-bold text-gray-400 border-b border-gray-300 focus:border-green-500 focus:outline-none bg-transparent"
               />
               <div className="flex items-center flex-wrap gap-3 mt-2">
@@ -476,6 +476,7 @@ export function LessonDropZone({
               {/* Rich Text Toolbar */}
               <div className="flex items-center space-x-1 mb-2 p-2 bg-white rounded-lg border border-gray-200">
                 <button
+                  type="button"
                   onClick={() => execCommand('bold')}
                   className="p-1 hover:bg-gray-100 rounded"
                   title="Bold"
@@ -483,6 +484,7 @@ export function LessonDropZone({
                   <Bold className="h-4 w-4" />
                 </button>
                 <button
+                  type="button"
                   onClick={() => execCommand('italic')}
                   className="p-1 hover:bg-gray-100 rounded"
                   title="Italic"
@@ -490,6 +492,7 @@ export function LessonDropZone({
                   <Italic className="h-4 w-4" />
                 </button>
                 <button
+                  type="button"
                   onClick={() => execCommand('underline')}
                   className="p-1 hover:bg-gray-100 rounded"
                   title="Underline"
@@ -498,6 +501,7 @@ export function LessonDropZone({
                 </button>
                 <div className="w-px h-6 bg-gray-300 mx-1"></div>
                 <button
+                  type="button"
                   onClick={() => execCommand('insertUnorderedList')}
                   className="p-1 hover:bg-gray-100 rounded"
                   title="Bullet List"
@@ -505,6 +509,7 @@ export function LessonDropZone({
                   <List className="h-4 w-4" />
                 </button>
                 <button
+                  type="button"
                   onClick={() => execCommand('insertOrderedList')}
                   className="p-1 hover:bg-gray-100 rounded"
                   title="Numbered List"
