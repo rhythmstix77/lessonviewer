@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Menu, X, User, LogOut, BookOpen, RefreshCw, Settings, Download, HelpCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useData } from '../contexts/DataContext';
@@ -29,6 +29,16 @@ export function Header() {
     await refreshData();
   };
 
+  // Check if this is the first visit
+  useEffect(() => {
+    const hasVisitedBefore = localStorage.getItem('has-visited-before');
+    if (!hasVisitedBefore) {
+      // Show walkthrough for first-time users
+      setShowWalkthrough(true);
+      localStorage.setItem('has-visited-before', 'true');
+    }
+  }, []);
+
   const handleExportDatabase = () => {
     // Export all data from localStorage
     const data = {
@@ -49,22 +59,12 @@ export function Header() {
     
     const a = document.createElement('a');
     a.href = url;
-    a.download = `rhythmstix-data-export-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `eyfs-data-export-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
-
-  // Check if this is the first visit
-  React.useEffect(() => {
-    const hasVisitedBefore = localStorage.getItem('has-visited-before');
-    if (!hasVisitedBefore) {
-      // Show walkthrough for first-time users
-      setShowWalkthrough(true);
-      localStorage.setItem('has-visited-before', 'true');
-    }
-  }, []);
 
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);

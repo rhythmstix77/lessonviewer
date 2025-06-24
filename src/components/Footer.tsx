@@ -6,12 +6,12 @@ export function Footer() {
     <footer className="bg-blue-900 text-white py-3 mt-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row items-center justify-between space-y-1 md:space-y-0">
-          {/* Left side - Rhythmstix branding */}
+          {/* Left side - EYFS branding */}
           <div className="flex items-center space-x-3">
             <div className="flex-shrink-0">
               <img
                 src="/RLOGO copy copy.png"
-                alt="Rhythmstix"
+                alt="EYFS Lesson Builder"
                 className="h-6 w-6 object-cover rounded"
                 onError={(e) => {
                   // Fallback to Music icon if image fails to load
@@ -25,27 +25,27 @@ export function Footer() {
               </div>
             </div>
             <div>
-              <h3 className="text-sm font-bold">Rhythmstix</h3>
-              <p className="text-xs text-gray-300">For the Performing Arts</p>
+              <h3 className="text-sm font-bold">EYFS Lesson Builder</h3>
+              <p className="text-xs text-gray-300">For Early Years Education</p>
             </div>
           </div>
 
           {/* Center - Links section */}
           <div className="flex items-center space-x-4 text-xs">
             <a 
-              href="https://rhythmstix.co.uk" 
+              href="https://www.gov.uk/early-years-foundation-stage" 
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center space-x-1 text-gray-300 hover:text-blue-300 transition-colors duration-200"
             >
               <Globe className="h-3 w-3" />
-              <span>Visit Rhythmstix</span>
+              <span>EYFS Framework</span>
             </a>
             
             <span className="text-gray-500">•</span>
             
             <a 
-              href="mailto:contact@rhythmstix.co.uk"
+              href="mailto:contact@eyfslessonbuilder.com"
               className="text-gray-300 hover:text-blue-300 transition-colors duration-200"
             >
               Contact
@@ -53,7 +53,7 @@ export function Footer() {
             
             <span className="text-gray-500">•</span>
             
-            <span className="text-gray-300">© 2025 Rhythmstix</span>
+            <span className="text-gray-300">© 2025 EYFS Lesson Builder</span>
           </div>
         </div>
       </div>

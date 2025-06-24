@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, HelpCircle, Info, BookOpen, Calendar, Edit3, FolderOpen, Tag } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, HelpCircle, Info, BookOpen, Calendar, Edit3, FolderOpen, Tag, Search, Filter, Download, Plus, Save } from 'lucide-react';
 
 interface WalkthroughStep {
   title: string;
@@ -19,59 +19,142 @@ export function WalkthroughGuide({ isOpen, onClose }: WalkthroughGuideProps) {
   const [targetElement, setTargetElement] = useState<HTMLElement | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const [tooltipArrowPosition, setTooltipArrowPosition] = useState('top');
+  const [overlayElements, setOverlayElements] = useState<HTMLElement[]>([]);
 
   // Define the walkthrough steps
   const steps: WalkthroughStep[] = [
     {
       title: 'Welcome to EYFS Lesson Builder',
-      description: 'This guide will help you navigate through the main features of the application. Click Next to continue.',
+      description: 'This guide will walk you through the key features of the application. Let\'s get started!',
       target: 'body',
       position: 'top',
-      icon: <Info className="h-6 w-6 text-blue-500" />
-    },
-    {
-      title: 'Unit Viewer',
-      description: 'Browse through all your lessons organized by term. Click on a lesson to view its details.',
-      target: '[data-tab="unit-viewer"]',
-      position: 'bottom',
-      icon: <BookOpen className="h-6 w-6 text-blue-500" />
-    },
-    {
-      title: 'Unit Builder',
-      description: 'Create and manage units by grouping lessons together. Drag and drop lessons to build your units.',
-      target: '[data-tab="unit-builder"]',
-      position: 'bottom',
-      icon: <FolderOpen className="h-6 w-6 text-indigo-500" />
-    },
-    {
-      title: 'Lesson Builder',
-      description: 'Create individual lesson plans by adding activities. Customize your lessons with detailed notes.',
-      target: '[data-tab="lesson-builder"]',
-      position: 'bottom',
-      icon: <Edit3 className="h-6 w-6 text-green-500" />
+      icon: <Info className="h-8 w-8 text-blue-500" />
     },
     {
       title: 'Activity Library',
-      description: 'Browse and search through all available activities. Filter by category or level to find what you need.',
+      description: 'Browse through all available activities. Use the search and filters to find specific activities by name, category, or level.',
       target: '[data-tab="activity-library"]',
       position: 'bottom',
-      icon: <Tag className="h-6 w-6 text-pink-500" />
+      icon: <Tag className="h-8 w-8 text-pink-500" />
     },
     {
-      title: 'Calendar',
+      title: 'Category Filters',
+      description: 'Filter activities by category to quickly find what you need. Each category is color-coded for easy identification.',
+      target: '.bg-white.bg-opacity-20.border.border-white.border-opacity-30.rounded-lg:first-of-type',
+      position: 'bottom',
+      icon: <Filter className="h-8 w-8 text-indigo-500" />
+    },
+    {
+      title: 'Search Activities',
+      description: 'Search for specific activities by name, description, or content. This helps you quickly find what you need.',
+      target: '.pl-10.pr-4.py-2.bg-white.bg-opacity-20',
+      position: 'bottom',
+      icon: <Search className="h-8 w-8 text-blue-500" />
+    },
+    {
+      title: 'Lesson Builder',
+      description: 'Create and edit lesson plans by adding activities. Drag activities from the library into your lesson plan.',
+      target: '[data-tab="lesson-builder"]',
+      position: 'bottom',
+      icon: <Edit3 className="h-8 w-8 text-green-500" />
+    },
+    {
+      title: 'Unit Builder',
+      description: 'Group lessons into units for better organization. Drag lessons to create comprehensive teaching units.',
+      target: '[data-tab="unit-builder"]',
+      position: 'bottom',
+      icon: <FolderOpen className="h-8 w-8 text-indigo-500" />
+    },
+    {
+      title: 'Calendar View',
       description: 'Plan your lessons across the academic year. Add units or individual lessons to specific dates.',
       target: '[data-tab="calendar"]',
       position: 'bottom',
-      icon: <Calendar className="h-6 w-6 text-purple-500" />
+      icon: <Calendar className="h-8 w-8 text-purple-500" />
+    },
+    {
+      title: 'Export Options',
+      description: 'Export your lesson plans as PDF or Excel documents to share with colleagues or for offline use.',
+      target: '.bg-gradient-to-br.from-green-500.to-teal-600',
+      position: 'bottom',
+      icon: <Download className="h-8 w-8 text-green-500" />
+    },
+    {
+      title: 'Create New Content',
+      description: 'Add new activities, lessons, or units using the create buttons throughout the application.',
+      target: '.bg-purple-600.hover\\:bg-purple-700',
+      position: 'left',
+      icon: <Plus className="h-8 w-8 text-purple-500" />
+    },
+    {
+      title: 'Save Your Work',
+      description: 'Remember to save your work regularly. Look for save buttons like this throughout the application.',
+      target: '.bg-green-600.hover\\:bg-green-700',
+      position: 'left',
+      icon: <Save className="h-8 w-8 text-green-500" />
     },
     {
       title: 'Help Button',
       description: 'Click this button anytime to restart this walkthrough guide.',
       target: '[data-help-button]',
       position: 'left',
-      icon: <HelpCircle className="h-6 w-6 text-blue-500" />
+      icon: <HelpCircle className="h-8 w-8 text-blue-500" />
     }
   ];
+
+  // Create overlay elements to dim the screen except for the target
+  const createOverlayElements = (targetRect: DOMRect) => {
+    // Remove any existing overlay elements
+    overlayElements.forEach(el => el.remove());
+    
+    // Create four overlay elements to cover everything except the target
+    const overlays = [
+      // Top overlay
+      document.createElement('div'),
+      // Right overlay
+      document.createElement('div'),
+      // Bottom overlay
+      document.createElement('div'),
+      // Left overlay
+      document.createElement('div')
+    ];
+    
+    // Style the overlays
+    overlays.forEach(overlay => {
+      overlay.style.position = 'fixed';
+      overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+      overlay.style.zIndex = '49';
+      overlay.style.pointerEvents = 'auto';
+      document.body.appendChild(overlay);
+    });
+    
+    // Position the overlays
+    // Top overlay
+    overlays[0].style.top = '0';
+    overlays[0].style.left = '0';
+    overlays[0].style.width = '100%';
+    overlays[0].style.height = `${targetRect.top}px`;
+    
+    // Right overlay
+    overlays[1].style.top = `${targetRect.top}px`;
+    overlays[1].style.left = `${targetRect.right}px`;
+    overlays[1].style.width = `${window.innerWidth - targetRect.right}px`;
+    overlays[1].style.height = `${targetRect.height}px`;
+    
+    // Bottom overlay
+    overlays[2].style.top = `${targetRect.bottom}px`;
+    overlays[2].style.left = '0';
+    overlays[2].style.width = '100%';
+    overlays[2].style.height = `${window.innerHeight - targetRect.bottom}px`;
+    
+    // Left overlay
+    overlays[3].style.top = `${targetRect.top}px`;
+    overlays[3].style.left = '0';
+    overlays[3].style.width = `${targetRect.left}px`;
+    overlays[3].style.height = `${targetRect.height}px`;
+    
+    setOverlayElements(overlays);
+  };
 
   // Find and position the tooltip relative to the target element
   useEffect(() => {
@@ -85,11 +168,15 @@ export function WalkthroughGuide({ isOpen, onClose }: WalkthroughGuideProps) {
         const viewportHeight = window.innerHeight;
         
         setTooltipPosition({
-          left: viewportWidth / 2 - 150,
-          top: viewportHeight / 2 - 100
+          left: viewportWidth / 2 - 200,
+          top: viewportHeight / 2 - 150
         });
         setTooltipArrowPosition('none');
         setTargetElement(document.body);
+        
+        // Remove any existing overlay elements
+        overlayElements.forEach(el => el.remove());
+        setOverlayElements([]);
         return;
       }
       
@@ -105,28 +192,31 @@ export function WalkthroughGuide({ isOpen, onClose }: WalkthroughGuideProps) {
       const rect = element.getBoundingClientRect();
       const position = steps[currentStep].position;
       
+      // Create overlay elements
+      createOverlayElements(rect);
+      
       let top = 0;
       let left = 0;
       
       switch (position) {
         case 'top':
-          top = rect.top - 180;
-          left = rect.left + rect.width / 2 - 150;
+          top = rect.top - 220;
+          left = rect.left + rect.width / 2 - 200;
           setTooltipArrowPosition('bottom');
           break;
         case 'bottom':
-          top = rect.bottom + 10;
-          left = rect.left + rect.width / 2 - 150;
+          top = rect.bottom + 20;
+          left = rect.left + rect.width / 2 - 200;
           setTooltipArrowPosition('top');
           break;
         case 'left':
-          top = rect.top + rect.height / 2 - 90;
-          left = rect.left - 310;
+          top = rect.top + rect.height / 2 - 110;
+          left = rect.left - 420;
           setTooltipArrowPosition('right');
           break;
         case 'right':
-          top = rect.top + rect.height / 2 - 90;
-          left = rect.right + 10;
+          top = rect.top + rect.height / 2 - 110;
+          left = rect.right + 20;
           setTooltipArrowPosition('left');
           break;
       }
@@ -134,7 +224,7 @@ export function WalkthroughGuide({ isOpen, onClose }: WalkthroughGuideProps) {
       // Ensure tooltip stays within viewport
       if (top < 10) top = 10;
       if (left < 10) left = 10;
-      if (left + 300 > window.innerWidth) left = window.innerWidth - 310;
+      if (left + 400 > window.innerWidth) left = window.innerWidth - 410;
       
       setTooltipPosition({ top, left });
     };
@@ -145,6 +235,7 @@ export function WalkthroughGuide({ isOpen, onClose }: WalkthroughGuideProps) {
     // Highlight the target element
     if (targetElement && targetElement !== document.body) {
       targetElement.classList.add('ring-4', 'ring-blue-500', 'ring-opacity-70', 'z-50');
+      targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
     
     // Add resize listener
@@ -157,7 +248,14 @@ export function WalkthroughGuide({ isOpen, onClose }: WalkthroughGuideProps) {
         targetElement.classList.remove('ring-4', 'ring-blue-500', 'ring-opacity-70', 'z-50');
       }
     };
-  }, [isOpen, currentStep, steps, targetElement]);
+  }, [isOpen, currentStep, steps, targetElement, overlayElements]);
+
+  // Clean up overlay elements when component unmounts
+  useEffect(() => {
+    return () => {
+      overlayElements.forEach(el => el.remove());
+    };
+  }, [overlayElements]);
 
   if (!isOpen) return null;
 
@@ -188,78 +286,84 @@ export function WalkthroughGuide({ isOpen, onClose }: WalkthroughGuideProps) {
     if (targetElement && targetElement !== document.body) {
       targetElement.classList.remove('ring-4', 'ring-blue-500', 'ring-opacity-70', 'z-50');
     }
+    
+    // Remove overlay elements
+    overlayElements.forEach(el => el.remove());
+    setOverlayElements([]);
+    
     onClose();
   };
 
   // Render the tooltip
   return (
     <div className="fixed inset-0 z-50 pointer-events-none">
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black bg-opacity-50 pointer-events-auto" onClick={handleClose} />
-      
       {/* Tooltip */}
       <div 
-        className="absolute bg-white rounded-xl shadow-xl w-80 p-4 pointer-events-auto transition-all duration-300 animate-bounce-in"
+        className="absolute bg-white rounded-xl shadow-xl w-[400px] p-6 pointer-events-auto transition-all duration-300 animate-bounce-in"
         style={{ 
           top: tooltipPosition.top, 
           left: tooltipPosition.left,
         }}
       >
+        {/* Step indicator */}
+        <div className="absolute top-3 right-3 bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-1 rounded-full">
+          Step {currentStep + 1} of {steps.length}
+        </div>
+        
         {/* Close button */}
         <button 
           onClick={handleClose}
-          className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
+          className="absolute top-3 left-3 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
         >
-          <X className="h-4 w-4" />
+          <X className="h-5 w-5" />
         </button>
         
         {/* Tooltip content */}
-        <div className="mb-4 flex items-start space-x-3">
-          <div className="flex-shrink-0 mt-1">
+        <div className="mt-6 mb-6 flex items-start space-x-4">
+          <div className="flex-shrink-0 bg-blue-100 p-3 rounded-full">
             {steps[currentStep].icon}
           </div>
           <div>
-            <h3 className="font-bold text-gray-900 text-lg mb-1">{steps[currentStep].title}</h3>
-            <p className="text-gray-600 text-sm">{steps[currentStep].description}</p>
+            <h3 className="font-bold text-gray-900 text-xl mb-2">{steps[currentStep].title}</h3>
+            <p className="text-gray-600">{steps[currentStep].description}</p>
           </div>
         </div>
         
         {/* Navigation buttons */}
-        <div className="flex justify-between items-center">
-          <div className="text-xs text-gray-500">
-            Step {currentStep + 1} of {steps.length}
-          </div>
-          <div className="flex space-x-2">
-            {currentStep > 0 && (
-              <button
-                onClick={handlePrevious}
-                className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                Previous
-              </button>
-            )}
+        <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
+          {currentStep > 0 ? (
             <button
-              onClick={handleNext}
-              className="px-3 py-1.5 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center space-x-1"
+              onClick={handlePrevious}
+              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-1"
             >
-              <span>{currentStep < steps.length - 1 ? 'Next' : 'Finish'}</span>
-              <ChevronRight className="h-4 w-4" />
+              <ChevronLeft className="h-5 w-5" />
+              <span>Previous</span>
             </button>
-          </div>
+          ) : (
+            <div></div> // Empty div to maintain layout
+          )}
+          
+          <button
+            onClick={handleNext}
+            className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center space-x-1"
+          >
+            <span>{currentStep < steps.length - 1 ? 'Next' : 'Finish'}</span>
+            <ChevronRight className="h-5 w-5" />
+          </button>
         </div>
         
         {/* Tooltip arrow */}
         {tooltipArrowPosition !== 'none' && (
           <div 
-            className={`absolute w-4 h-4 bg-white transform rotate-45 ${
-              tooltipArrowPosition === 'top' ? 'top-[-8px]' : 
-              tooltipArrowPosition === 'bottom' ? 'bottom-[-8px]' : 
-              tooltipArrowPosition === 'left' ? 'left-[-8px]' : 
-              'right-[-8px]'
+            className={`absolute w-6 h-6 bg-white transform rotate-45 ${
+              tooltipArrowPosition === 'top' ? 'top-[-12px]' : 
+              tooltipArrowPosition === 'bottom' ? 'bottom-[-12px]' : 
+              tooltipArrowPosition === 'left' ? 'left-[-12px]' : 
+              'right-[-12px]'
             }`}
             style={{
-              left: tooltipArrowPosition === 'top' || tooltipArrowPosition === 'bottom' ? 'calc(50% - 8px)' : undefined,
-              top: tooltipArrowPosition === 'left' || tooltipArrowPosition === 'right' ? 'calc(50% - 8px)' : undefined
+              left: tooltipArrowPosition === 'top' || tooltipArrowPosition === 'bottom' ? 'calc(50% - 12px)' : undefined,
+              top: tooltipArrowPosition === 'left' || tooltipArrowPosition === 'right' ? 'calc(50% - 12px)' : undefined
             }}
           />
         )}
