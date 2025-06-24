@@ -158,7 +158,12 @@ export function ActivityLibrary({
           comparison = a.activity.localeCompare(b.activity);
           break;
         case 'category':
-          comparison = a.category.localeCompare(b.category);
+          // Get the position of each category from the settings
+          const catA = categories.find(c => c.name === a.category);
+          const catB = categories.find(c => c.name === b.category);
+          const posA = catA ? catA.position : 999;
+          const posB = catB ? catB.position : 999;
+          comparison = posA - posB;
           break;
         case 'time':
           comparison = a.time - b.time;
@@ -172,7 +177,7 @@ export function ActivityLibrary({
     });
 
     return filtered;
-  }, [libraryActivities, searchQuery, localSelectedCategory, selectedLevel, sortBy, sortOrder]);
+  }, [libraryActivities, searchQuery, localSelectedCategory, selectedLevel, sortBy, sortOrder, categories]);
 
   const toggleSort = (field: 'name' | 'category' | 'time' | 'level') => {
     if (sortBy === field) {
@@ -456,7 +461,7 @@ export function ActivityLibrary({
             <option value="LKG" className="text-gray-900">LKG</option>
             <option value="UKG" className="text-gray-900">UKG</option>
             <option value="Reception" className="text-gray-900">Reception</option>
-            {uniqueLevels.filter(level => !['All', 'LKG', 'UKG', 'Reception', 'EYFS U'].includes(level)).map(level => (
+            {uniqueLevels.filter(level => !['All', 'LKG', 'UKG', 'Reception'].includes(level)).map(level => (
               <option key={level} value={level} className="text-gray-900">
                 {level}
               </option>
