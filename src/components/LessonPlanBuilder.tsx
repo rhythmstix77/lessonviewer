@@ -259,6 +259,43 @@ export function LessonPlanBuilder() {
     }
   };
 
+  // Navigation between lessons
+  const navigateToLesson = (direction: 'prev' | 'next') => {
+    // Check for unsaved changes
+    if (hasUnsavedChanges) {
+      const confirmNavigation = window.confirm('You have unsaved changes. Do you want to continue without saving?');
+      if (!confirmNavigation) {
+        return;
+      }
+    }
+    
+    // Find the current lesson in the list of saved lessons
+    const currentIndex = lessonPlans.findIndex(plan => plan.id === currentLessonPlan.id);
+    
+    if (currentIndex === -1) {
+      // Current lesson is not saved yet
+      if (direction === 'prev' && lessonPlans.length > 0) {
+        // Navigate to the last saved lesson
+        setCurrentLessonPlan(lessonPlans[lessonPlans.length - 1]);
+      } else if (direction === 'next') {
+        // Create a new lesson
+        handleCreateNewAfterSave();
+      }
+    } else {
+      // Current lesson is in the list
+      if (direction === 'prev' && currentIndex > 0) {
+        setCurrentLessonPlan(lessonPlans[currentIndex - 1]);
+      } else if (direction === 'next' && currentIndex < lessonPlans.length - 1) {
+        setCurrentLessonPlan(lessonPlans[currentIndex + 1]);
+      } else if (direction === 'next' && currentIndex === lessonPlans.length - 1) {
+        // Create a new lesson
+        handleCreateNewAfterSave();
+      }
+    }
+    
+    setHasUnsavedChanges(false);
+  };
+
   // Filter and sort activities for the library
   const filteredAndSortedActivities = React.useMemo(() => {
     let filtered = libraryActivities.filter(activity => {
@@ -361,43 +398,6 @@ export function LessonPlanBuilder() {
     
     // Clear selections after adding
     setSelectedActivities([]);
-  };
-
-  // Navigation between lessons
-  const navigateToLesson = (direction: 'prev' | 'next') => {
-    // Check for unsaved changes
-    if (hasUnsavedChanges) {
-      const confirmNavigation = window.confirm('You have unsaved changes. Do you want to continue without saving?');
-      if (!confirmNavigation) {
-        return;
-      }
-    }
-    
-    // Find the current lesson in the list of saved lessons
-    const currentIndex = lessonPlans.findIndex(plan => plan.id === currentLessonPlan.id);
-    
-    if (currentIndex === -1) {
-      // Current lesson is not saved yet
-      if (direction === 'prev' && lessonPlans.length > 0) {
-        // Navigate to the last saved lesson
-        setCurrentLessonPlan(lessonPlans[lessonPlans.length - 1]);
-      } else if (direction === 'next') {
-        // Create a new lesson
-        handleCreateNewAfterSave();
-      }
-    } else {
-      // Current lesson is in the list
-      if (direction === 'prev' && currentIndex > 0) {
-        setCurrentLessonPlan(lessonPlans[currentIndex - 1]);
-      } else if (direction === 'next' && currentIndex < lessonPlans.length - 1) {
-        setCurrentLessonPlan(lessonPlans[currentIndex + 1]);
-      } else if (direction === 'next' && currentIndex === lessonPlans.length - 1) {
-        // Create a new lesson
-        handleCreateNewAfterSave();
-      }
-    }
-    
-    setHasUnsavedChanges(false);
   };
 
   // Category colors for the legend

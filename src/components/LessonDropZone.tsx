@@ -288,6 +288,12 @@ export function LessonDropZone({
   // Get all categories in the lesson plan
   const categories = Object.keys(groupedActivities).sort();
 
+  // Function to navigate between lessons
+  const navigateToLesson = (direction: 'prev' | 'next') => {
+    // This is a placeholder - the actual implementation is in the parent component
+    console.log(`Navigate to ${direction} lesson`);
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
       {/* New Header Design */}
