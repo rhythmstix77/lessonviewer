@@ -281,71 +281,66 @@ export function LessonDropZone({
       {/* New Header Design */}
       <div className="p-6 border-b border-gray-200 bg-white">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4 flex-1">
-            <div className="bg-green-500 p-3 rounded-lg shadow-md">
-              <div className="h-6 w-6 text-white"></div>
-            </div>
-            <div className="flex-1">
-              <input
-                type="text"
-                value={lessonPlan.title || ''}
-                onChange={(e) => {
-                  const updatedPlan = { ...lessonPlan, title: e.target.value };
-                  onNotesUpdate(updatedPlan.notes); // Trigger update to mark changes
-                }}
-                placeholder="Lesson Name"
-                className="w-full text-2xl font-bold text-gray-900 border-b border-gray-300 focus:border-green-500 focus:outline-none bg-transparent"
-                dir="ltr"
-              />
-              <div className="flex items-center flex-wrap gap-3 mt-2">
-                <div className="flex items-center space-x-2 text-gray-600">
-                  <span>{lessonPlan.className}</span>
-                  <span>•</span>
-                  <div className="flex items-center space-x-1">
-                    <span>Week</span>
-                    <input
-                      type="number"
-                      value={lessonPlan.week}
-                      onChange={(e) => {
-                        const updatedPlan = { ...lessonPlan, week: parseInt(e.target.value) || 1 };
-                        onNotesUpdate(updatedPlan.notes); // Trigger update to mark changes
-                      }}
-                      className="w-12 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 focus:border-green-500 text-sm"
-                      min="1"
-                      dir="ltr"
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <label className="text-sm text-gray-600">Term:</label>
-                  <select
-                    value={lessonPlan.term || 'A1'}
+          <div className="flex-1">
+            <input
+              type="text"
+              value={lessonPlan.title || ''}
+              onChange={(e) => {
+                const updatedPlan = { ...lessonPlan, title: e.target.value };
+                onNotesUpdate(updatedPlan.notes); // Trigger update to mark changes
+              }}
+              placeholder="Lesson Name"
+              className="w-full text-2xl font-bold text-gray-900 border-b border-gray-300 focus:border-green-500 focus:outline-none bg-transparent"
+              dir="ltr"
+            />
+            <div className="flex items-center flex-wrap gap-3 mt-2">
+              <div className="flex items-center space-x-2 text-gray-600">
+                <span>{lessonPlan.className}</span>
+                <span>•</span>
+                <div className="flex items-center space-x-1">
+                  <span>Week</span>
+                  <input
+                    type="number"
+                    value={lessonPlan.week}
                     onChange={(e) => {
-                      const updatedPlan = { ...lessonPlan, term: e.target.value };
+                      const updatedPlan = { ...lessonPlan, week: parseInt(e.target.value) || 1 };
                       onNotesUpdate(updatedPlan.notes); // Trigger update to mark changes
                     }}
-                    className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                    className="w-12 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 focus:border-green-500 text-sm"
+                    min="1"
                     dir="ltr"
-                  >
-                    <option value="A1">Autumn 1 (Sep-Oct)</option>
-                    <option value="A2">Autumn 2 (Nov-Dec)</option>
-                    <option value="SP1">Spring 1 (Jan-Feb)</option>
-                    <option value="SP2">Spring 2 (Mar-Apr)</option>
-                    <option value="SM1">Summer 1 (Apr-May)</option>
-                    <option value="SM2">Summer 2 (Jun-Jul)</option>
-                  </select>
+                  />
                 </div>
-                
-                <div className="flex items-center space-x-2 text-gray-600">
-                  <Clock className="h-4 w-4" />
-                  <span>{lessonPlan.duration} minutes</span>
-                </div>
-                
-                <div className="flex items-center space-x-2 text-gray-600">
-                  <Users className="h-4 w-4" />
-                  <span>{lessonPlan.activities.length} activities</span>
-                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <label className="text-sm text-gray-600">Term:</label>
+                <select
+                  value={lessonPlan.term || 'A1'}
+                  onChange={(e) => {
+                    const updatedPlan = { ...lessonPlan, term: e.target.value };
+                    onNotesUpdate(updatedPlan.notes); // Trigger update to mark changes
+                  }}
+                  className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                  dir="ltr"
+                >
+                  <option value="A1">Autumn 1 (Sep-Oct)</option>
+                  <option value="A2">Autumn 2 (Nov-Dec)</option>
+                  <option value="SP1">Spring 1 (Jan-Feb)</option>
+                  <option value="SP2">Spring 2 (Mar-Apr)</option>
+                  <option value="SM1">Summer 1 (Apr-May)</option>
+                  <option value="SM2">Summer 2 (Jun-Jul)</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center space-x-2 text-gray-600">
+                <Clock className="h-4 w-4" />
+                <span>{lessonPlan.duration} minutes</span>
+              </div>
+              
+              <div className="flex items-center space-x-2 text-gray-600">
+                <Users className="h-4 w-4" />
+                <span>{lessonPlan.activities.length} activities</span>
               </div>
             </div>
           </div>
