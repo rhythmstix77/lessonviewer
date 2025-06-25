@@ -424,7 +424,7 @@ export function LessonPlanBuilder() {
                 onActivityAdd={handleActivityAdd}
                 onActivityRemove={handleActivityRemove}
                 onActivityReorder={handleActivityReorder}
-                onNotesUpdate={(notes) => handleLessonPlanFieldUpdate('notes', notes)}
+                onLessonPlanFieldUpdate={handleLessonPlanFieldUpdate}
                 isEditing={true}
                 onActivityClick={(activity) => setSelectedActivity(activity)}
                 onSave={handleSaveLessonPlan}
