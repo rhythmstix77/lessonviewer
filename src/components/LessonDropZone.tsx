@@ -4,15 +4,12 @@ import {
   Plus, 
   Clock, 
   Users, 
-  Calendar, 
   FileText, 
   GripVertical, 
   Trash2,
-  Edit3,
   Save,
   X,
-  ChevronLeft,
-  ChevronRight
+  Edit3
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { RichTextEditor } from './RichTextEditor';
@@ -280,12 +277,6 @@ export function LessonDropZone({
   // Get all categories in the lesson plan
   const categories = Object.keys(groupedActivities).sort();
 
-  // Function to navigate between lessons
-  const navigateToLesson = (direction: 'prev' | 'next') => {
-    // This is a placeholder - the actual implementation is in the parent component
-    console.log(`Navigate to ${direction} lesson`);
-  };
-
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
       {/* New Header Design */}
@@ -303,7 +294,7 @@ export function LessonDropZone({
                   const updatedPlan = { ...lessonPlan, title: e.target.value };
                   onNotesUpdate(updatedPlan.notes); // Trigger update to mark changes
                 }}
-                placeholder="Unit name"
+                placeholder="Lesson Name"
                 className="w-full text-2xl font-bold text-gray-900 border-b border-gray-300 focus:border-green-500 focus:outline-none bg-transparent"
                 dir="ltr"
               />
@@ -382,28 +373,6 @@ export function LessonDropZone({
               </button>
             )}
           </div>
-        </div>
-      </div>
-
-      {/* Unit Details Section */}
-      <div className="p-4 border-b border-gray-200 bg-gray-50">
-        <h3 className="font-medium text-gray-700 mb-2">Unit Details</h3>
-        <div className="flex flex-wrap gap-2">
-          {/* Navigation buttons */}
-          <button
-            onClick={() => navigateToLesson('prev')}
-            className="px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm rounded transition-colors duration-200 flex items-center space-x-1"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-            <span>Previous</span>
-          </button>
-          <button
-            onClick={() => navigateToLesson('next')}
-            className="px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm rounded transition-colors duration-200 flex items-center space-x-1"
-          >
-            <span>Next</span>
-            <ChevronRight className="h-3.5 w-3.5" />
-          </button>
         </div>
       </div>
 
