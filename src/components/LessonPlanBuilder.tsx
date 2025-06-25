@@ -227,6 +227,15 @@ export function LessonPlanBuilder() {
     setHasUnsavedChanges(true);
   };
 
+  const handleLessonPlanFieldUpdate = (field: string, value: any) => {
+    const updatedPlan = {
+      ...currentLessonPlan,
+      [field]: value
+    };
+    setCurrentLessonPlan(updatedPlan);
+    setHasUnsavedChanges(true);
+  };
+
   const handleSaveLessonPlan = () => {
     const success = handleUpdateLessonPlan(currentLessonPlan);
     if (success) {
@@ -415,11 +424,7 @@ export function LessonPlanBuilder() {
                 onActivityAdd={handleActivityAdd}
                 onActivityRemove={handleActivityRemove}
                 onActivityReorder={handleActivityReorder}
-                onNotesUpdate={(notes) => {
-                  const updatedPlan = { ...currentLessonPlan, notes };
-                  setCurrentLessonPlan(updatedPlan);
-                  setHasUnsavedChanges(true);
-                }}
+                onNotesUpdate={(notes) => handleLessonPlanFieldUpdate('notes', notes)}
                 isEditing={true}
                 onActivityClick={(activity) => setSelectedActivity(activity)}
                 onSave={handleSaveLessonPlan}

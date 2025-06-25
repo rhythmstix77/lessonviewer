@@ -33,7 +33,7 @@ interface LessonDropZoneProps {
   onActivityAdd: (activity: Activity) => void;
   onActivityRemove: (index: number) => void;
   onActivityReorder: (dragIndex: number, hoverIndex: number) => void;
-  onNotesUpdate: (notes: string) => void;
+  onLessonPlanFieldUpdate: (field: string, value: any) => void;
   isEditing: boolean;
   onActivityClick?: (activity: Activity) => void;
   onSave?: () => void;
@@ -237,7 +237,7 @@ export function LessonDropZone({
   onActivityAdd,
   onActivityRemove,
   onActivityReorder,
-  onNotesUpdate,
+  onLessonPlanFieldUpdate,
   isEditing,
   onActivityClick,
   onSave,
@@ -285,10 +285,7 @@ export function LessonDropZone({
             <input
               type="text"
               value={lessonPlan.title || ''}
-              onChange={(e) => {
-                const updatedPlan = { ...lessonPlan, title: e.target.value };
-                onNotesUpdate(updatedPlan.notes); // Trigger update to mark changes
-              }}
+              onChange={(e) => onLessonPlanFieldUpdate('title', e.target.value)}
               placeholder="Lesson Name"
               className="w-full text-2xl font-bold text-gray-900 border-b border-gray-300 focus:border-green-500 focus:outline-none bg-transparent"
               dir="ltr"
@@ -302,10 +299,7 @@ export function LessonDropZone({
                   <input
                     type="number"
                     value={lessonPlan.week}
-                    onChange={(e) => {
-                      const updatedPlan = { ...lessonPlan, week: parseInt(e.target.value) || 1 };
-                      onNotesUpdate(updatedPlan.notes); // Trigger update to mark changes
-                    }}
+                    onChange={(e) => onLessonPlanFieldUpdate('week', parseInt(e.target.value) || 1)}
                     className="w-12 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-green-500 focus:border-green-500 text-sm"
                     min="1"
                     dir="ltr"
@@ -317,10 +311,7 @@ export function LessonDropZone({
                 <label className="text-sm text-gray-600">Term:</label>
                 <select
                   value={lessonPlan.term || 'A1'}
-                  onChange={(e) => {
-                    const updatedPlan = { ...lessonPlan, term: e.target.value };
-                    onNotesUpdate(updatedPlan.notes); // Trigger update to mark changes
-                  }}
+                  onChange={(e) => onLessonPlanFieldUpdate('term', e.target.value)}
                   className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
                   dir="ltr"
                 >
@@ -464,7 +455,7 @@ export function LessonDropZone({
           {isEditing ? (
             <RichTextEditor
               value={lessonPlan.notes}
-              onChange={onNotesUpdate}
+              onChange={(value) => onLessonPlanFieldUpdate('notes', value)}
               placeholder="Add notes about this lesson plan..."
               minHeight="100px"
             />
