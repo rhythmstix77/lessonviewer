@@ -8,8 +8,7 @@ import {
   GripVertical, 
   Trash2,
   Save,
-  X,
-  Edit3
+  X
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { RichTextEditor } from './RichTextEditor';
@@ -284,7 +283,7 @@ export function LessonDropZone({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4 flex-1">
             <div className="bg-green-500 p-3 rounded-lg shadow-md">
-              <Edit3 className="h-6 w-6 text-white" />
+              <div className="h-6 w-6 text-white"></div>
             </div>
             <div className="flex-1">
               <input
