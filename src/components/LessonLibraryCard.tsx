@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, Users, ChevronRight, Tag, X, Download, ExternalLink, FileText } from 'lucide-react';
+import { Clock, Users, ChevronRight, Tag, X, Download, ExternalLink, FileText, Edit3 } from 'lucide-react';
 import type { LessonData, Activity } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useData } from '../contexts/DataContext';
@@ -16,6 +16,8 @@ interface LessonLibraryCardProps {
     accent: string;
     gradient: string;
   };
+  eyfsStatements: Record<string, string[]>;
+  onEditClick?: () => void;
 }
 
 export function LessonLibraryCard({
@@ -23,10 +25,12 @@ export function LessonLibraryCard({
   lessonData,
   viewMode,
   onClick,
-  theme
+  theme,
+  eyfsStatements,
+  onEditClick
 }: LessonLibraryCardProps) {
   const { getCategoryColor } = useSettings();
-  const { eyfsStatements } = useData();
+  const { eyfsStatements: allEyfsStatements } = useData();
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   
@@ -64,13 +68,14 @@ export function LessonLibraryCard({
       // If already expanded, don't do anything (let inner elements handle their own clicks)
       return;
     }
-    setIsExpanded(true);
+    onClick();
   };
 
-  const handleClose = (e: React.MouseEvent) => {
+  const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsExpanded(false);
-    setSelectedActivity(null);
+    if (onEditClick) {
+      onEditClick();
+    }
   };
 
   const handleActivityClick = (activity: Activity) => {
@@ -89,6 +94,9 @@ export function LessonLibraryCard({
     // Replace newlines with <br> tags
     return text.replace(/\n/g, '<br>');
   };
+
+  // Get EYFS standards count
+  const eyfsCount = (eyfsStatements[lessonNumber] || []).length;
 
   if (isExpanded) {
     return (
@@ -111,16 +119,18 @@ export function LessonLibraryCard({
                 </p>
               </div>
               <div className="flex items-center space-x-3">
+                {onEditClick && (
+                  <button
+                    onClick={handleEditClick}
+                    className="p-3 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 flex items-center space-x-2"
+                    title="Edit Lesson"
+                  >
+                    <Edit3 className="h-6 w-6" />
+                    <span className="text-base font-medium">Edit</span>
+                  </button>
+                )}
                 <button
-                  onClick={onClick}
-                  className="p-3 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 flex items-center space-x-2"
-                  title="Export Lesson"
-                >
-                  <Download className="h-6 w-6" />
-                  <span className="text-base font-medium">Export</span>
-                </button>
-                <button
-                  onClick={handleClose}
+                  onClick={() => setIsExpanded(false)}
                   className="p-3 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200"
                   title="Close"
                 >
@@ -329,7 +339,7 @@ export function LessonLibraryCard({
           {/* Footer */}
           <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end">
             <button
-              onClick={handleClose}
+              onClick={() => setIsExpanded(false)}
               className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
             >
               Close
@@ -356,9 +366,26 @@ export function LessonLibraryCard({
               <span>{lessonData.totalTime} mins</span>
               <span>•</span>
               <span>{totalActivities} activities</span>
+              {eyfsStatements[lessonNumber]?.length > 0 && (
+                <>
+                  <span>•</span>
+                  <span>{eyfsStatements[lessonNumber].length} EYFS</span>
+                </>
+              )}
             </div>
           </div>
-          <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          <div className="flex items-center space-x-2">
+            {onEditClick && (
+              <button
+                onClick={handleEditClick}
+                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                title="Edit Lesson"
+              >
+                <Edit3 className="h-4 w-4" />
+              </button>
+            )}
+            <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          </div>
         </div>
       </div>
     );
@@ -383,7 +410,18 @@ export function LessonLibraryCard({
               <h4 className="font-semibold text-gray-900 text-base truncate" dir="ltr">
                 {lessonData.title || `Lesson ${lessonNumber}`}
               </h4>
-              <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0 ml-2" />
+              <div className="flex items-center space-x-2">
+                {onEditClick && (
+                  <button
+                    onClick={handleEditClick}
+                    className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                    title="Edit Lesson"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                  </button>
+                )}
+                <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0 ml-2" />
+              </div>
             </div>
             
             <div className="flex items-center space-x-3 mt-1 text-sm text-gray-600">
@@ -395,6 +433,12 @@ export function LessonLibraryCard({
                 <Users className="h-4 w-4 text-gray-500" />
                 <span>{totalActivities} activities</span>
               </div>
+              {eyfsStatements[lessonNumber]?.length > 0 && (
+                <div className="flex items-center space-x-1">
+                  <Tag className="h-4 w-4 text-gray-500" />
+                  <span>{eyfsStatements[lessonNumber].length} EYFS</span>
+                </div>
+              )}
             </div>
             
             <div className="mt-2 flex flex-wrap gap-1">
@@ -443,7 +487,18 @@ export function LessonLibraryCard({
             <h3 className="text-lg font-bold">
               Lesson {lessonNumber}
             </h3>
-            <ChevronRight className="h-5 w-5" />
+            <div className="flex items-center space-x-2">
+              {onEditClick && (
+                <button
+                  onClick={handleEditClick}
+                  className="p-1.5 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors duration-200"
+                  title="Edit Lesson"
+                >
+                  <Edit3 className="h-4 w-4" />
+                </button>
+              )}
+              <ChevronRight className="h-5 w-5" />
+            </div>
           </div>
 
           <p className="text-white text-opacity-90 text-sm font-medium" dir="ltr">

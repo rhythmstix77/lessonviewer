@@ -48,7 +48,7 @@ const LESSON_TO_HALF_TERM: Record<string, string> = {
 };
 
 export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryProps) {
-  const { lessonNumbers, allLessonsData, currentSheetInfo } = useData();
+  const { lessonNumbers, allLessonsData, currentSheetInfo, eyfsStatements } = useData();
   const { getThemeForClass } = useSettings();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedHalfTerm, setSelectedHalfTerm] = useState<string>('all');
@@ -276,6 +276,8 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
                   viewMode={viewMode}
                   onClick={() => handleLessonClick(lessonNum)}
                   theme={theme}
+                  eyfsStatements={eyfsStatements}
+                  onEditClick={onLessonSelect ? () => onLessonSelect(lessonNum) : undefined}
                 />
               );
             })}
