@@ -5,7 +5,6 @@ import { LessonPlanBuilder } from "./LessonPlanBuilder";
 import { LessonPlannerCalendar } from "./LessonPlannerCalendar";
 import { ActivityLibrary } from "./ActivityLibrary";
 import { LessonLibrary } from "./LessonLibrary";
-import { UnitManager } from "./UnitManager";
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Calendar, BookOpen, Edit3, GraduationCap, FolderOpen, Tag, Book } from 'lucide-react';
@@ -169,17 +168,6 @@ export function Dashboard() {
               </TabsTrigger>
               
               <TabsTrigger 
-                value="unit-builder"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200"
-                data-tab="unit-builder"
-              >
-                <div className="flex items-center space-x-2">
-                  <FolderOpen className="h-5 w-5" />
-                  <span>Unit Builder</span>
-                </div>
-              </TabsTrigger>
-              
-              <TabsTrigger 
                 value="lesson-library"
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-teal-600 data-[state=active]:text-white rounded-lg px-4 py-2 transition-all duration-200"
                 data-tab="lesson-library"
@@ -226,15 +214,6 @@ export function Dashboard() {
 
             <TabsContent value="unit-viewer" className="mt-6">
               <UnitViewer />
-            </TabsContent>
-
-            <TabsContent value="unit-builder" className="mt-6">
-              <UnitManager 
-                isOpen={true} 
-                onClose={() => {}} 
-                onAddToCalendar={handleAddUnitToCalendar}
-                embedded={true}
-              />
             </TabsContent>
 
             <TabsContent value="lesson-library" className="mt-6">
