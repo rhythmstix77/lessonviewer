@@ -273,7 +273,7 @@ export function DataProvider({ children }: DataProviderProps) {
         setEyfsStatements(parsedData.eyfsStatements || {});
         console.log(`Loaded ${currentSheetInfo.sheet} data from localStorage`);
         
-        // Save to server for future use - but don't wait for it or let it fail
+        // Try to save to server for future use, but don't wait for it
         try {
           lessonsApi.updateSheet(currentSheetInfo.sheet, parsedData)
             .then(() => console.log(`Migrated ${currentSheetInfo.sheet} data to server`))
@@ -440,7 +440,7 @@ export function DataProvider({ children }: DataProviderProps) {
 
         activities.push(activity);
         
-        // Try to add to server, but don't wait for it or let it fail
+        // Try to add to server, but don't block the process
         try {
           activitiesApi.create(activity)
             .then(() => console.log(`Added activity to server: ${activity.activity}`))
@@ -512,15 +512,14 @@ export function DataProvider({ children }: DataProviderProps) {
       });
       setEyfsStatements(eyfsStatementsMap);
 
-      // Save data to localStorage first (this is reliable)
+      // Save data to localStorage first (this is guaranteed to work)
       saveDataToLocalStorage(lessonsData, sortedLessonNumbers, Array.from(categoriesSet), eyfsStatementsMap);
       
-      // Then try to save to server, but don't let it block or fail the process
+      // Then try to save to server (this might fail, but we already have local backup)
       try {
-        saveDataToServer(lessonsData, sortedLessonNumbers, Array.from(categoriesSet), eyfsStatementsMap)
-          .catch(error => console.warn(`Failed to save ${currentSheetInfo.sheet} data to server:`, error));
+        await saveDataToServer(lessonsData, sortedLessonNumbers, Array.from(categoriesSet), eyfsStatementsMap);
       } catch (error) {
-        console.warn(`Error initiating server save for ${currentSheetInfo.sheet}:`, error);
+        console.warn(`Failed to save ${currentSheetInfo.sheet} data to server, but data is saved locally:`, error);
       }
 
     } catch (error) {
@@ -556,6 +555,40 @@ export function DataProvider({ children }: DataProviderProps) {
         }
       });
       setEyfsStatements({});
+      
+      // Save minimal data to localStorage
+      saveDataToLocalStorage(
+        {
+          '1': {
+            grouped: {
+              'Welcome': [{
+                activity: 'Data Loading Error',
+                description: `Failed to load ${currentSheetInfo.sheet} data. Please refresh the page.`,
+                time: 0,
+                videoLink: '',
+                musicLink: '',
+                backingLink: '',
+                resourceLink: '',
+                link: '',
+                vocalsLink: '',
+                imageLink: '',
+                teachingUnit: 'Welcome',
+                category: 'Welcome',
+                level: currentSheetInfo.sheet,
+                unitName: '',
+                lessonNumber: '1'
+              }]
+            },
+            categoryOrder: ['Welcome'],
+            totalTime: 0,
+            eyfsStatements: [],
+            title: 'Error Loading Lesson'
+          }
+        },
+        ['1'],
+        ['Welcome', 'Goodbye'],
+        {}
+      );
     }
   };
 
@@ -598,6 +631,7 @@ export function DataProvider({ children }: DataProviderProps) {
     
     localStorage.setItem(`lesson-data-${currentSheetInfo.sheet}`, JSON.stringify(dataToSave));
     console.log(`Saved ${currentSheetInfo.sheet} data to localStorage (backup)`);
+    return true;
   };
 
   const uploadExcelFile = async (file: File) => {
@@ -671,7 +705,7 @@ export function DataProvider({ children }: DataProviderProps) {
         updatedStatements[lessonNumber] = [...updatedStatements[lessonNumber], eyfsStatement];
       }
       
-      // Save to localStorage first (reliable)
+      // Save to localStorage first (this is guaranteed to work)
       saveDataToLocalStorage(
         allLessonsData, 
         lessonNumbers, 
@@ -679,17 +713,13 @@ export function DataProvider({ children }: DataProviderProps) {
         updatedStatements
       );
       
-      // Try to save to server, but don't block or let it fail
-      try {
-        saveDataToServer(
-          allLessonsData, 
-          lessonNumbers, 
-          teachingUnits, 
-          updatedStatements
-        ).catch(error => console.warn('Failed to save EYFS statements to server:', error));
-      } catch (error) {
-        console.warn('Failed to initiate server save for EYFS statements:', error);
-      }
+      // Try to save to server, but don't block the UI
+      saveDataToServer(
+        allLessonsData, 
+        lessonNumbers, 
+        teachingUnits, 
+        updatedStatements
+      ).catch(error => console.warn('Failed to save EYFS statements to server:', error));
       
       return updatedStatements;
     });
@@ -719,7 +749,7 @@ export function DataProvider({ children }: DataProviderProps) {
         );
       }
       
-      // Save to localStorage first (reliable)
+      // Save to localStorage first (this is guaranteed to work)
       saveDataToLocalStorage(
         allLessonsData, 
         lessonNumbers, 
@@ -727,17 +757,13 @@ export function DataProvider({ children }: DataProviderProps) {
         updatedStatements
       );
       
-      // Try to save to server, but don't block or let it fail
-      try {
-        saveDataToServer(
-          allLessonsData, 
-          lessonNumbers, 
-          teachingUnits, 
-          updatedStatements
-        ).catch(error => console.warn('Failed to save EYFS statements to server:', error));
-      } catch (error) {
-        console.warn('Failed to initiate server save for EYFS statements:', error);
-      }
+      // Try to save to server, but don't block the UI
+      saveDataToServer(
+        allLessonsData, 
+        lessonNumbers, 
+        teachingUnits, 
+        updatedStatements
+      ).catch(error => console.warn('Failed to save EYFS statements to server:', error));
       
       return updatedStatements;
     });
@@ -760,18 +786,18 @@ export function DataProvider({ children }: DataProviderProps) {
   const updateAllEyfsStatements = async (statements: string[]) => {
     setAllEyfsStatements(statements);
     
-    // Save to localStorage first (reliable)
+    // Save to localStorage first
     localStorage.setItem(`eyfs-statements-flat-${currentSheetInfo.sheet}`, JSON.stringify(statements));
     localStorage.setItem(`eyfs-standards-${currentSheetInfo.sheet}`, JSON.stringify(structureEyfsStatements(statements)));
     
-    // Try to save to server, but don't block or let it fail
+    // Try to save to server, but don't block the UI
     try {
       eyfsApi.updateSheet(currentSheetInfo.sheet, {
         allStatements: statements,
         structuredStatements: structureEyfsStatements(statements)
       }).catch(error => console.warn('Failed to save EYFS statements to server:', error));
     } catch (error) {
-      console.warn('Failed to initiate server save for EYFS statements:', error);
+      console.error('Failed to save EYFS statements to server:', error);
     }
   };
 
@@ -785,7 +811,7 @@ export function DataProvider({ children }: DataProviderProps) {
           title
         };
         
-        // Save to localStorage first (reliable)
+        // Save to localStorage first (this is guaranteed to work)
         saveDataToLocalStorage(
           updatedLessonsData,
           lessonNumbers,
@@ -793,17 +819,13 @@ export function DataProvider({ children }: DataProviderProps) {
           eyfsStatements
         );
         
-        // Try to save to server, but don't block or let it fail
-        try {
-          saveDataToServer(
-            updatedLessonsData,
-            lessonNumbers,
-            teachingUnits,
-            eyfsStatements
-          ).catch(error => console.warn('Failed to save lesson title to server:', error));
-        } catch (error) {
-          console.warn('Failed to initiate server save for lesson title:', error);
-        }
+        // Try to save to server, but don't block the UI
+        saveDataToServer(
+          updatedLessonsData,
+          lessonNumbers,
+          teachingUnits,
+          eyfsStatements
+        ).catch(error => console.warn('Failed to save lesson title to server:', error));
       }
       return updatedLessonsData;
     });
