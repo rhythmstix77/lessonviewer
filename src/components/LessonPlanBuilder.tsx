@@ -67,12 +67,7 @@ interface Unit {
   updatedAt: Date;
 }
 
-interface LessonPlanBuilderProps {
-  initialLessonId?: string | null;
-  onLessonLoaded?: () => void;
-}
-
-export function LessonPlanBuilder({ initialLessonId, onLessonLoaded }: LessonPlanBuilderProps) {
+export function LessonPlanBuilder() {
   const { currentSheetInfo, allLessonsData } = useData();
   const { categories } = useSettings();
   
@@ -141,60 +136,6 @@ export function LessonPlanBuilder({ initialLessonId, onLessonLoaded }: LessonPla
       localStorage.setItem('library-activities', JSON.stringify(uniqueActivities));
     }
   }, [allLessonsData, currentSheetInfo.sheet]);
-
-  // Load initial lesson if provided
-  useEffect(() => {
-    if (initialLessonId) {
-      // First check if it's a lesson plan ID
-      const existingPlan = lessonPlans.find(plan => plan.id === initialLessonId);
-      
-      if (existingPlan) {
-        setCurrentLessonPlan(existingPlan);
-        if (onLessonLoaded) onLessonLoaded();
-        return;
-      }
-      
-      // If not a plan ID, check if it's a lesson number
-      const lessonData = allLessonsData[initialLessonId];
-      
-      if (lessonData) {
-        // Create a new lesson plan from the lesson data
-        const activities: Activity[] = [];
-        let totalDuration = 0;
-        
-        // Collect all activities from the lesson
-        lessonData.categoryOrder.forEach(category => {
-          const categoryActivities = lessonData.grouped[category] || [];
-          activities.push(...categoryActivities);
-          
-          // Calculate total duration
-          categoryActivities.forEach(activity => {
-            totalDuration += activity.time || 0;
-          });
-        });
-        
-        // Create a new plan
-        const newPlan: LessonPlan = {
-          id: `plan-${Date.now()}`,
-          date: new Date(),
-          week: 1,
-          className: currentSheetInfo.sheet,
-          activities,
-          duration: totalDuration,
-          notes: '',
-          status: 'draft',
-          title: lessonData.title || `Lesson ${initialLessonId}`,
-          term: 'A1', // Default to Autumn 1
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          lessonNumber: initialLessonId
-        };
-        
-        setCurrentLessonPlan(newPlan);
-        if (onLessonLoaded) onLessonLoaded();
-      }
-    }
-  }, [initialLessonId, lessonPlans, allLessonsData, currentSheetInfo.sheet, onLessonLoaded]);
 
   // Save lesson plans to localStorage
   const saveLessonPlans = (plans: LessonPlan[]) => {

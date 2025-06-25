@@ -5,8 +5,7 @@ import { ActivityDetails } from './ActivityDetails';
 import { ExportButtons } from './ExportButtons';
 import { EyfsStandardsList } from './EyfsStandardsList';
 import { EyfsStandardsSelector } from './EyfsStandardsSelector';
-import { LessonExporter } from './LessonExporter';
-import { BookOpen, X, ChevronRight, ChevronDown, ChevronUp, FileText, ExternalLink, Clock, Users, Tag, Edit3, Download, ChevronLeft } from 'lucide-react';
+import { BookOpen, X, ChevronRight, ChevronDown, ChevronUp, FileText, ExternalLink, Clock, Users, Tag, Edit3 } from 'lucide-react';
 import type { Activity } from '../contexts/DataContext';
 
 // Define half-term periods
@@ -29,22 +28,16 @@ const LESSON_TO_HALF_TERM: Record<string, string> = {
   '31': 'SM2', '32': 'SM2', '33': 'SM2', '34': 'SM2', '35': 'SM2', '36': 'SM2',
 };
 
-interface UnitViewerProps {
-  onEditLesson?: (lessonNumber: string) => void;
-}
-
-export function UnitViewer({ onEditLesson }: UnitViewerProps) {
+export function UnitViewer() {
   // ALL HOOKS MUST BE AT THE TOP - BEFORE ANY CONDITIONAL RETURNS
   const { loading, lessonNumbers, allLessonsData, currentSheetInfo, updateLessonTitle } = useData();
-  const { getThemeForClass, getCategoryColor } = useSettings();
+  const { getThemeForClass } = useSettings();
   const [selectedLesson, setSelectedLesson] = useState<string>('');
   const [expandedHalfTerms, setExpandedHalfTerms] = useState<string[]>([]);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [showEyfsSelector, setShowEyfsSelector] = useState(false);
   const [editingLessonTitle, setEditingLessonTitle] = useState<string | null>(null);
   const [lessonTitleValue, setLessonTitleValue] = useState<string>('');
-  const [showExporter, setShowExporter] = useState(false);
-  const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   
   // Ref for scrolling to top when lesson is selected
   const topRef = useRef<HTMLDivElement>(null);
@@ -83,16 +76,6 @@ export function UnitViewer({ onEditLesson }: UnitViewerProps) {
     }
   }, [selectedLesson]);
 
-  // Update current lesson index when a lesson is selected
-  useEffect(() => {
-    if (selectedLesson) {
-      const index = lessonNumbers.findIndex(num => num === selectedLesson);
-      if (index !== -1) {
-        setCurrentLessonIndex(index);
-      }
-    }
-  }, [selectedLesson, lessonNumbers]);
-
   // Initialize lesson title editing
   const startEditingLessonTitle = (lessonNumber: string) => {
     setEditingLessonTitle(lessonNumber);
@@ -105,22 +88,6 @@ export function UnitViewer({ onEditLesson }: UnitViewerProps) {
       updateLessonTitle(editingLessonTitle, lessonTitleValue.trim());
       setEditingLessonTitle(null);
     }
-  };
-
-  // Navigate to previous or next lesson
-  const navigateToLesson = (direction: 'prev' | 'next') => {
-    let newIndex = currentLessonIndex;
-    
-    if (direction === 'prev' && currentLessonIndex > 0) {
-      newIndex = currentLessonIndex - 1;
-    } else if (direction === 'next' && currentLessonIndex < lessonNumbers.length - 1) {
-      newIndex = currentLessonIndex + 1;
-    } else {
-      return; // Can't navigate further
-    }
-    
-    setSelectedLesson(lessonNumbers[newIndex]);
-    setCurrentLessonIndex(newIndex);
   };
 
   // NOW we can have conditional returns - all hooks are above this point
@@ -155,12 +122,6 @@ export function UnitViewer({ onEditLesson }: UnitViewerProps) {
     );
   };
 
-  const handleEditButtonClick = () => {
-    if (onEditLesson && selectedLesson) {
-      onEditLesson(selectedLesson);
-    }
-  };
-
   // If a lesson is selected, show full-width expanded view
   if (selectedLesson && allLessonsData[selectedLesson]) {
     const lessonData = allLessonsData[selectedLesson];
@@ -180,89 +141,50 @@ export function UnitViewer({ onEditLesson }: UnitViewerProps) {
               }}
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => navigateToLesson('prev')}
-                      disabled={currentLessonIndex === 0}
-                      className={`p-1.5 rounded-lg transition-colors duration-200 ${
-                        currentLessonIndex === 0 
-                          ? 'text-white text-opacity-40 cursor-not-allowed' 
-                          : 'text-white hover:bg-white hover:bg-opacity-20'
-                      }`}
-                      title="Previous Lesson"
-                    >
-                      <ChevronLeft className="h-5 w-5" />
-                    </button>
-                    {editingLessonTitle === selectedLesson ? (
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="text"
-                          value={lessonTitleValue}
-                          onChange={(e) => setLessonTitleValue(e.target.value)}
-                          className="text-xl font-bold bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') saveLessonTitle();
-                            if (e.key === 'Escape') setEditingLessonTitle(null);
-                          }}
-                        />
-                        <button
-                          onClick={saveLessonTitle}
-                          className="p-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white"
-                        >
-                          <Check className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={() => setEditingLessonTitle(null)}
-                          className="p-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white"
-                        >
-                          <X className="h-5 w-5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <h1 className="text-xl font-bold mb-1 flex items-center space-x-2">
-                        <span>{lessonData.title || `Lesson ${selectedLesson}`}</span>
-                        <button
-                          onClick={() => startEditingLessonTitle(selectedLesson)}
-                          className="p-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white"
-                          title="Edit lesson title"
-                        >
-                          <Edit3 className="h-4 w-4" />
-                        </button>
-                      </h1>
-                    )}
-                    <button
-                      onClick={() => navigateToLesson('next')}
-                      disabled={currentLessonIndex === lessonNumbers.length - 1}
-                      className={`p-1.5 rounded-lg transition-colors duration-200 ${
-                        currentLessonIndex === lessonNumbers.length - 1 
-                          ? 'text-white text-opacity-40 cursor-not-allowed' 
-                          : 'text-white hover:bg-white hover:bg-opacity-20'
-                      }`}
-                      title="Next Lesson"
-                    >
-                      <ChevronRight className="h-5 w-5" />
-                    </button>
-                  </div>
+                <div>
+                  {editingLessonTitle === selectedLesson ? (
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={lessonTitleValue}
+                        onChange={(e) => setLessonTitleValue(e.target.value)}
+                        className="text-xl font-bold bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveLessonTitle();
+                          if (e.key === 'Escape') setEditingLessonTitle(null);
+                        }}
+                      />
+                      <button
+                        onClick={saveLessonTitle}
+                        className="p-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white"
+                      >
+                        <Check className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => setEditingLessonTitle(null)}
+                        className="p-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <h1 className="text-xl font-bold mb-1 flex items-center space-x-2">
+                      <span>{lessonData.title || `Lesson ${selectedLesson}`}</span>
+                      <button
+                        onClick={() => startEditingLessonTitle(selectedLesson)}
+                        className="p-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white"
+                        title="Edit lesson title"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                      </button>
+                    </h1>
+                  )}
+                  <p className="text-white text-opacity-90 text-sm">
+                    {lessonData.totalTime} minutes • {lessonData.categoryOrder.length} categories
+                  </p>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setShowExporter(true)}
-                    className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 group flex items-center space-x-2"
-                    title="Export Lesson"
-                  >
-                    <Download className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
-                    <span className="text-sm font-medium">Export</span>
-                  </button>
-                  <button
-                    onClick={handleEditButtonClick}
-                    className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 group flex items-center space-x-2"
-                    title="Edit Lesson"
-                  >
-                    <Edit3 className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
-                    <span className="text-sm font-medium">Edit Lesson</span>
-                  </button>
                   <button
                     onClick={() => setShowEyfsSelector(!showEyfsSelector)}
                     className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 group flex items-center space-x-2"
@@ -280,9 +202,6 @@ export function UnitViewer({ onEditLesson }: UnitViewerProps) {
                   </button>
                 </div>
               </div>
-              <p className="text-white text-opacity-90 text-sm mt-1">
-                {lessonData.totalTime} minutes • {lessonData.categoryOrder.length} categories
-              </p>
             </div>
           </div>
 
@@ -314,10 +233,7 @@ export function UnitViewer({ onEditLesson }: UnitViewerProps) {
                 'Parachute Games': 'from-red-400 to-pink-500',
                 'Percussion Games': 'from-cyan-400 to-blue-500',
                 'Teaching Units': 'from-indigo-400 to-purple-500',
-                'Goodbye': 'from-teal-400 to-cyan-500',
-                'Kodaly Rhythms': 'from-purple-400 to-indigo-500',
-                'Kodaly Games': 'from-amber-400 to-orange-500',
-                'IWB Games': 'from-yellow-400 to-amber-500'
+                'Goodbye': 'from-teal-400 to-cyan-500'
               };
 
               return (
@@ -367,14 +283,6 @@ export function UnitViewer({ onEditLesson }: UnitViewerProps) {
 
                         {/* Activity Content - FULL DESCRIPTION WITHOUT TRUNCATION */}
                         <div className="p-4">
-                          {/* Activity Text (if available) */}
-                          {activity.activityText && (
-                            <div 
-                              className="mb-3 prose prose-sm max-w-none"
-                              dangerouslySetInnerHTML={{ __html: activity.activityText }}
-                            />
-                          )}
-                          
                           {/* Full Description - No line clamps or truncation */}
                           <div 
                             className="text-sm text-gray-700 leading-relaxed mb-3 prose prose-sm max-w-none"
@@ -526,14 +434,6 @@ export function UnitViewer({ onEditLesson }: UnitViewerProps) {
             <ActivityDetails
               activity={selectedActivity}
               onClose={() => setSelectedActivity(null)}
-            />
-          )}
-
-          {/* Lesson Exporter */}
-          {showExporter && (
-            <LessonExporter
-              lessonNumber={selectedLesson}
-              onClose={() => setShowExporter(false)}
             />
           )}
         </div>
@@ -722,11 +622,7 @@ export function UnitViewer({ onEditLesson }: UnitViewerProps) {
                                       {lessonData.categoryOrder.map((category) => (
                                         <span
                                           key={category}
-                                          className="px-2 py-1 text-xs font-medium rounded-full"
-                                          style={{
-                                            backgroundColor: `${getCategoryColor(category)}20`,
-                                            color: getCategoryColor(category)
-                                          }}
+                                          className="px-2 py-1 bg-gray-100 text-xs font-medium rounded-full border border-gray-200"
                                         >
                                           {category}
                                         </span>
@@ -826,17 +722,13 @@ export function UnitViewer({ onEditLesson }: UnitViewerProps) {
                                 {lessonData.categoryOrder.slice(0, 3).map((category) => (
                                   <span
                                     key={category}
-                                    className="px-2 py-0.5 text-xs font-medium rounded-full"
-                                    style={{
-                                      backgroundColor: `${getCategoryColor(category)}20`,
-                                      color: getCategoryColor(category)
-                                    }}
+                                    className="px-2 py-0.5 bg-white text-xs font-medium rounded-full border border-gray-200"
                                   >
                                     {category}
                                   </span>
                                 ))}
                                 {lessonData.categoryOrder.length > 3 && (
-                                  <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
+                                  <span className="px-2 py-0.5 bg-white text-xs font-medium rounded-full border border-gray-200">
                                     +{lessonData.categoryOrder.length - 3}
                                   </span>
                                 )}

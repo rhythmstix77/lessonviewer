@@ -1,14 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  ChevronRight, 
-  ChevronLeft, 
-  FileText, 
-  Download, 
-  Printer, 
-  Check, 
-  Tag 
-} from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Download, FileText, File, Printer, X, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { jsPDF } from 'jspdf';
@@ -21,24 +12,16 @@ interface LessonExporterProps {
 }
 
 export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
-  const { allLessonsData, currentSheetInfo, eyfsStatements, lessonNumbers } = useData();
+  const { allLessonsData, currentSheetInfo, eyfsStatements } = useData();
   const { getCategoryColor } = useSettings();
   const [exportFormat, setExportFormat] = useState<'pdf' | 'preview'>('preview');
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
   const [showEyfs, setShowEyfs] = useState(true);
-  const [previewRef, setPreviewRef] = useState<HTMLDivElement | null>(null);
-  const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const lessonData = allLessonsData[lessonNumber];
-
-  useEffect(() => {
-    // Find the index of the current lesson in the lesson numbers array
-    const index = lessonNumbers.findIndex(num => num === lessonNumber);
-    if (index !== -1) {
-      setCurrentLessonIndex(index);
-    }
-  }, [lessonNumber, lessonNumbers]);
+  const lessonEyfs = eyfsStatements[lessonNumber] || [];
 
   if (!lessonData) {
     return (
@@ -63,10 +46,8 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
   const totalDuration = lessonData.totalTime;
 
   // Group EYFS statements by area
-  const lessonEyfsStatements = eyfsStatements[lessonNumber] || [];
   const groupedEyfs: Record<string, string[]> = {};
-  
-  lessonEyfsStatements.forEach(statement => {
+  lessonEyfs.forEach(statement => {
     const parts = statement.split(':');
     const area = parts[0].trim();
     const detail = parts.length > 1 ? parts[1].trim() : statement;
@@ -84,8 +65,8 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
     try {
       if (exportFormat === 'pdf') {
         // Export to PDF using html2canvas to capture the styled preview
-        if (previewRef) {
-          const canvas = await html2canvas(previewRef, {
+        if (previewRef.current) {
+          const canvas = await html2canvas(previewRef.current, {
             scale: 2, // Higher scale for better quality
             useCORS: true, // Allow loading cross-origin images
             logging: false,
@@ -151,63 +132,16 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
     window.print();
   };
 
-  const navigateToLesson = (direction: 'prev' | 'next') => {
-    let newIndex = currentLessonIndex;
-    
-    if (direction === 'prev' && currentLessonIndex > 0) {
-      newIndex = currentLessonIndex - 1;
-    } else if (direction === 'next' && currentLessonIndex < lessonNumbers.length - 1) {
-      newIndex = currentLessonIndex + 1;
-    } else {
-      return; // Can't navigate further
-    }
-    
-    // Close current exporter and open the new one
-    onClose();
-    
-    // This would typically be handled by the parent component
-    // For now, we'll just log it
-    console.log(`Navigate to lesson ${lessonNumbers[newIndex]}`);
-    
-    // In a real implementation, you would call a function passed from the parent
-    // that would open the exporter for the new lesson
-  };
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-5xl max-h-[95vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-xl shadow-lg w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => navigateToLesson('prev')}
-                disabled={currentLessonIndex === 0}
-                className={`p-2 rounded-lg transition-colors duration-200 ${
-                  currentLessonIndex === 0 
-                    ? 'text-gray-300 cursor-not-allowed' 
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
-                title="Previous Lesson"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <h2 className="text-xl font-bold text-gray-900">
-                {lessonData.title || `Lesson ${lessonNumber}`}
-              </h2>
-              <button
-                onClick={() => navigateToLesson('next')}
-                disabled={currentLessonIndex === lessonNumbers.length - 1}
-                className={`p-2 rounded-lg transition-colors duration-200 ${
-                  currentLessonIndex === lessonNumbers.length - 1 
-                    ? 'text-gray-300 cursor-not-allowed' 
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
-                title="Next Lesson"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </div>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Export Lesson Plan</h2>
+            <p className="text-sm text-gray-600">
+              {lessonData.title || `Lesson ${lessonNumber}`} - {currentSheetInfo.display}
+            </p>
           </div>
           <div className="flex items-center space-x-3">
             <div className="flex items-center space-x-2 bg-gray-100 p-1 rounded-lg">
@@ -292,7 +226,7 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
         {/* Preview */}
         <div className="flex-1 overflow-y-auto p-4 bg-gray-100">
           <div 
-            ref={(ref) => setPreviewRef(ref)}
+            ref={previewRef}
             className="bg-white mx-auto shadow-md max-w-[210mm]"
             style={{ minHeight: '297mm' }}
           >
@@ -304,7 +238,7 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
                   {currentSheetInfo.display} Lesson Plans
                 </h1>
                 <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                  {lessonData.title || `Lesson ${lessonNumber}`}
+                  Lesson {lessonNumber}
                 </h2>
                 <div className="text-gray-600 font-medium">
                   Total Time: {totalDuration} minutes
@@ -312,7 +246,7 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
               </div>
               
               {/* EYFS Goals */}
-              {showEyfs && lessonEyfsStatements.length > 0 && (
+              {showEyfs && lessonEyfs.length > 0 && (
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">🎯 Learning Goals</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -344,101 +278,65 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
                   <div key={category} className="mb-8">
                     <h2 
                       className="text-xl font-semibold mb-4"
-                      style={{ color: categoryColor }}
+                      style={{ color: category === 'Welcome' ? '#F59E0B' : 
+                               category === 'Kodaly Songs' ? '#8B5CF6' : 
+                               category === 'Goodbye' ? '#10B981' : categoryColor }}
                     >
                       {category}
                     </h2>
                     
                     <div className="space-y-4">
                       {activities.map((activity, index) => (
-                        <div key={`${category}-${index}`} className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-                          {/* Activity Header */}
-                          <div className="p-4 border-b border-gray-200 bg-gray-50">
-                            <div className="flex items-start justify-between">
-                              <h4 className="font-bold text-gray-900 text-lg">
-                                {activity.activity} {activity.time > 0 && `(${activity.time} mins)`}
-                              </h4>
-                              {activity.level && (
-                                <span className="ml-2 px-3 py-1 bg-gray-200 text-gray-800 text-sm font-medium rounded-full">
-                                  {activity.level}
-                                </span>
-                              )}
-                            </div>
-                          </div>
+                        <div key={`${category}-${index}`}>
+                          <h3 className="font-semibold text-gray-900">
+                            {activity.activity} ({activity.time} mins)
+                          </h3>
                           
-                          {/* Activity Content */}
-                          <div className="p-4">
-                            {/* Activity Text (if available) */}
-                            {activity.activityText && (
-                              <div 
-                                className="mb-4 prose prose-sm max-w-none"
-                                dangerouslySetInnerHTML={{ __html: activity.activityText }}
-                              />
-                            )}
-                            
-                            {/* Description */}
+                          {/* Activity Text (if available) */}
+                          {activity.activityText && (
                             <div 
-                              className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
-                              dangerouslySetInnerHTML={{ __html: activity.description }}
+                              className="mt-2 text-gray-800"
+                              dangerouslySetInnerHTML={{ __html: activity.activityText }}
                             />
-                            
-                            {/* Unit Name */}
-                            {activity.unitName && (
-                              <div className="mt-4 pt-4 border-t border-gray-100">
-                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Unit:</span>
-                                <p className="text-sm text-gray-700 font-medium">{activity.unitName}</p>
-                              </div>
-                            )}
-                            
-                            {/* Resources */}
-                            {(activity.videoLink || activity.musicLink || activity.backingLink || 
-                              activity.resourceLink || activity.link || activity.vocalsLink || 
-                              activity.imageLink) && (
-                              <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                                <h5 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-                                  <FileText className="h-4 w-4 mr-2" />
-                                  Resources
-                                </h5>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                  {activity.videoLink && (
-                                    <div className="text-sm text-gray-600">
-                                      <span className="font-medium">Video:</span> {activity.videoLink}
-                                    </div>
-                                  )}
-                                  {activity.musicLink && (
-                                    <div className="text-sm text-gray-600">
-                                      <span className="font-medium">Music:</span> {activity.musicLink}
-                                    </div>
-                                  )}
-                                  {activity.backingLink && (
-                                    <div className="text-sm text-gray-600">
-                                      <span className="font-medium">Backing:</span> {activity.backingLink}
-                                    </div>
-                                  )}
-                                  {activity.resourceLink && (
-                                    <div className="text-sm text-gray-600">
-                                      <span className="font-medium">Resource:</span> {activity.resourceLink}
-                                    </div>
-                                  )}
-                                  {activity.link && (
-                                    <div className="text-sm text-gray-600">
-                                      <span className="font-medium">Link:</span> {activity.link}
-                                    </div>
-                                  )}
-                                  {activity.vocalsLink && (
-                                    <div className="text-sm text-gray-600">
-                                      <span className="font-medium">Vocals:</span> {activity.vocalsLink}
-                                    </div>
-                                  )}
-                                  {activity.imageLink && (
-                                    <div className="text-sm text-gray-600">
-                                      <span className="font-medium">Image:</span> {activity.imageLink}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
+                          )}
+                          
+                          {/* Description */}
+                          <div 
+                            className="mt-2 text-gray-700"
+                            dangerouslySetInnerHTML={{ __html: activity.description }}
+                          />
+                          
+                          {/* Resources */}
+                          {(activity.videoLink || activity.musicLink || activity.backingLink || 
+                            activity.resourceLink || activity.link || activity.vocalsLink || 
+                            activity.imageLink) && (
+                            <div className="mt-2">
+                              <p className="font-medium text-gray-700">Resources:</p>
+                              <ul className="pl-5 text-gray-600 text-sm">
+                                {activity.videoLink && (
+                                  <li>Video: {activity.videoLink}</li>
+                                )}
+                                {activity.musicLink && (
+                                  <li>Music: {activity.musicLink}</li>
+                                )}
+                                {activity.backingLink && (
+                                  <li>Backing: {activity.backingLink}</li>
+                                )}
+                                {activity.resourceLink && (
+                                  <li>Resource: {activity.resourceLink}</li>
+                                )}
+                                {activity.link && (
+                                  <li>Link: {activity.link}</li>
+                                )}
+                                {activity.vocalsLink && (
+                                  <li>Vocals: {activity.vocalsLink}</li>
+                                )}
+                                {activity.imageLink && (
+                                  <li>Image: {activity.imageLink}</li>
+                                )}
+                              </ul>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -451,7 +349,7 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
                 <div className="mt-8 pt-6 border-t border-gray-200">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">Lesson Notes</h3>
                   <div 
-                    className="bg-gray-50 rounded-lg p-4 text-gray-700 prose prose-sm max-w-none"
+                    className="bg-gray-50 rounded-lg p-4 text-gray-700"
                     dangerouslySetInnerHTML={{ __html: lessonData.notes }}
                   />
                 </div>

@@ -33,7 +33,6 @@ export function Dashboard() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [lessonPlans, setLessonPlans] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [lessonToEditId, setLessonToEditId] = useState<string | null>(null);
   
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
@@ -142,8 +141,9 @@ export function Dashboard() {
 
   const handleLessonSelect = (lessonNumber: string) => {
     // Navigate to lesson builder with the selected lesson
-    setLessonToEditId(lessonNumber);
     setActiveTab('lesson-builder');
+    // The LessonPlanBuilder would need to be updated to accept an initialLessonId prop
+    // and load that lesson when it mounts
   };
 
   return (
@@ -225,7 +225,7 @@ export function Dashboard() {
             </TabsList>
 
             <TabsContent value="unit-viewer" className="mt-6">
-              <UnitViewer onEditLesson={handleLessonSelect} />
+              <UnitViewer />
             </TabsContent>
 
             <TabsContent value="unit-builder" className="mt-6">
@@ -245,7 +245,7 @@ export function Dashboard() {
             </TabsContent>
 
             <TabsContent value="lesson-builder" className="mt-6">
-              <LessonPlanBuilder initialLessonId={lessonToEditId} onLessonLoaded={() => setLessonToEditId(null)} />
+              <LessonPlanBuilder />
             </TabsContent>
 
             <TabsContent value="activity-library" className="mt-6">
