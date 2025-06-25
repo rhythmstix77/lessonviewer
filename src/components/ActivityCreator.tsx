@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Tag, 
   Plus, 
@@ -18,6 +18,7 @@ import {
   Volume2
 } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
+import { RichTextEditor } from './RichTextEditor';
 
 interface ActivityCreatorProps {
   onClose: () => void;
@@ -243,13 +244,11 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Activity
               </label>
-              <textarea
-                name="activityText"
+              <RichTextEditor
                 value={activity.activityText}
-                onChange={handleChange}
-                className="w-full min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                placeholder="Enter activity instructions"
-                dir="ltr"
+                onChange={(value) => setActivity(prev => ({ ...prev, activityText: value }))}
+                placeholder="Enter activity instructions..."
+                minHeight="100px"
               />
             </div>
 
@@ -258,13 +257,11 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Description
               </label>
-              <textarea
-                name="description"
+              <RichTextEditor
                 value={activity.description}
-                onChange={handleChange}
-                className="w-full min-h-[150px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                placeholder="Enter activity description"
-                dir="ltr"
+                onChange={(value) => setActivity(prev => ({ ...prev, description: value }))}
+                placeholder="Enter activity description..."
+                minHeight="150px"
               />
             </div>
 

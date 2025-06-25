@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Clock, Video, Music, FileText, Link as LinkIcon, Image, Volume2, Maximize2, Minimize2, ExternalLink, Tag, Plus, Save, Upload, Edit3, Check } from 'lucide-react';
 import { EditableText } from './EditableText';
+import { RichTextEditor } from './RichTextEditor';
 import type { Activity } from '../contexts/DataContext';
 import { useData } from '../contexts/DataContext';
 
@@ -94,14 +95,12 @@ export function ActivityDetails({
   const renderDescription = () => {
     if (isEditMode) {
       return (
-        <div>
-          <textarea
-            value={editedActivity.description}
-            onChange={(e) => setEditedActivity(prev => ({ ...prev, description: e.target.value }))}
-            className="w-full min-h-[150px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            dir="ltr"
-          />
-        </div>
+        <RichTextEditor
+          value={editedActivity.description}
+          onChange={(value) => setEditedActivity(prev => ({ ...prev, description: value }))}
+          placeholder="Enter activity description..."
+          minHeight="150px"
+        />
       );
     }
     
@@ -146,14 +145,12 @@ export function ActivityDetails({
   const renderActivityText = () => {
     if (isEditMode) {
       return (
-        <div>
-          <textarea
-            value={editedActivity.activityText || ''}
-            onChange={(e) => setEditedActivity(prev => ({ ...prev, activityText: e.target.value }))}
-            className="w-full min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            dir="ltr"
-          />
-        </div>
+        <RichTextEditor
+          value={editedActivity.activityText || ''}
+          onChange={(value) => setEditedActivity(prev => ({ ...prev, activityText: value }))}
+          placeholder="Enter activity instructions..."
+          minHeight="100px"
+        />
       );
     }
     

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Clock, 
   Video, 
@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useDrag } from 'react-dnd';
+import { RichTextEditor } from './RichTextEditor';
 import type { Activity } from '../contexts/DataContext';
 
 interface ActivityCardProps {
@@ -302,11 +303,11 @@ export function ActivityCard({
         <div className="mb-4 flex-grow">
           {isEditing ? (
             <div onClick={(e) => e.stopPropagation()}>
-              <textarea
+              <RichTextEditor
                 value={editedActivity.description}
-                onChange={(e) => setEditedActivity(prev => ({ ...prev, description: e.target.value }))}
-                className="w-full min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                dir="ltr"
+                onChange={(value) => setEditedActivity(prev => ({ ...prev, description: value }))}
+                placeholder="Enter activity description..."
+                minHeight="100px"
               />
             </div>
           ) : (

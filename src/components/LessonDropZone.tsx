@@ -1,19 +1,21 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { useDrop } from 'react-dnd';
 import { 
   Plus, 
   Clock, 
   Users, 
+  Calendar, 
   FileText, 
   GripVertical, 
   Trash2,
+  Edit3,
   Save,
   X,
-  Edit3,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { RichTextEditor } from './RichTextEditor';
 import type { Activity } from '../contexts/DataContext';
 import { EyfsStandardsSelector } from './EyfsStandardsSelector';
 
@@ -496,14 +498,19 @@ export function LessonDropZone({
         </div>
         
         <div>
-          <textarea
-            value={lessonPlan.notes}
-            onChange={(e) => onNotesUpdate(e.target.value)}
-            className="w-full h-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
-            placeholder="Add notes about this lesson plan..."
-            disabled={!isEditing}
-            dir="ltr"
-          />
+          {isEditing ? (
+            <RichTextEditor
+              value={lessonPlan.notes}
+              onChange={onNotesUpdate}
+              placeholder="Add notes about this lesson plan..."
+              minHeight="100px"
+            />
+          ) : (
+            <div 
+              className="prose prose-sm max-w-none bg-white p-4 rounded-lg border border-gray-200"
+              dangerouslySetInnerHTML={{ __html: lessonPlan.notes || '<p class="text-gray-500 italic">No notes added yet</p>' }}
+            />
+          )}
         </div>
       </div>
     </div>

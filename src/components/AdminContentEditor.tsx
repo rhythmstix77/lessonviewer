@@ -8,6 +8,7 @@ import {
   Redo
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { RichTextEditor } from './RichTextEditor';
 
 interface EditableContent {
   id: string;
@@ -239,12 +240,11 @@ export function AdminContentEditor({ isOpen, onClose }: AdminContentEditorProps)
                 {/* Editor Content */}
                 <div className="flex-1 p-6 overflow-y-auto">
                   {selectedContent.type === 'html' ? (
-                    <textarea
+                    <RichTextEditor
                       value={selectedContent.content}
-                      onChange={(e) => setSelectedContent({ ...selectedContent, content: e.target.value })}
-                      className="w-full h-96 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none font-mono text-sm"
+                      onChange={(value) => setSelectedContent({ ...selectedContent, content: value })}
                       placeholder="Enter your HTML content here..."
-                      dir="ltr"
+                      minHeight="400px"
                     />
                   ) : (
                     <textarea
