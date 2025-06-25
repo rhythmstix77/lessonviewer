@@ -9,9 +9,6 @@ import {
   Volume2, 
   Save, 
   X, 
-  Bold, 
-  Italic, 
-  Underline,
   GripVertical,
   Trash2,
   Copy,
@@ -60,7 +57,6 @@ export function ActivityCard({
   const [editedActivity, setEditedActivity] = useState<Activity>(activity);
   const [showResources, setShowResources] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const descriptionRef = useRef<HTMLDivElement>(null);
 
   // Set up drag and drop
   const [{ isDragging }, drag] = useDrag(() => ({
@@ -89,14 +85,6 @@ export function ActivityCard({
     setEditedActivity(activity);
     if (onEditToggle) {
       onEditToggle();
-    }
-  };
-
-  const execCommand = (command: string, value?: string) => {
-    document.execCommand(command, false, value);
-    if (descriptionRef.current) {
-      const updatedContent = descriptionRef.current.innerHTML;
-      setEditedActivity(prev => ({ ...prev, description: updatedContent }));
     }
   };
 
@@ -314,42 +302,11 @@ export function ActivityCard({
         <div className="mb-4 flex-grow">
           {isEditing ? (
             <div onClick={(e) => e.stopPropagation()}>
-              {/* Rich Text Toolbar */}
-              <div className="flex items-center space-x-1 mb-2 p-2 bg-gray-50 rounded-lg">
-                <button
-                  onClick={() => execCommand('bold')}
-                  className="p-1 hover:bg-gray-200 rounded"
-                  title="Bold"
-                >
-                  <Bold className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => execCommand('italic')}
-                  className="p-1 hover:bg-gray-200 rounded"
-                  title="Italic"
-                >
-                  <Italic className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => execCommand('underline')}
-                  className="p-1 hover:bg-gray-200 rounded"
-                  title="Underline"
-                >
-                  <Underline className="h-4 w-4" />
-                </button>
-              </div>
-              
-              <div
-                ref={descriptionRef}
-                contentEditable
-                className="min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-left"
-                dangerouslySetInnerHTML={{ __html: editedActivity.description }}
-                onInput={(e) => {
-                  const target = e.target as HTMLDivElement;
-                  setEditedActivity(prev => ({ ...prev, description: target.innerHTML }));
-                }}
+              <textarea
+                value={editedActivity.description}
+                onChange={(e) => setEditedActivity(prev => ({ ...prev, description: e.target.value }))}
+                className="w-full min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 dir="ltr"
-                style={{ direction: 'ltr', unicodeBidi: 'embed' }}
               />
             </div>
           ) : (

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Clock, Video, Music, FileText, Link as LinkIcon, Image, Volume2, Maximize2, Minimize2, ExternalLink, Tag, Plus, Save, Bold, Italic, Underline, List, ListOrdered, Upload, Edit3, Check } from 'lucide-react';
+import { X, Clock, Video, Music, FileText, Link as LinkIcon, Image, Volume2, Maximize2, Minimize2, ExternalLink, Tag, Plus, Save, Upload, Edit3, Check } from 'lucide-react';
 import { EditableText } from './EditableText';
 import type { Activity } from '../contexts/DataContext';
 import { useData } from '../contexts/DataContext';
@@ -27,11 +27,7 @@ export function ActivityDetails({
   const [editedActivity, setEditedActivity] = useState<Activity>({...activity});
   const [isEditMode, setIsEditMode] = useState(isEditing);
   const containerRef = useRef<HTMLDivElement>(null);
-  const descriptionRef = useRef<HTMLDivElement>(null);
-  const activityTextRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const [descriptionActiveButtons, setDescriptionActiveButtons] = useState<string[]>([]);
-  const [activityTextActiveButtons, setActivityTextActiveButtons] = useState<string[]>([]);
 
   // Fullscreen functionality
   const toggleFullscreen = async () => {
@@ -69,126 +65,6 @@ export function ActivityDetails({
     setIsEditMode(isEditing);
   }, [activity, isEditing]);
 
-  // Set up event listeners for selection changes to update active buttons for description
-  useEffect(() => {
-    if (isEditMode && descriptionRef.current) {
-      const handleSelectionChange = () => {
-        if (!document.activeElement || !descriptionRef.current?.contains(document.activeElement)) return;
-        
-        const activeCommands: string[] = [];
-        
-        if (document.queryCommandState('bold')) activeCommands.push('bold');
-        if (document.queryCommandState('italic')) activeCommands.push('italic');
-        if (document.queryCommandState('underline')) activeCommands.push('underline');
-        if (document.queryCommandState('insertUnorderedList')) activeCommands.push('insertUnorderedList');
-        if (document.queryCommandState('insertOrderedList')) activeCommands.push('insertOrderedList');
-        
-        setDescriptionActiveButtons(activeCommands);
-      };
-      
-      document.addEventListener('selectionchange', handleSelectionChange);
-      
-      // Clean up
-      return () => {
-        document.removeEventListener('selectionchange', handleSelectionChange);
-      };
-    }
-  }, [isEditMode]);
-
-  // Set up event listeners for selection changes to update active buttons for activity text
-  useEffect(() => {
-    if (isEditMode && activityTextRef.current) {
-      const handleSelectionChange = () => {
-        if (!document.activeElement || !activityTextRef.current?.contains(document.activeElement)) return;
-        
-        const activeCommands: string[] = [];
-        
-        if (document.queryCommandState('bold')) activeCommands.push('bold');
-        if (document.queryCommandState('italic')) activeCommands.push('italic');
-        if (document.queryCommandState('underline')) activeCommands.push('underline');
-        if (document.queryCommandState('insertUnorderedList')) activeCommands.push('insertUnorderedList');
-        if (document.queryCommandState('insertOrderedList')) activeCommands.push('insertOrderedList');
-        
-        setActivityTextActiveButtons(activeCommands);
-      };
-      
-      document.addEventListener('selectionchange', handleSelectionChange);
-      
-      // Clean up
-      return () => {
-        document.removeEventListener('selectionchange', handleSelectionChange);
-      };
-    }
-  }, [isEditMode]);
-
-  const execDescriptionCommand = (command: string, value?: string) => {
-    if (descriptionRef.current) {
-      // Focus the editor to ensure commands work properly
-      descriptionRef.current.focus();
-      
-      // Save the current selection
-      const selection = window.getSelection();
-      const range = selection?.getRangeAt(0);
-      
-      // Execute the command
-      document.execCommand(command, false, value);
-      
-      // Update active buttons state
-      if (descriptionActiveButtons.includes(command)) {
-        setDescriptionActiveButtons(prev => prev.filter(cmd => cmd !== command));
-      } else {
-        setDescriptionActiveButtons(prev => [...prev, command]);
-      }
-      
-      // Get the updated content
-      const updatedContent = descriptionRef.current.innerHTML;
-      setEditedActivity(prev => ({ ...prev, description: updatedContent }));
-      
-      // Restore focus to the editor
-      descriptionRef.current.focus();
-      
-      // Restore selection if possible
-      if (range && selection) {
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
-    }
-  };
-
-  const execActivityTextCommand = (command: string, value?: string) => {
-    if (activityTextRef.current) {
-      // Focus the editor to ensure commands work properly
-      activityTextRef.current.focus();
-      
-      // Save the current selection
-      const selection = window.getSelection();
-      const range = selection?.getRangeAt(0);
-      
-      // Execute the command
-      document.execCommand(command, false, value);
-      
-      // Update active buttons state
-      if (activityTextActiveButtons.includes(command)) {
-        setActivityTextActiveButtons(prev => prev.filter(cmd => cmd !== command));
-      } else {
-        setActivityTextActiveButtons(prev => [...prev, command]);
-      }
-      
-      // Get the updated content
-      const updatedContent = activityTextRef.current.innerHTML;
-      setEditedActivity(prev => ({ ...prev, activityText: updatedContent }));
-      
-      // Restore focus to the editor
-      activityTextRef.current.focus();
-      
-      // Restore selection if possible
-      if (range && selection) {
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
-    }
-  };
-
   const handleSave = () => {
     if (onUpdate) {
       onUpdate({
@@ -219,64 +95,11 @@ export function ActivityDetails({
     if (isEditMode) {
       return (
         <div>
-          {/* Rich Text Toolbar */}
-          <div className="flex items-center space-x-1 mb-2 p-2 bg-gray-50 rounded-lg">
-            <button
-              onClick={() => execDescriptionCommand('bold')}
-              className={`p-1 rounded ${descriptionActiveButtons.includes('bold') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
-              title="Bold"
-            >
-              <Bold className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => execDescriptionCommand('italic')}
-              className={`p-1 rounded ${descriptionActiveButtons.includes('italic') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
-              title="Italic"
-            >
-              <Italic className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => execDescriptionCommand('underline')}
-              className={`p-1 rounded ${descriptionActiveButtons.includes('underline') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
-              title="Underline"
-            >
-              <Underline className="h-4 w-4" />
-            </button>
-            <div className="w-px h-6 bg-gray-300 mx-1"></div>
-            <button
-              onClick={() => execDescriptionCommand('insertUnorderedList')}
-              className={`p-1 rounded ${descriptionActiveButtons.includes('insertUnorderedList') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
-              title="Bullet List"
-            >
-              <List className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => execDescriptionCommand('insertOrderedList')}
-              className={`p-1 rounded ${descriptionActiveButtons.includes('insertOrderedList') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
-              title="Numbered List"
-            >
-              <ListOrdered className="h-4 w-4" />
-            </button>
-          </div>
-          
-          <div
-            ref={descriptionRef}
-            contentEditable
-            className="min-h-[150px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-left"
-            dangerouslySetInnerHTML={{ __html: editedActivity.description }}
-            onInput={(e) => {
-              const target = e.target as HTMLDivElement;
-              setEditedActivity(prev => ({ ...prev, description: target.innerHTML }));
-            }}
-            onKeyDown={(e) => {
-              // Prevent default behavior for Tab key to avoid losing focus
-              if (e.key === 'Tab') {
-                e.preventDefault();
-                document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
-              }
-            }}
+          <textarea
+            value={editedActivity.description}
+            onChange={(e) => setEditedActivity(prev => ({ ...prev, description: e.target.value }))}
+            className="w-full min-h-[150px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             dir="ltr"
-            style={{ direction: 'ltr', unicodeBidi: 'embed' }}
           />
         </div>
       );
@@ -288,7 +111,7 @@ export function ActivityDetails({
         <div
           className="prose prose-sm max-w-none"
           dangerouslySetInnerHTML={{ __html: activity.htmlDescription }}
-          dir="ltr" // Explicitly set text direction to left-to-right
+          dir="ltr"
         />
       );
     }
@@ -299,7 +122,7 @@ export function ActivityDetails({
         <div
           className="prose prose-sm max-w-none"
           dangerouslySetInnerHTML={{ __html: activity.description }}
-          dir="ltr" // Explicitly set text direction to left-to-right
+          dir="ltr"
         />
       );
     }
@@ -315,7 +138,7 @@ export function ActivityDetails({
       <div
         className="prose prose-sm max-w-none"
         dangerouslySetInnerHTML={{ __html: formattedDescription }}
-        dir="ltr" // Explicitly set text direction to left-to-right
+        dir="ltr"
       />
     );
   };
@@ -324,64 +147,11 @@ export function ActivityDetails({
     if (isEditMode) {
       return (
         <div>
-          {/* Rich Text Toolbar for Activity Text */}
-          <div className="flex items-center space-x-1 mb-2 p-2 bg-gray-50 rounded-lg">
-            <button
-              onClick={() => execActivityTextCommand('bold')}
-              className={`p-1 rounded ${activityTextActiveButtons.includes('bold') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
-              title="Bold"
-            >
-              <Bold className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => execActivityTextCommand('italic')}
-              className={`p-1 rounded ${activityTextActiveButtons.includes('italic') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
-              title="Italic"
-            >
-              <Italic className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => execActivityTextCommand('underline')}
-              className={`p-1 rounded ${activityTextActiveButtons.includes('underline') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
-              title="Underline"
-            >
-              <Underline className="h-4 w-4" />
-            </button>
-            <div className="w-px h-6 bg-gray-300 mx-1"></div>
-            <button
-              onClick={() => execActivityTextCommand('insertUnorderedList')}
-              className={`p-1 rounded ${activityTextActiveButtons.includes('insertUnorderedList') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
-              title="Bullet List"
-            >
-              <List className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => execActivityTextCommand('insertOrderedList')}
-              className={`p-1 rounded ${activityTextActiveButtons.includes('insertOrderedList') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
-              title="Numbered List"
-            >
-              <ListOrdered className="h-4 w-4" />
-            </button>
-          </div>
-          
-          <div
-            ref={activityTextRef}
-            contentEditable
-            className="min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-left"
-            dangerouslySetInnerHTML={{ __html: editedActivity.activityText || '' }}
-            onInput={(e) => {
-              const target = e.target as HTMLDivElement;
-              setEditedActivity(prev => ({ ...prev, activityText: target.innerHTML }));
-            }}
-            onKeyDown={(e) => {
-              // Prevent default behavior for Tab key to avoid losing focus
-              if (e.key === 'Tab') {
-                e.preventDefault();
-                document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
-              }
-            }}
+          <textarea
+            value={editedActivity.activityText || ''}
+            onChange={(e) => setEditedActivity(prev => ({ ...prev, activityText: e.target.value }))}
+            className="w-full min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             dir="ltr"
-            style={{ direction: 'ltr', unicodeBidi: 'embed' }}
           />
         </div>
       );
@@ -393,7 +163,7 @@ export function ActivityDetails({
         <div
           className="prose prose-sm max-w-none"
           dangerouslySetInnerHTML={{ __html: activity.activityText }}
-          dir="ltr" // Explicitly set text direction to left-to-right
+          dir="ltr"
         />
       );
     }
@@ -451,7 +221,7 @@ export function ActivityDetails({
                   value={editedActivity.activity}
                   onChange={(e) => setEditedActivity(prev => ({ ...prev, activity: e.target.value }))}
                   className="text-xl font-bold text-gray-900 border-b border-gray-300 focus:border-blue-500 focus:outline-none w-full"
-                  dir="ltr" // Explicitly set text direction to left-to-right
+                  dir="ltr"
                 />
               ) : (
                 <h2 className="text-xl font-bold text-gray-900">{activity.activity}</h2>
@@ -462,7 +232,7 @@ export function ActivityDetails({
                     value={editedActivity.category}
                     onChange={(e) => setEditedActivity(prev => ({ ...prev, category: e.target.value }))}
                     className="text-sm text-gray-600 border border-gray-300 rounded px-2 py-1"
-                    dir="ltr" // Explicitly set text direction to left-to-right
+                    dir="ltr"
                   >
                     <option value="">Select Category</option>
                     <option value="Welcome">Welcome</option>
@@ -494,7 +264,7 @@ export function ActivityDetails({
                     value={editedActivity.level}
                     onChange={(e) => setEditedActivity(prev => ({ ...prev, level: e.target.value }))}
                     className="text-sm text-gray-600 border border-gray-300 rounded px-2 py-1"
-                    dir="ltr" // Explicitly set text direction to left-to-right
+                    dir="ltr"
                   >
                     <option value="">Select Level</option>
                     <option value="All">All</option>
@@ -594,7 +364,7 @@ export function ActivityDetails({
                       onChange={(e) => setEditedActivity(prev => ({ ...prev, time: parseInt(e.target.value) || 0 }))}
                       className="w-16 px-2 py-1 border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       min="0"
-                      dir="ltr" // Explicitly set text direction to left-to-right
+                      dir="ltr"
                     />
                     <span className="text-sm font-medium text-blue-900">minutes</span>
                   </div>
@@ -650,7 +420,7 @@ export function ActivityDetails({
                     onChange={(e) => setEditedActivity(prev => ({ ...prev, unitName: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter unit name"
-                    dir="ltr" // Explicitly set text direction to left-to-right
+                    dir="ltr"
                   />
                 ) : (
                   <p className="text-gray-700" dir="ltr">{activity.unitName}</p>
@@ -730,7 +500,7 @@ export function ActivityDetails({
                         onChange={(e) => setEditedActivity(prev => ({ ...prev, imageLink: e.target.value }))}
                         placeholder="Or paste image URL"
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                        dir="ltr" // Explicitly set text direction to left-to-right
+                        dir="ltr"
                       />
                     </div>
                   </div>
@@ -765,7 +535,7 @@ export function ActivityDetails({
                         onChange={(e) => setEditedActivity(prev => ({ ...prev, [key]: e.target.value }))}
                         className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder={label}
-                        dir="ltr" // Explicitly set text direction to left-to-right
+                        dir="ltr"
                       />
                     </div>
                   ))}

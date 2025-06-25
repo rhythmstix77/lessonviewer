@@ -9,11 +9,6 @@ import {
   Trash2,
   Save,
   X,
-  Bold,
-  Italic,
-  Underline,
-  List,
-  ListOrdered,
   Edit3,
   ChevronLeft,
   ChevronRight
@@ -266,71 +261,6 @@ export function LessonDropZone({
     }),
   }));
 
-  const [isRichTextEditing, setIsRichTextEditing] = useState(false);
-  const notesRef = useRef<HTMLDivElement>(null);
-  const [activeButtons, setActiveButtons] = useState<string[]>([]);
-
-  // Initialize the editor when switching to rich text mode
-  useEffect(() => {
-    if (isRichTextEditing && notesRef.current) {
-      notesRef.current.focus();
-      
-      // Set up event listeners for selection changes to update active buttons
-      const handleSelectionChange = () => {
-        const activeCommands: string[] = [];
-        
-        if (document.queryCommandState('bold')) activeCommands.push('bold');
-        if (document.queryCommandState('italic')) activeCommands.push('italic');
-        if (document.queryCommandState('underline')) activeCommands.push('underline');
-        if (document.queryCommandState('insertUnorderedList')) activeCommands.push('insertUnorderedList');
-        if (document.queryCommandState('insertOrderedList')) activeCommands.push('insertOrderedList');
-        
-        setActiveButtons(activeCommands);
-      };
-      
-      document.addEventListener('selectionchange', handleSelectionChange);
-      
-      // Clean up
-      return () => {
-        document.removeEventListener('selectionchange', handleSelectionChange);
-      };
-    }
-  }, [isRichTextEditing]);
-
-  const execCommand = (command: string, value?: string) => {
-    if (notesRef.current) {
-      // Focus the editor to ensure commands work properly
-      notesRef.current.focus();
-      
-      // Save the current selection
-      const selection = window.getSelection();
-      const range = selection?.getRangeAt(0);
-      
-      // Execute the command
-      document.execCommand(command, false, value);
-      
-      // Update active buttons state
-      if (activeButtons.includes(command)) {
-        setActiveButtons(prev => prev.filter(cmd => cmd !== command));
-      } else {
-        setActiveButtons(prev => [...prev, command]);
-      }
-      
-      // Get the updated content
-      const updatedContent = notesRef.current.innerHTML;
-      onNotesUpdate(updatedContent);
-      
-      // Restore focus to the editor
-      notesRef.current.focus();
-      
-      // Restore selection if possible
-      if (range && selection) {
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
-    }
-  };
-
   // Group activities by category for side-by-side display
   const groupedActivities: Record<string, Activity[]> = React.useMemo(() => {
     const grouped: Record<string, Activity[]> = {};
@@ -566,104 +496,14 @@ export function LessonDropZone({
         </div>
         
         <div>
-          {isRichTextEditing ? (
-            <div>
-              {/* Rich Text Toolbar */}
-              <div className="flex items-center space-x-1 mb-2 p-2 bg-white rounded-lg border border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => execCommand('bold')}
-                  className={`p-1 rounded ${activeButtons.includes('bold') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
-                  title="Bold"
-                >
-                  <Bold className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => execCommand('italic')}
-                  className={`p-1 rounded ${activeButtons.includes('italic') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
-                  title="Italic"
-                >
-                  <Italic className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => execCommand('underline')}
-                  className={`p-1 rounded ${activeButtons.includes('underline') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
-                  title="Underline"
-                >
-                  <Underline className="h-4 w-4" />
-                </button>
-                <div className="w-px h-6 bg-gray-300 mx-1"></div>
-                <button
-                  type="button"
-                  onClick={() => execCommand('insertUnorderedList')}
-                  className={`p-1 rounded ${activeButtons.includes('insertUnorderedList') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
-                  title="Bullet List"
-                >
-                  <List className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => execCommand('insertOrderedList')}
-                  className={`p-1 rounded ${activeButtons.includes('insertOrderedList') ? 'bg-gray-200 text-gray-800' : 'hover:bg-gray-100'}`}
-                  title="Numbered List"
-                >
-                  <ListOrdered className="h-4 w-4" />
-                </button>
-              </div>
-              
-              <div
-                ref={notesRef}
-                contentEditable
-                className="min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none bg-white text-left"
-                dangerouslySetInnerHTML={{ __html: lessonPlan.notes }}
-                onInput={(e) => {
-                  const target = e.target as HTMLDivElement;
-                  onNotesUpdate(target.innerHTML);
-                }}
-                onKeyDown={(e) => {
-                  // Prevent default behavior for Tab key to avoid losing focus
-                  if (e.key === 'Tab') {
-                    e.preventDefault();
-                    document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
-                  }
-                }}
-                dir="ltr"
-                style={{ direction: 'ltr', unicodeBidi: 'embed' }}
-              />
-              
-              <div className="flex justify-end mt-2">
-                <button
-                  onClick={() => setIsRichTextEditing(false)}
-                  className="text-sm text-gray-600 hover:text-gray-900"
-                >
-                  Switch to plain text
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <textarea
-                value={lessonPlan.notes.replace(/<br\s*\/?>/g, '\n').replace(/<[^>]*>/g, '')}
-                onChange={(e) => onNotesUpdate(e.target.value)}
-                className="w-full h-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
-                placeholder="Add notes about this lesson plan..."
-                disabled={!isEditing}
-                dir="ltr"
-              />
-              {isEditing && (
-                <div className="flex justify-end mt-2">
-                  <button
-                    onClick={() => setIsRichTextEditing(true)}
-                    className="text-sm text-gray-600 hover:text-gray-900"
-                  >
-                    Use rich text editor
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          <textarea
+            value={lessonPlan.notes}
+            onChange={(e) => onNotesUpdate(e.target.value)}
+            className="w-full h-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
+            placeholder="Add notes about this lesson plan..."
+            disabled={!isEditing}
+            dir="ltr"
+          />
         </div>
       </div>
     </div>
