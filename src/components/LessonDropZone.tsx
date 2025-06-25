@@ -616,7 +616,7 @@ export function LessonDropZone({
               <div
                 ref={notesRef}
                 contentEditable
-                className="min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none bg-white"
+                className="min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none bg-white text-left"
                 dangerouslySetInnerHTML={{ __html: lessonPlan.notes }}
                 onInput={(e) => {
                   const target = e.target as HTMLDivElement;
@@ -630,6 +630,7 @@ export function LessonDropZone({
                   }
                 }}
                 dir="ltr"
+                style={{ unicodeBidi: 'embed' }}
               />
               
               <div className="flex justify-end mt-2">

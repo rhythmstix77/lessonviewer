@@ -445,7 +445,7 @@ export function AdminContentEditor({ isOpen, onClose }: AdminContentEditorProps)
                     <div
                       ref={editorRef}
                       contentEditable
-                      className="min-h-[400px] p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none prose prose-sm max-w-none"
+                      className="min-h-[400px] p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none prose prose-sm max-w-none text-left"
                       dangerouslySetInnerHTML={{ __html: selectedContent.content }}
                       onInput={(e) => {
                         const target = e.target as HTMLDivElement;
@@ -458,6 +458,8 @@ export function AdminContentEditor({ isOpen, onClose }: AdminContentEditorProps)
                           document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
                         }
                       }}
+                      dir="ltr"
+                      style={{ unicodeBidi: 'embed' }}
                     />
                   ) : (
                     <textarea
@@ -465,6 +467,7 @@ export function AdminContentEditor({ isOpen, onClose }: AdminContentEditorProps)
                       onChange={(e) => setSelectedContent({ ...selectedContent, content: e.target.value })}
                       className="w-full h-96 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none font-mono text-sm"
                       placeholder="Enter your content here..."
+                      dir="ltr"
                     />
                   )}
                   

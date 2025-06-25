@@ -262,7 +262,7 @@ export function ActivityDetails({
           <div
             ref={descriptionRef}
             contentEditable
-            className="min-h-[150px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            className="min-h-[150px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-left"
             dangerouslySetInnerHTML={{ __html: editedActivity.description }}
             onInput={(e) => {
               const target = e.target as HTMLDivElement;
@@ -275,7 +275,8 @@ export function ActivityDetails({
                 document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
               }
             }}
-            dir="ltr" // Explicitly set text direction to left-to-right
+            dir="ltr"
+            style={{ unicodeBidi: 'embed' }}
           />
         </div>
       );
@@ -366,7 +367,7 @@ export function ActivityDetails({
           <div
             ref={activityTextRef}
             contentEditable
-            className="min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            className="min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-left"
             dangerouslySetInnerHTML={{ __html: editedActivity.activityText || '' }}
             onInput={(e) => {
               const target = e.target as HTMLDivElement;
@@ -379,7 +380,8 @@ export function ActivityDetails({
                 document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
               }
             }}
-            dir="ltr" // Explicitly set text direction to left-to-right
+            dir="ltr"
+            style={{ unicodeBidi: 'embed' }}
           />
         </div>
       );

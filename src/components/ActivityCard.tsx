@@ -342,13 +342,14 @@ export function ActivityCard({
               <div
                 ref={descriptionRef}
                 contentEditable
-                className="min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-left"
                 dangerouslySetInnerHTML={{ __html: editedActivity.description }}
                 onInput={(e) => {
                   const target = e.target as HTMLDivElement;
                   setEditedActivity(prev => ({ ...prev, description: target.innerHTML }));
                 }}
                 dir="ltr"
+                style={{ unicodeBidi: 'embed' }}
               />
             </div>
           ) : (

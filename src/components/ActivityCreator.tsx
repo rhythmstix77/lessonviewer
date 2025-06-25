@@ -421,7 +421,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
               <div
                 ref={activityTextRef}
                 contentEditable
-                className="min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="min-h-[100px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-left"
                 onInput={(e) => {
                   const target = e.target as HTMLDivElement;
                   setActivity(prev => ({ ...prev, activityText: target.innerHTML }));
@@ -434,6 +434,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                   }
                 }}
                 dir="ltr"
+                style={{ unicodeBidi: 'embed' }}
               />
             </div>
 
@@ -491,7 +492,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
               <div
                 ref={descriptionRef}
                 contentEditable
-                className="min-h-[150px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="min-h-[150px] p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none text-left"
                 onInput={(e) => {
                   const target = e.target as HTMLDivElement;
                   setActivity(prev => ({ ...prev, description: target.innerHTML }));
@@ -504,6 +505,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                   }
                 }}
                 dir="ltr"
+                style={{ unicodeBidi: 'embed' }}
               />
             </div>
 
