@@ -87,3 +87,14 @@
     width: 800px;
   }
 }
+
+/* Fix for dropdown menus */
+.z-50 {
+  z-index: 50 !important;
+}
+
+/* Ensure dropdowns are above other elements */
+.dropdown-menu {
+  z-index: 100 !important;
+  position: relative;
+}

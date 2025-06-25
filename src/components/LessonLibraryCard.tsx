@@ -184,7 +184,7 @@ export function LessonLibraryCard({
           >
             <div className="flex items-center justify-between">
               <div>
-                {editedTitle !== null ? (
+                {editedTitle === selectedLesson ? (
                   <div className="flex items-center space-x-2">
                     <input
                       type="text"
@@ -236,7 +236,7 @@ export function LessonLibraryCard({
                     </button>
                     
                     {showAssignDropdown && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-10 border border-gray-200">
+                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-50 border border-gray-200">
                         <div className="p-2 border-b border-gray-200">
                           <h3 className="text-sm font-medium text-gray-700">Select Half-Term</h3>
                         </div>
@@ -351,15 +351,15 @@ export function LessonLibraryCard({
                           ) : (
                             <>
                               {/* Activity Header */}
-                              <div className="p-4 border-b border-gray-200 bg-gray-50">
+                              <div className="p-4 border-b border-gray-200 bg-white">
                                 <div className="flex items-start justify-between">
                                   <h4 className="font-bold text-gray-900 text-lg">
                                     {activity.activity}
                                   </h4>
                                   <div className="flex items-center space-x-2">
                                     {activity.time > 0 && (
-                                      <span className="ml-2 px-3 py-1 bg-gray-200 text-gray-800 text-sm font-medium rounded-full">
-                                        {activity.time} mins
+                                      <span className="text-xs font-medium text-blue-800 bg-blue-100 px-2 py-1 rounded-full ml-3 flex-shrink-0">
+                                        {activity.time}m
                                       </span>
                                     )}
                                     <button
@@ -374,7 +374,7 @@ export function LessonLibraryCard({
                                 {activity.level && (
                                   <div className="mt-2">
                                     <span 
-                                      className="px-3 py-1 text-white text-sm font-medium rounded-full"
+                                      className="px-3 py-1 text-white text-xs font-medium rounded-full"
                                       style={{ backgroundColor: getCategoryColor(category) }}
                                     >
                                       {activity.level}
@@ -390,7 +390,6 @@ export function LessonLibraryCard({
                                   <div 
                                     className="mb-4 prose prose-sm max-w-none"
                                     dangerouslySetInnerHTML={{ __html: activity.activityText }}
-                                    dir="ltr"
                                   />
                                 )}
                                 
@@ -398,37 +397,37 @@ export function LessonLibraryCard({
                                 <div 
                                   className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
                                   dangerouslySetInnerHTML={{ __html: formatDescription(activity.description) }}
-                                  dir="ltr"
                                 />
                                 
                                 {/* Unit Name */}
                                 {activity.unitName && (
                                   <div className="mt-4 pt-4 border-t border-gray-100">
                                     <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Unit:</span>
-                                    <p className="text-sm text-gray-700 font-medium" dir="ltr">{activity.unitName}</p>
+                                    <p className="text-sm text-gray-700 font-medium">{activity.unitName}</p>
                                   </div>
                                 )}
                                 
-                                {/* Resources */}
+                                {/* Web Links Section - Prominently displayed */}
                                 {(activity.videoLink || activity.musicLink || activity.backingLink || 
                                   activity.resourceLink || activity.link || activity.vocalsLink || 
                                   activity.imageLink) && (
-                                  <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                                    <h5 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-                                      <FileText className="h-4 w-4 mr-2" />
-                                      Resources
+                                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                    <h5 className="text-sm font-medium text-blue-800 mb-2 flex items-center">
+                                      <FileText className="h-4 w-4 mr-1" />
+                                      Web Resources
                                     </h5>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-2 gap-2">
                                       {activity.videoLink && (
                                         <a 
                                           href={activity.videoLink} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
-                                          dir="ltr"
+                                          className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                          onClick={(e) => e.stopPropagation()}
                                         >
-                                          <span className="text-sm font-medium">Video</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
+                                          <span className="w-2 h-2 bg-red-500 rounded-full mr-1"></span>
+                                          Video Link
+                                          <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
                                         </a>
                                       )}
                                       {activity.musicLink && (
@@ -436,11 +435,12 @@ export function LessonLibraryCard({
                                           href={activity.musicLink} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
-                                          dir="ltr"
+                                          className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                          onClick={(e) => e.stopPropagation()}
                                         >
-                                          <span className="text-sm font-medium">Music</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
+                                          <span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                                          Music Link
+                                          <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
                                         </a>
                                       )}
                                       {activity.backingLink && (
@@ -448,11 +448,12 @@ export function LessonLibraryCard({
                                           href={activity.backingLink} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
-                                          dir="ltr"
+                                          className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                          onClick={(e) => e.stopPropagation()}
                                         >
-                                          <span className="text-sm font-medium">Backing</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
+                                          <span className="w-2 h-2 bg-blue-500 rounded-full mr-1"></span>
+                                          Backing Track
+                                          <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
                                         </a>
                                       )}
                                       {activity.resourceLink && (
@@ -460,11 +461,12 @@ export function LessonLibraryCard({
                                           href={activity.resourceLink} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors"
-                                          dir="ltr"
+                                          className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                          onClick={(e) => e.stopPropagation()}
                                         >
-                                          <span className="text-sm font-medium">Resource</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
+                                          <span className="w-2 h-2 bg-purple-500 rounded-full mr-1"></span>
+                                          Resource
+                                          <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
                                         </a>
                                       )}
                                       {activity.link && (
@@ -472,11 +474,12 @@ export function LessonLibraryCard({
                                           href={activity.link} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors"
-                                          dir="ltr"
+                                          className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                          onClick={(e) => e.stopPropagation()}
                                         >
-                                          <span className="text-sm font-medium">Link</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
+                                          <span className="w-2 h-2 bg-gray-500 rounded-full mr-1"></span>
+                                          Additional Link
+                                          <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
                                         </a>
                                       )}
                                       {activity.vocalsLink && (
@@ -484,11 +487,12 @@ export function LessonLibraryCard({
                                           href={activity.vocalsLink} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors"
-                                          dir="ltr"
+                                          className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                          onClick={(e) => e.stopPropagation()}
                                         >
-                                          <span className="text-sm font-medium">Vocals</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
+                                          <span className="w-2 h-2 bg-orange-500 rounded-full mr-1"></span>
+                                          Vocals
+                                          <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
                                         </a>
                                       )}
                                       {activity.imageLink && (
@@ -496,11 +500,12 @@ export function LessonLibraryCard({
                                           href={activity.imageLink} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 transition-colors"
-                                          dir="ltr"
+                                          className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                          onClick={(e) => e.stopPropagation()}
                                         >
-                                          <span className="text-sm font-medium">Image</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
+                                          <span className="w-2 h-2 bg-pink-500 rounded-full mr-1"></span>
+                                          Image
+                                          <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
                                         </a>
                                       )}
                                     </div>
@@ -541,9 +546,7 @@ export function LessonLibraryCard({
       >
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
-            <h4 className="font-medium text-gray-900 text-sm truncate" dir="ltr">
-              {lessonData.title || `Lesson ${lessonNumber}`}
-            </h4>
+            <h4 className="font-medium text-gray-900 text-sm truncate" dir="ltr">{lessonData.title || `Lesson ${lessonNumber}`}</h4>
             <div className="flex items-center space-x-2 text-xs text-gray-500">
               <span>{lessonData.totalTime} mins</span>
               <span>•</span>
@@ -565,7 +568,7 @@ export function LessonLibraryCard({
                 </button>
                 
                 {showAssignDropdown && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-10 border border-gray-200">
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200">
                     <div className="p-2 border-b border-gray-200">
                       <h3 className="text-xs font-medium text-gray-700">Assign to Half-Term</h3>
                     </div>
@@ -628,7 +631,7 @@ export function LessonLibraryCard({
                     </button>
                     
                     {showAssignDropdown && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-10 border border-gray-200">
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200">
                         <div className="p-2 border-b border-gray-200">
                           <h3 className="text-xs font-medium text-gray-700">Assign to Half-Term</h3>
                         </div>
@@ -726,7 +729,7 @@ export function LessonLibraryCard({
                   </button>
                   
                   {showAssignDropdown && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-10 border border-gray-200">
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200">
                       <div className="p-2 border-b border-gray-200">
                         <h3 className="text-xs font-medium text-gray-700">Assign to Half-Term</h3>
                       </div>
