@@ -25,6 +25,7 @@ import { LessonExporter } from './LessonExporter';
 interface LessonLibraryProps {
   onLessonSelect?: (lessonNumber: string) => void;
   className?: string;
+  onAssignToUnit?: (lessonNumber: string, halfTermId: string) => void;
 }
 
 // Define half-term periods
@@ -47,7 +48,7 @@ const LESSON_TO_HALF_TERM: Record<string, string> = {
   '31': 'SM2', '32': 'SM2', '33': 'SM2', '34': 'SM2', '35': 'SM2', '36': 'SM2',
 };
 
-export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryProps) {
+export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }: LessonLibraryProps) {
   const { lessonNumbers, allLessonsData, currentSheetInfo } = useData();
   const { getThemeForClass } = useSettings();
   const [searchQuery, setSearchQuery] = useState('');
@@ -138,6 +139,12 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
     } else {
       setSelectedLesson(lessonNumber);
       setShowExporter(true);
+    }
+  };
+
+  const handleAssignToUnit = (lessonNumber: string, halfTermId: string) => {
+    if (onAssignToUnit) {
+      onAssignToUnit(lessonNumber, halfTermId);
     }
   };
 
@@ -276,6 +283,8 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
                   viewMode={viewMode}
                   onClick={() => handleLessonClick(lessonNum)}
                   theme={theme}
+                  onAssignToUnit={handleAssignToUnit}
+                  halfTerms={HALF_TERMS}
                 />
               );
             })}

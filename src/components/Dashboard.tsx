@@ -24,14 +24,25 @@ interface Unit {
   updatedAt: Date;
 }
 
+// Define half-term periods
+const HALF_TERMS = [
+  { id: 'A1', name: 'Autumn 1', months: 'Sep-Oct' },
+  { id: 'A2', name: 'Autumn 2', months: 'Nov-Dec' },
+  { id: 'SP1', name: 'Spring 1', months: 'Jan-Feb' },
+  { id: 'SP2', name: 'Spring 2', months: 'Mar-Apr' },
+  { id: 'SM1', name: 'Summer 1', months: 'Apr-May' },
+  { id: 'SM2', name: 'Summer 2', months: 'Jun-Jul' },
+];
+
 export function Dashboard() {
   const { user } = useAuth();
-  const { currentSheetInfo } = useData();
+  const { currentSheetInfo, allLessonsData } = useData();
   const { getThemeForClass } = useSettings();
   const [activeTab, setActiveTab] = useState('unit-viewer');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [lessonPlans, setLessonPlans] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [units, setUnits] = useState<Unit[]>([]);
   
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
@@ -48,12 +59,70 @@ export function Dashboard() {
       }));
       setLessonPlans(plans);
     }
+
+    // Load units from localStorage
+    const savedUnits = localStorage.getItem('units');
+    if (savedUnits) {
+      try {
+        const parsedUnits = JSON.parse(savedUnits).map((unit: any) => ({
+          ...unit,
+          createdAt: new Date(unit.createdAt),
+          updatedAt: new Date(unit.updatedAt),
+        }));
+        setUnits(parsedUnits);
+      } catch (error) {
+        console.error('Error parsing saved units:', error);
+        setUnits([]);
+      }
+    } else {
+      // Create some sample units if none exist
+      const sampleUnits: Unit[] = [
+        {
+          id: 'unit-1',
+          name: 'Welcome Songs',
+          description: 'A collection of welcome songs and activities to start the lesson.',
+          lessonNumbers: ['1', '2', '3'],
+          color: '#3B82F6',
+          term: 'A1',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          id: 'unit-2',
+          name: 'Rhythm Activities',
+          description: 'Activities focused on developing rhythm skills using percussion instruments.',
+          lessonNumbers: ['4', '5', '6'],
+          color: '#F59E0B',
+          term: 'A2',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          id: 'unit-3',
+          name: 'Movement and Dance',
+          description: 'Activities that combine music with movement and dance elements.',
+          lessonNumbers: ['7', '8', '9'],
+          color: '#10B981',
+          term: 'SP1',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      ];
+      setUnits(sampleUnits);
+      localStorage.setItem('units', JSON.stringify(sampleUnits));
+    }
   }, []);
 
   // Save lesson plans to localStorage
   const saveLessonPlans = (plans: any[]) => {
     localStorage.setItem('lesson-plans', JSON.stringify(plans));
     setLessonPlans(plans);
+  };
+
+  // Save units to localStorage
+  const saveUnits = (updatedUnits: Unit[]) => {
+    localStorage.setItem('units', JSON.stringify(updatedUnits));
+    setUnits(updatedUnits);
   };
 
   const handleDateSelect = (date: Date) => {
@@ -145,6 +214,83 @@ export function Dashboard() {
     // and load that lesson when it mounts
   };
 
+  const handleAssignLessonToUnit = (lessonNumber: string, halfTermId: string) => {
+    // Check if a unit already exists for this half-term
+    let targetUnit = units.find(unit => unit.term === halfTermId);
+    
+    // If no unit exists for this half-term, create a new one
+    if (!targetUnit) {
+      // Generate a unique ID for the new unit
+      const unitId = `unit-${Date.now()}`;
+      
+      // Get the half-term name
+      const halfTerm = HALF_TERMS.find(term => term.id === halfTermId);
+      const halfTermName = halfTerm ? halfTerm.name : halfTermId;
+      
+      // Create a new unit
+      const newUnit: Unit = {
+        id: unitId,
+        name: `${halfTermName} Unit`,
+        description: `Lessons for ${halfTermName}`,
+        lessonNumbers: [],
+        color: getRandomColor(),
+        term: halfTermId,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      // Add the new unit to the units array
+      const updatedUnits = [...units, newUnit];
+      targetUnit = newUnit;
+      setUnits(updatedUnits);
+      
+      // Save to localStorage
+      localStorage.setItem('units', JSON.stringify(updatedUnits));
+    }
+    
+    // Add the lesson to the unit if it's not already there
+    if (!targetUnit.lessonNumbers.includes(lessonNumber)) {
+      const updatedUnits = units.map(unit => {
+        if (unit.id === targetUnit!.id) {
+          // Add the lesson number and sort numerically
+          const updatedLessonNumbers = [...unit.lessonNumbers, lessonNumber]
+            .sort((a, b) => parseInt(a) - parseInt(b));
+          
+          return {
+            ...unit,
+            lessonNumbers: updatedLessonNumbers,
+            updatedAt: new Date()
+          };
+        }
+        return unit;
+      });
+      
+      // Update state and save to localStorage
+      saveUnits(updatedUnits);
+      
+      // Show a success message
+      alert(`Lesson ${lessonNumber} has been added to the ${targetUnit.name} unit.`);
+    } else {
+      // Lesson is already in the unit
+      alert(`Lesson ${lessonNumber} is already in the ${targetUnit.name} unit.`);
+    }
+  };
+
+  // Helper function to generate a random color
+  const getRandomColor = () => {
+    const colors = [
+      '#3B82F6', // Blue
+      '#F59E0B', // Amber
+      '#10B981', // Emerald
+      '#8B5CF6', // Violet
+      '#EC4899', // Pink
+      '#EF4444', // Red
+      '#F97316', // Orange
+      '#14B8A6', // Teal
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+  };
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
@@ -220,6 +366,7 @@ export function Dashboard() {
               <LessonLibrary 
                 onLessonSelect={handleLessonSelect}
                 className={currentSheetInfo.sheet}
+                onAssignToUnit={handleAssignLessonToUnit}
               />
             </TabsContent>
 

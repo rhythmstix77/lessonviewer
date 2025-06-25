@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
-import { Clock, Users, ChevronRight, Tag, X, Download, ExternalLink, FileText, Edit3, Save } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Clock, Users, ChevronRight, Tag, X, Download, ExternalLink, FileText, Edit3, Save, FolderPlus, ChevronDown } from 'lucide-react';
 import type { LessonData, Activity } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useData } from '../contexts/DataContext';
 import { RichTextEditor } from './RichTextEditor';
+
+interface HalfTerm {
+  id: string;
+  name: string;
+  months: string;
+}
 
 interface LessonLibraryCardProps {
   lessonNumber: string;
@@ -16,6 +22,8 @@ interface LessonLibraryCardProps {
     accent: string;
     gradient: string;
   };
+  onAssignToUnit?: (lessonNumber: string, halfTermId: string) => void;
+  halfTerms?: HalfTerm[];
 }
 
 export function LessonLibraryCard({
@@ -23,7 +31,9 @@ export function LessonLibraryCard({
   lessonData,
   viewMode,
   onClick,
-  theme
+  theme,
+  onAssignToUnit,
+  halfTerms = []
 }: LessonLibraryCardProps) {
   const { getCategoryColor } = useSettings();
   const { eyfsStatements, updateLessonTitle } = useData();
@@ -31,6 +41,8 @@ export function LessonLibraryCard({
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [editedTitle, setEditedTitle] = useState<string | null>(null);
+  const [showAssignDropdown, setShowAssignDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   
   // Calculate total activities
   const totalActivities = React.useMemo(() => {
@@ -59,6 +71,20 @@ export function LessonLibraryCard({
     // Remove HTML tags for plain text preview
     return description.replace(/<[^>]*>/g, '').substring(0, 100) + (description.length > 100 ? '...' : '');
   };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowAssignDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleCardClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -117,6 +143,18 @@ export function LessonLibraryCard({
     if (editedTitle !== null) {
       updateLessonTitle(lessonNumber, editedTitle);
       setEditedTitle(null);
+    }
+  };
+
+  const handleAssignClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowAssignDropdown(!showAssignDropdown);
+  };
+
+  const handleAssignToHalfTerm = (halfTermId: string) => {
+    if (onAssignToUnit) {
+      onAssignToUnit(lessonNumber, halfTermId);
+      setShowAssignDropdown(false);
     }
   };
 
@@ -185,6 +223,38 @@ export function LessonLibraryCard({
                 </p>
               </div>
               <div className="flex items-center space-x-3">
+                {onAssignToUnit && halfTerms.length > 0 && (
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      onClick={handleAssignClick}
+                      className="p-3 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 flex items-center space-x-2"
+                      title="Assign to Unit"
+                    >
+                      <FolderPlus className="h-6 w-6" />
+                      <span className="text-base font-medium">Assign to Unit</span>
+                      <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showAssignDropdown ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {showAssignDropdown && (
+                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-10 border border-gray-200">
+                        <div className="p-2 border-b border-gray-200">
+                          <h3 className="text-sm font-medium text-gray-700">Select Half-Term</h3>
+                        </div>
+                        <div className="p-2 max-h-60 overflow-y-auto">
+                          {halfTerms.map(halfTerm => (
+                            <button
+                              key={halfTerm.id}
+                              onClick={() => handleAssignToHalfTerm(halfTerm.id)}
+                              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                            >
+                              {halfTerm.name} ({halfTerm.months})
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <button
                   onClick={onClick}
                   className="p-3 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 flex items-center space-x-2"
@@ -465,7 +535,7 @@ export function LessonLibraryCard({
   if (viewMode === 'compact') {
     return (
       <div 
-        className="bg-white rounded-lg shadow-sm border-l-4 p-3 transition-all duration-200 hover:shadow-md cursor-pointer"
+        className="bg-white rounded-lg shadow-sm border-l-4 p-3 transition-all duration-200 hover:shadow-md cursor-pointer relative"
         style={{ borderLeftColor: theme.primary }}
         onClick={handleCardClick}
       >
@@ -480,7 +550,45 @@ export function LessonLibraryCard({
               <span>{totalActivities} activities</span>
             </div>
           </div>
-          <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          <div className="flex items-center space-x-1">
+            {onAssignToUnit && halfTerms.length > 0 && (
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAssignDropdown(!showAssignDropdown);
+                  }}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                  title="Assign to Unit"
+                >
+                  <FolderPlus className="h-4 w-4" />
+                </button>
+                
+                {showAssignDropdown && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-10 border border-gray-200">
+                    <div className="p-2 border-b border-gray-200">
+                      <h3 className="text-xs font-medium text-gray-700">Assign to Half-Term</h3>
+                    </div>
+                    <div className="p-2 max-h-60 overflow-y-auto">
+                      {halfTerms.map(halfTerm => (
+                        <button
+                          key={halfTerm.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAssignToHalfTerm(halfTerm.id);
+                          }}
+                          className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                        >
+                          {halfTerm.name} ({halfTerm.months})
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          </div>
         </div>
       </div>
     );
@@ -489,7 +597,7 @@ export function LessonLibraryCard({
   if (viewMode === 'list') {
     return (
       <div 
-        className="bg-white rounded-xl shadow-md border border-gray-200 p-4 transition-all duration-200 hover:shadow-lg cursor-pointer hover:border-green-300"
+        className="bg-white rounded-xl shadow-md border border-gray-200 p-4 transition-all duration-200 hover:shadow-lg cursor-pointer hover:border-green-300 relative"
         onClick={handleCardClick}
       >
         <div className="flex items-start">
@@ -505,7 +613,45 @@ export function LessonLibraryCard({
               <h4 className="font-semibold text-gray-900 text-base truncate" dir="ltr">
                 {lessonData.title || `Lesson ${lessonNumber}`}
               </h4>
-              <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0 ml-2" />
+              <div className="flex items-center space-x-1">
+                {onAssignToUnit && halfTerms.length > 0 && (
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowAssignDropdown(!showAssignDropdown);
+                      }}
+                      className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200 mr-1"
+                      title="Assign to Unit"
+                    >
+                      <FolderPlus className="h-4 w-4" />
+                    </button>
+                    
+                    {showAssignDropdown && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-10 border border-gray-200">
+                        <div className="p-2 border-b border-gray-200">
+                          <h3 className="text-xs font-medium text-gray-700">Assign to Half-Term</h3>
+                        </div>
+                        <div className="p-2 max-h-60 overflow-y-auto">
+                          {halfTerms.map(halfTerm => (
+                            <button
+                              key={halfTerm.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAssignToHalfTerm(halfTerm.id);
+                              }}
+                              className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                            >
+                              {halfTerm.name} ({halfTerm.months})
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0" />
+              </div>
             </div>
             
             <div className="flex items-center space-x-3 mt-1 text-sm text-gray-600">
@@ -547,7 +693,7 @@ export function LessonLibraryCard({
   // Default grid view
   return (
     <div 
-      className="bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl cursor-pointer overflow-hidden hover:scale-[1.02]"
+      className="bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl cursor-pointer overflow-hidden hover:scale-[1.02] relative"
       style={{ borderColor: theme.primary, borderWidth: '1px' }}
       onClick={handleCardClick}
     >
@@ -565,7 +711,45 @@ export function LessonLibraryCard({
             <h3 className="text-lg font-bold">
               Lesson {lessonNumber}
             </h3>
-            <ChevronRight className="h-5 w-5" />
+            <div className="flex items-center space-x-1">
+              {onAssignToUnit && halfTerms.length > 0 && (
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowAssignDropdown(!showAssignDropdown);
+                    }}
+                    className="p-1.5 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors duration-200"
+                    title="Assign to Unit"
+                  >
+                    <FolderPlus className="h-4 w-4" />
+                  </button>
+                  
+                  {showAssignDropdown && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-10 border border-gray-200">
+                      <div className="p-2 border-b border-gray-200">
+                        <h3 className="text-xs font-medium text-gray-700">Assign to Half-Term</h3>
+                      </div>
+                      <div className="p-2 max-h-60 overflow-y-auto">
+                        {halfTerms.map(halfTerm => (
+                          <button
+                            key={halfTerm.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAssignToHalfTerm(halfTerm.id);
+                            }}
+                            className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                          >
+                            {halfTerm.name} ({halfTerm.months})
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              <ChevronRight className="h-5 w-5" />
+            </div>
           </div>
 
           <p className="text-white text-opacity-90 text-sm font-medium" dir="ltr">
