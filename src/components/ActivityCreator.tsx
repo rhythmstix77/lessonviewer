@@ -434,7 +434,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                   }
                 }}
                 dir="ltr"
-                style={{ unicodeBidi: 'embed' }}
+                style={{ direction: 'ltr', unicodeBidi: 'embed' }}
               />
             </div>
 
@@ -505,7 +505,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                   }
                 }}
                 dir="ltr"
-                style={{ unicodeBidi: 'embed' }}
+                style={{ direction: 'ltr', unicodeBidi: 'embed' }}
               />
             </div>
 

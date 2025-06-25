@@ -276,7 +276,7 @@ export function ActivityDetails({
               }
             }}
             dir="ltr"
-            style={{ unicodeBidi: 'embed' }}
+            style={{ direction: 'ltr', unicodeBidi: 'embed' }}
           />
         </div>
       );
@@ -381,7 +381,7 @@ export function ActivityDetails({
               }
             }}
             dir="ltr"
-            style={{ unicodeBidi: 'embed' }}
+            style={{ direction: 'ltr', unicodeBidi: 'embed' }}
           />
         </div>
       );

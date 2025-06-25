@@ -630,7 +630,7 @@ export function LessonDropZone({
                   }
                 }}
                 dir="ltr"
-                style={{ unicodeBidi: 'embed' }}
+                style={{ direction: 'ltr', unicodeBidi: 'embed' }}
               />
               
               <div className="flex justify-end mt-2">

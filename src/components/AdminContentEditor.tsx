@@ -459,7 +459,7 @@ export function AdminContentEditor({ isOpen, onClose }: AdminContentEditorProps)
                         }
                       }}
                       dir="ltr"
-                      style={{ unicodeBidi: 'embed' }}
+                      style={{ direction: 'ltr', unicodeBidi: 'embed' }}
                     />
                   ) : (
                     <textarea

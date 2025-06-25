@@ -349,7 +349,7 @@ export function ActivityCard({
                   setEditedActivity(prev => ({ ...prev, description: target.innerHTML }));
                 }}
                 dir="ltr"
-                style={{ unicodeBidi: 'embed' }}
+                style={{ direction: 'ltr', unicodeBidi: 'embed' }}
               />
             </div>
           ) : (
