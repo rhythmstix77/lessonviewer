@@ -184,7 +184,7 @@ export function LessonLibraryCard({
           >
             <div className="flex items-center justify-between">
               <div>
-                {editedTitle === selectedLesson ? (
+                {editedTitle !== null ? (
                   <div className="flex items-center space-x-2">
                     <input
                       type="text"
@@ -236,7 +236,7 @@ export function LessonLibraryCard({
                     </button>
                     
                     {showAssignDropdown && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-50 border border-gray-200">
+                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
                         <div className="p-2 border-b border-gray-200">
                           <h3 className="text-sm font-medium text-gray-700">Select Half-Term</h3>
                         </div>
@@ -244,7 +244,10 @@ export function LessonLibraryCard({
                           {halfTerms.map(halfTerm => (
                             <button
                               key={halfTerm.id}
-                              onClick={() => handleAssignToHalfTerm(halfTerm.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAssignToHalfTerm(halfTerm.id);
+                              }}
                               className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
                             >
                               {halfTerm.name} ({halfTerm.months})
@@ -568,7 +571,7 @@ export function LessonLibraryCard({
                 </button>
                 
                 {showAssignDropdown && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200">
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
                     <div className="p-2 border-b border-gray-200">
                       <h3 className="text-xs font-medium text-gray-700">Assign to Half-Term</h3>
                     </div>
@@ -631,7 +634,7 @@ export function LessonLibraryCard({
                     </button>
                     
                     {showAssignDropdown && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200">
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
                         <div className="p-2 border-b border-gray-200">
                           <h3 className="text-xs font-medium text-gray-700">Assign to Half-Term</h3>
                         </div>
@@ -729,7 +732,7 @@ export function LessonLibraryCard({
                   </button>
                   
                   {showAssignDropdown && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200">
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
                       <div className="p-2 border-b border-gray-200">
                         <h3 className="text-xs font-medium text-gray-700">Assign to Half-Term</h3>
                       </div>

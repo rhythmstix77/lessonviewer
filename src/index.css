@@ -96,5 +96,34 @@
 /* Ensure dropdowns are above other elements */
 .dropdown-menu {
   z-index: 100 !important;
-  position: relative;
+  position: absolute !important;
+}
+
+/* Fix for assign to half-term dropdown */
+.dropdown-menu {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  min-width: 12rem;
+  overflow: hidden;
+}
+
+.dropdown-menu h3 {
+  font-weight: 500;
+  color: #374151;
+}
+
+.dropdown-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: #4b5563;
+  transition: all 0.2s;
+}
+
+.dropdown-menu button:hover {
+  background-color: #eff6ff;
+  color: #1e40af;
 }
