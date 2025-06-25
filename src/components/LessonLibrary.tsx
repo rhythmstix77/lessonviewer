@@ -57,7 +57,6 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
   const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
   const [showExporter, setShowExporter] = useState(false);
-  const [initialExportType, setInitialExportType] = useState<'pdf' | 'doc' | null>(null);
 
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
@@ -140,12 +139,6 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
       setSelectedLesson(lessonNumber);
       setShowExporter(true);
     }
-  };
-
-  const handleExportLessonFromCard = (lessonNum: string, type: 'pdf' | 'doc') => {
-    setSelectedLesson(lessonNum);
-    setInitialExportType(type);
-    setShowExporter(true);
   };
 
   return (
@@ -282,7 +275,6 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
                   lessonData={lessonData}
                   viewMode={viewMode}
                   onClick={() => handleLessonClick(lessonNum)}
-                  onExport={(type) => handleExportLessonFromCard(lessonNum, type)}
                   theme={theme}
                 />
               );
@@ -295,11 +287,9 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
       {selectedLesson && showExporter && (
         <LessonExporter
           lessonNumber={selectedLesson}
-          initialExportType={initialExportType}
           onClose={() => {
             setShowExporter(false);
             setSelectedLesson(null);
-            setInitialExportType(null);
           }}
         />
       )}

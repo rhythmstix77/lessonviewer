@@ -1,34 +1,24 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Download, FileText, File, Printer, X, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import html2canvas from 'html2canvas';
-import * as XLSX from 'xlsx';
 
 interface LessonExporterProps {
   lessonNumber: string;
   onClose: () => void;
-  initialExportType?: 'pdf' | 'doc';
 }
 
-export function LessonExporter({ lessonNumber, onClose, initialExportType }: LessonExporterProps) {
+export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
   const { allLessonsData, currentSheetInfo, eyfsStatements } = useData();
   const { getCategoryColor } = useSettings();
-  const [exportFormat, setExportFormat] = useState<'pdf' | 'doc' | 'preview'>('preview');
+  const [exportFormat, setExportFormat] = useState<'pdf' | 'preview'>('preview');
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
   const [showEyfs, setShowEyfs] = useState(true);
   const previewRef = useRef<HTMLDivElement>(null);
-
-  // Effect to handle initial export type
-  useEffect(() => {
-    if (initialExportType) {
-      setExportFormat(initialExportType);
-      handleExport(initialExportType);
-    }
-  }, [initialExportType]);
 
   const lessonData = allLessonsData[lessonNumber];
   const lessonEyfs = eyfsStatements[lessonNumber] || [];
@@ -69,11 +59,11 @@ export function LessonExporter({ lessonNumber, onClose, initialExportType }: Les
     groupedEyfs[area].push(detail);
   });
 
-  const handleExport = async (type: 'pdf' | 'doc') => {
+  const handleExport = async () => {
     setIsExporting(true);
     
     try {
-      if (type === 'pdf') {
+      if (exportFormat === 'pdf') {
         // Export to PDF using html2canvas to capture the styled preview
         if (previewRef.current) {
           const canvas = await html2canvas(previewRef.current, {
@@ -126,79 +116,6 @@ export function LessonExporter({ lessonNumber, onClose, initialExportType }: Les
           const title = lessonData.title || `Lesson ${lessonNumber}`;
           pdf.save(`${currentSheetInfo.sheet}_${title.replace(/\s+/g, '_')}.pdf`);
         }
-      } else if (type === 'doc') {
-        // Export to Excel (XLSX) format
-        const wb = XLSX.utils.book_new();
-        
-        // Create data for the worksheet
-        const data = [
-          ['Lesson', lessonNumber],
-          ['Title', lessonData.title || `Lesson ${lessonNumber}`],
-          ['Class', currentSheetInfo.display],
-          ['Duration', `${totalDuration} minutes`],
-          ['Categories', lessonData.categoryOrder.join(', ')],
-          [''],
-          ['ACTIVITIES']
-        ];
-        
-        // Add activities by category
-        lessonData.categoryOrder.forEach(category => {
-          const activities = lessonData.grouped[category] || [];
-          
-          data.push([category.toUpperCase(), '']);
-          
-          activities.forEach(activity => {
-            data.push([activity.activity, `${activity.time} mins`]);
-            
-            // Clean description text (remove HTML tags)
-            const cleanDescription = activity.description.replace(/<[^>]*>/g, '');
-            data.push(['Description:', cleanDescription]);
-            
-            // Add resources if available
-            const resources = [];
-            if (activity.videoLink) resources.push(`Video: ${activity.videoLink}`);
-            if (activity.musicLink) resources.push(`Music: ${activity.musicLink}`);
-            if (activity.backingLink) resources.push(`Backing: ${activity.backingLink}`);
-            if (activity.resourceLink) resources.push(`Resource: ${activity.resourceLink}`);
-            
-            if (resources.length > 0) {
-              data.push(['Resources:', '']);
-              resources.forEach(resource => {
-                data.push(['', resource]);
-              });
-            }
-            
-            data.push(['', '']); // Empty row between activities
-          });
-        });
-        
-        // Add EYFS standards if available
-        if (lessonEyfs.length > 0) {
-          data.push(['', '']);
-          data.push(['EYFS STANDARDS', '']);
-          
-          Object.entries(groupedEyfs).forEach(([area, statements]) => {
-            data.push([area, '']);
-            statements.forEach(statement => {
-              data.push(['', statement]);
-            });
-          });
-        }
-        
-        // Create worksheet and add to workbook
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        
-        // Set column widths
-        ws['!cols'] = [
-          { wch: 20 }, // First column
-          { wch: 60 }  // Second column
-        ];
-        
-        XLSX.utils.book_append_sheet(wb, ws, `Lesson ${lessonNumber}`);
-        
-        // Generate and download the file
-        const title = lessonData.title || `Lesson ${lessonNumber}`;
-        XLSX.writeFile(wb, `${currentSheetInfo.sheet}_${title.replace(/\s+/g, '_')}.xlsx`);
       }
       
       setExportSuccess(true);
@@ -235,7 +152,6 @@ export function LessonExporter({ lessonNumber, onClose, initialExportType }: Les
                     ? 'bg-white shadow-sm text-gray-900' 
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
-                disabled={isExporting}
               >
                 Preview
               </button>
@@ -246,20 +162,8 @@ export function LessonExporter({ lessonNumber, onClose, initialExportType }: Les
                     ? 'bg-white shadow-sm text-gray-900' 
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
-                disabled={isExporting}
               >
                 PDF
-              </button>
-              <button
-                onClick={() => setExportFormat('doc')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium ${
-                  exportFormat === 'doc' 
-                    ? 'bg-white shadow-sm text-gray-900' 
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-                disabled={isExporting}
-              >
-                DOCX
               </button>
             </div>
             <button
@@ -294,7 +198,7 @@ export function LessonExporter({ lessonNumber, onClose, initialExportType }: Les
                 <span>Print</span>
               </button>
               <button
-                onClick={() => handleExport(exportFormat === 'preview' ? 'pdf' : exportFormat)}
+                onClick={handleExport}
                 disabled={isExporting}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2 disabled:bg-blue-400"
               >
@@ -311,7 +215,7 @@ export function LessonExporter({ lessonNumber, onClose, initialExportType }: Les
                 ) : (
                   <>
                     <Download className="h-4 w-4" />
-                    <span>Export {exportFormat === 'preview' ? 'PDF' : exportFormat.toUpperCase()}</span>
+                    <span>Export {exportFormat.toUpperCase()}</span>
                   </>
                 )}
               </button>
@@ -410,88 +314,25 @@ export function LessonExporter({ lessonNumber, onClose, initialExportType }: Les
                               <p className="font-medium text-gray-700">Resources:</p>
                               <ul className="pl-5 text-gray-600 text-sm">
                                 {activity.videoLink && (
-                                  <li>
-                                    <a 
-                                      href={activity.videoLink} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-blue-600 hover:underline"
-                                    >
-                                      Video Resource
-                                    </a>
-                                  </li>
+                                  <li>Video: {activity.videoLink}</li>
                                 )}
                                 {activity.musicLink && (
-                                  <li>
-                                    <a 
-                                      href={activity.musicLink} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-blue-600 hover:underline"
-                                    >
-                                      Music Track
-                                    </a>
-                                  </li>
+                                  <li>Music: {activity.musicLink}</li>
                                 )}
                                 {activity.backingLink && (
-                                  <li>
-                                    <a 
-                                      href={activity.backingLink} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-blue-600 hover:underline"
-                                    >
-                                      Backing Track
-                                    </a>
-                                  </li>
+                                  <li>Backing: {activity.backingLink}</li>
                                 )}
                                 {activity.resourceLink && (
-                                  <li>
-                                    <a 
-                                      href={activity.resourceLink} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-blue-600 hover:underline"
-                                    >
-                                      Teaching Resource
-                                    </a>
-                                  </li>
+                                  <li>Resource: {activity.resourceLink}</li>
                                 )}
                                 {activity.link && (
-                                  <li>
-                                    <a 
-                                      href={activity.link} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-blue-600 hover:underline"
-                                    >
-                                      Additional Resource
-                                    </a>
-                                  </li>
+                                  <li>Link: {activity.link}</li>
                                 )}
                                 {activity.vocalsLink && (
-                                  <li>
-                                    <a 
-                                      href={activity.vocalsLink} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-blue-600 hover:underline"
-                                    >
-                                      Vocals Track
-                                    </a>
-                                  </li>
+                                  <li>Vocals: {activity.vocalsLink}</li>
                                 )}
                                 {activity.imageLink && (
-                                  <li>
-                                    <a 
-                                      href={activity.imageLink} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-blue-600 hover:underline"
-                                    >
-                                      Visual Aid
-                                    </a>
-                                  </li>
+                                  <li>Image: {activity.imageLink}</li>
                                 )}
                               </ul>
                             </div>
