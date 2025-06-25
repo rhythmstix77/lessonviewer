@@ -13,7 +13,9 @@ import {
   Tag, 
   X,
   Download,
-  Edit3
+  Edit3,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { UnitCard } from './UnitCard';
 import { LessonLibraryCard } from './LessonLibraryCard';
@@ -54,6 +56,7 @@ export function UnitViewer() {
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [selectedLessonForExport, setSelectedLessonForExport] = useState<string | null>(null);
+  const [focusedHalfTermId, setFocusedHalfTermId] = useState<string | null>(null);
   
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
@@ -112,13 +115,52 @@ export function UnitViewer() {
     }
   }, []);
 
-  // Filter units based on search and term
-  const filteredUnits = units.filter(unit => {
-    const matchesSearch = unit.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         unit.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTerm = selectedTerm === 'all' || unit.term === selectedTerm;
-    return matchesSearch && matchesTerm;
-  });
+  // Filter units based on search, term, and focused half-term
+  const filteredUnits = React.useMemo(() => {
+    let filtered = units.filter(unit => {
+      const matchesSearch = unit.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           unit.description.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // If we have a focused half-term, only show units from that term
+      if (focusedHalfTermId) {
+        return matchesSearch && unit.term === focusedHalfTermId;
+      }
+      
+      // Otherwise use the selected term filter
+      const matchesTerm = selectedTerm === 'all' || unit.term === selectedTerm;
+      return matchesSearch && matchesTerm;
+    });
+    
+    return filtered;
+  }, [units, searchQuery, selectedTerm, focusedHalfTermId]);
+
+  // Group units by half-term
+  const unitsByHalfTerm = React.useMemo(() => {
+    const grouped: Record<string, Unit[]> = {};
+    
+    // Initialize all half-terms with empty arrays
+    Object.keys(TERM_NAMES).forEach(termId => {
+      grouped[termId] = [];
+    });
+    
+    // Group units by term
+    units.forEach(unit => {
+      if (unit.term) {
+        if (!grouped[unit.term]) {
+          grouped[unit.term] = [];
+        }
+        grouped[unit.term].push(unit);
+      } else {
+        // If no term is specified, put in Autumn 1 by default
+        if (!grouped['A1']) {
+          grouped['A1'] = [];
+        }
+        grouped['A1'].push(unit);
+      }
+    });
+    
+    return grouped;
+  }, [units]);
 
   // Handle unit selection
   const handleUnitSelect = (unit: Unit) => {
@@ -138,6 +180,13 @@ export function UnitViewer() {
   // Handle lesson export
   const handleLessonExport = (lessonNumber: string) => {
     setSelectedLessonForExport(lessonNumber);
+  };
+
+  // Handle focusing on a specific half-term
+  const handleFocusHalfTerm = (termId: string) => {
+    setFocusedHalfTermId(termId === focusedHalfTermId ? null : termId);
+    // Reset the term filter when focusing on a specific half-term
+    setSelectedTerm('all');
   };
 
   // If a unit is selected, show its details
@@ -331,9 +380,14 @@ export function UnitViewer() {
               
               <select
                 value={selectedTerm}
-                onChange={(e) => setSelectedTerm(e.target.value)}
+                onChange={(e) => {
+                  setSelectedTerm(e.target.value);
+                  // Clear focused half-term when changing the term filter
+                  setFocusedHalfTermId(null);
+                }}
                 className="px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
                 dir="ltr"
+                disabled={!!focusedHalfTermId}
               >
                 <option value="all" className="text-gray-900">All Terms</option>
                 {Object.entries(TERM_NAMES).map(([id, name]) => (
@@ -344,16 +398,46 @@ export function UnitViewer() {
               </select>
               
               <div className="flex items-center justify-end">
-                <button
-                  className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                >
-                  <Filter className="h-4 w-4" />
-                  <span>More Filters</span>
-                </button>
+                {focusedHalfTermId ? (
+                  <button
+                    onClick={() => setFocusedHalfTermId(null)}
+                    className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <EyeOff className="h-4 w-4" />
+                    <span>Show All Half-Terms</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {}}
+                    className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <Filter className="h-4 w-4" />
+                    <span>More Filters</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
         </div>
+
+        {/* Focused Half-Term Indicator */}
+        {focusedHalfTermId && (
+          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6 flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Eye className="h-5 w-5 text-indigo-600" />
+              <div>
+                <h3 className="font-medium text-gray-900">Focused on {TERM_NAMES[focusedHalfTermId]}</h3>
+                <p className="text-sm text-gray-600">Showing only units from this half-term</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setFocusedHalfTermId(null)}
+              className="px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg text-sm font-medium"
+            >
+              Show All Half-Terms
+            </button>
+          </div>
+        )}
 
         {/* Units Grid */}
         <div className="mb-6">
@@ -362,7 +446,7 @@ export function UnitViewer() {
               <FolderOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No units found</h3>
               <p className="text-gray-600">
-                {searchQuery || selectedTerm !== 'all'
+                {searchQuery || selectedTerm !== 'all' || focusedHalfTermId
                   ? 'Try adjusting your search or filters'
                   : 'No units available in the library'
                 }
@@ -382,6 +466,8 @@ export function UnitViewer() {
                   viewMode={viewMode}
                   onClick={() => handleUnitSelect(unit)}
                   theme={theme}
+                  onFocusHalfTerm={handleFocusHalfTerm}
+                  isFocused={focusedHalfTermId === unit.term}
                 />
               ))}
             </div>

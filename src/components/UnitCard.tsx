@@ -1,5 +1,5 @@
 import React from 'react';
-import { FolderOpen, Clock, BookOpen, Calendar, ChevronRight, Tag } from 'lucide-react';
+import { FolderOpen, Clock, BookOpen, Calendar, ChevronRight, Tag, Eye, EyeOff } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 
 interface Unit {
@@ -23,6 +23,8 @@ interface UnitCardProps {
     accent: string;
     gradient: string;
   };
+  onFocusHalfTerm?: (termId: string) => void;
+  isFocused?: boolean;
 }
 
 // Map term IDs to readable names
@@ -35,7 +37,14 @@ const TERM_NAMES: Record<string, string> = {
   'SM2': 'Summer 2',
 };
 
-export function UnitCard({ unit, viewMode = 'grid', onClick, theme }: UnitCardProps) {
+export function UnitCard({ 
+  unit, 
+  viewMode = 'grid', 
+  onClick, 
+  theme, 
+  onFocusHalfTerm,
+  isFocused = false
+}: UnitCardProps) {
   const { getCategoryColor } = useSettings();
   
   // Format date for display
@@ -65,10 +74,20 @@ export function UnitCard({ unit, viewMode = 'grid', onClick, theme }: UnitCardPr
     return plainText.length > 100 ? plainText.substring(0, 100) + '...' : plainText;
   };
 
+  // Handle focus button click
+  const handleFocusClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    if (onFocusHalfTerm && unit.term) {
+      onFocusHalfTerm(unit.term);
+    }
+  };
+
   if (viewMode === 'compact') {
     return (
       <div 
-        className="bg-white rounded-lg shadow-sm border-l-4 p-3 transition-all duration-200 hover:shadow-md cursor-pointer"
+        className={`bg-white rounded-lg shadow-sm border-l-4 p-3 transition-all duration-200 hover:shadow-md cursor-pointer relative ${
+          isFocused ? 'ring-2 ring-indigo-500 bg-indigo-50' : ''
+        }`}
         style={{ borderLeftColor: unit.color || theme.primary }}
         onClick={onClick}
       >
@@ -83,6 +102,21 @@ export function UnitCard({ unit, viewMode = 'grid', onClick, theme }: UnitCardPr
           </div>
           <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
         </div>
+        
+        {/* Focus button */}
+        {onFocusHalfTerm && unit.term && (
+          <button
+            onClick={handleFocusClick}
+            className="absolute top-2 right-2 p-1 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors duration-200"
+            title={isFocused ? "Show all half-terms" : `Focus on ${getTermName(unit.term)}`}
+          >
+            {isFocused ? (
+              <EyeOff className="h-3.5 w-3.5" />
+            ) : (
+              <Eye className="h-3.5 w-3.5" />
+            )}
+          </button>
+        )}
       </div>
     );
   }
@@ -90,7 +124,9 @@ export function UnitCard({ unit, viewMode = 'grid', onClick, theme }: UnitCardPr
   if (viewMode === 'list') {
     return (
       <div 
-        className="bg-white rounded-xl shadow-md border border-gray-200 p-4 transition-all duration-200 hover:shadow-lg cursor-pointer hover:border-indigo-300"
+        className={`bg-white rounded-xl shadow-md border border-gray-200 p-4 transition-all duration-200 hover:shadow-lg cursor-pointer hover:border-indigo-300 relative ${
+          isFocused ? 'ring-2 ring-indigo-500 bg-indigo-50' : ''
+        }`}
         onClick={onClick}
       >
         <div className="flex items-start">
@@ -123,6 +159,21 @@ export function UnitCard({ unit, viewMode = 'grid', onClick, theme }: UnitCardPr
             </p>
           </div>
         </div>
+        
+        {/* Focus button */}
+        {onFocusHalfTerm && unit.term && (
+          <button
+            onClick={handleFocusClick}
+            className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors duration-200"
+            title={isFocused ? "Show all half-terms" : `Focus on ${getTermName(unit.term)}`}
+          >
+            {isFocused ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+          </button>
+        )}
       </div>
     );
   }
@@ -130,7 +181,9 @@ export function UnitCard({ unit, viewMode = 'grid', onClick, theme }: UnitCardPr
   // Default grid view
   return (
     <div 
-      className="bg-white rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl cursor-pointer overflow-hidden hover:scale-[1.02] h-full flex flex-col"
+      className={`bg-white rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl cursor-pointer overflow-hidden hover:scale-[1.02] h-full flex flex-col relative ${
+        isFocused ? 'ring-2 ring-indigo-500 bg-indigo-50' : ''
+      }`}
       style={{ borderColor: unit.color || theme.primary, borderWidth: '1px' }}
       onClick={onClick}
     >
@@ -192,6 +245,25 @@ export function UnitCard({ unit, viewMode = 'grid', onClick, theme }: UnitCardPr
           </div>
         </div>
       </div>
+      
+      {/* Focus button */}
+      {onFocusHalfTerm && unit.term && (
+        <button
+          onClick={handleFocusClick}
+          className={`absolute top-3 right-3 p-1.5 rounded-full transition-colors duration-200 z-10 ${
+            isFocused 
+              ? 'bg-white text-indigo-600' 
+              : 'bg-white bg-opacity-30 text-white hover:bg-opacity-50'
+          }`}
+          title={isFocused ? "Show all half-terms" : `Focus on ${getTermName(unit.term)}`}
+        >
+          {isFocused ? (
+            <EyeOff className="h-4 w-4" />
+          ) : (
+            <Eye className="h-4 w-4" />
+          )}
+        </button>
+      )}
     </div>
   );
 }
