@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { Clock, Users, ChevronRight, Tag, X, Download, ExternalLink, FileText, Edit3, Save } from 'lucide-react';
+import { Clock, Users, ChevronRight, Tag, X, FileText, File } from 'lucide-react';
 import type { LessonData, Activity } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useData } from '../contexts/DataContext';
-import { RichTextEditor } from './RichTextEditor';
+import { EyfsStandardsList } from './EyfsStandardsList';
 
 interface LessonLibraryCardProps {
   lessonNumber: string;
   lessonData: LessonData;
   viewMode: 'grid' | 'list' | 'compact';
   onClick: () => void;
+  onExport: (type: 'pdf' | 'doc') => void;
   theme: {
     primary: string;
     secondary: string;
@@ -23,14 +24,13 @@ export function LessonLibraryCard({
   lessonData,
   viewMode,
   onClick,
+  onExport,
   theme
 }: LessonLibraryCardProps) {
   const { getCategoryColor } = useSettings();
-  const { eyfsStatements, updateLessonTitle } = useData();
+  const { eyfsStatements } = useData();
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
-  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
-  const [editedTitle, setEditedTitle] = useState<string | null>(null);
   
   // Calculate total activities
   const totalActivities = React.useMemo(() => {
@@ -73,51 +73,10 @@ export function LessonLibraryCard({
     e.stopPropagation();
     setIsExpanded(false);
     setSelectedActivity(null);
-    setEditingActivity(null);
-    setEditedTitle(null);
   };
 
   const handleActivityClick = (activity: Activity) => {
     setSelectedActivity(activity);
-  };
-
-  const handleEditActivity = (activity: Activity) => {
-    setEditingActivity({...activity});
-  };
-
-  const handleSaveActivity = (activity: Activity) => {
-    // Update the activity in the lesson data
-    const updatedLessonData = {...lessonData};
-    const category = activity.category;
-    
-    if (updatedLessonData.grouped[category]) {
-      const activityIndex = updatedLessonData.grouped[category].findIndex(a => 
-        a.activity === activity.activity && a._id === activity._id
-      );
-      
-      if (activityIndex !== -1) {
-        updatedLessonData.grouped[category][activityIndex] = activity;
-        
-        // Save to localStorage
-        const savedData = localStorage.getItem(`lesson-data-${activity.lessonNumber}`);
-        if (savedData) {
-          const parsedData = JSON.parse(savedData);
-          parsedData.allLessonsData[lessonNumber] = updatedLessonData;
-          localStorage.setItem(`lesson-data-${activity.lessonNumber}`, JSON.stringify(parsedData));
-        }
-        
-        // Update the state
-        setEditingActivity(null);
-        setSelectedActivity(null);
-      }
-    }
-  };
-
-  const handleSaveTitle = () => {
-    if (editedTitle !== null) {
-      updateLessonTitle(lessonNumber, editedTitle);
-      setEditedTitle(null);
-    }
   };
 
   // Format description with line breaks
@@ -146,52 +105,29 @@ export function LessonLibraryCard({
           >
             <div className="flex items-center justify-between">
               <div>
-                {editedTitle !== null ? (
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="text"
-                      value={editedTitle}
-                      onChange={(e) => setEditedTitle(e.target.value)}
-                      className="text-2xl font-bold bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
-                      autoFocus
-                    />
-                    <button
-                      onClick={handleSaveTitle}
-                      className="p-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white"
-                    >
-                      <Save className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => setEditedTitle(null)}
-                      className="p-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
-                  </div>
-                ) : (
-                  <h1 className="text-2xl font-bold mb-1 flex items-center space-x-2">
-                    <span>{lessonData.title || `Lesson ${lessonNumber}`}</span>
-                    <button
-                      onClick={() => setEditedTitle(lessonData.title || `Lesson ${lessonNumber}`)}
-                      className="p-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white"
-                      title="Edit lesson title"
-                    >
-                      <Edit3 className="h-4 w-4" />
-                    </button>
-                  </h1>
-                )}
+                <h1 className="text-2xl font-bold mb-1">
+                  {lessonData.title || `Lesson ${lessonNumber}`}
+                </h1>
                 <p className="text-white text-opacity-90 text-lg">
                   {lessonData.totalTime} minutes • {lessonData.categoryOrder.length} categories • {totalActivities} activities
                 </p>
               </div>
               <div className="flex items-center space-x-3">
                 <button
-                  onClick={onClick}
+                  onClick={(e) => { e.stopPropagation(); onExport('pdf'); }}
                   className="p-3 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 flex items-center space-x-2"
-                  title="Export Lesson"
+                  title="Export as PDF"
                 >
-                  <Download className="h-6 w-6" />
-                  <span className="text-base font-medium">Export</span>
+                  <FileText className="h-6 w-6" />
+                  <span className="text-base font-medium">PDF</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onExport('doc'); }}
+                  className="p-3 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 flex items-center space-x-2"
+                  title="Export as DOCX"
+                >
+                  <File className="h-6 w-6" />
+                  <span className="text-base font-medium">DOCX</span>
                 </button>
                 <button
                   onClick={handleClose}
@@ -202,6 +138,11 @@ export function LessonLibraryCard({
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* EYFS Standards */}
+          <div className="p-4 bg-blue-50 border-b border-blue-200">
+            <EyfsStandardsList lessonNumber={lessonNumber} />
           </div>
 
           {/* Content - Scrollable */}
@@ -235,210 +176,59 @@ export function LessonLibraryCard({
                         <div 
                           key={`${category}-${index}`}
                           className="bg-white rounded-lg border border-gray-200 hover:border-green-300 transition-all duration-200 overflow-hidden shadow-sm hover:shadow-md"
+                          onClick={() => handleActivityClick(activity)}
                         >
-                          {editingActivity && editingActivity.activity === activity.activity && editingActivity.category === activity.category ? (
-                            <div className="p-4">
-                              <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Activity Name
-                                </label>
-                                <input
-                                  type="text"
-                                  value={editingActivity.activity}
-                                  onChange={(e) => setEditingActivity({...editingActivity, activity: e.target.value})}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                              </div>
-                              
-                              <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Description
-                                </label>
-                                <RichTextEditor
-                                  value={editingActivity.description}
-                                  onChange={(value) => setEditingActivity({...editingActivity, description: value})}
-                                  placeholder="Enter activity description..."
-                                  minHeight="150px"
-                                />
-                              </div>
-                              
-                              <div className="flex justify-end space-x-2">
-                                <button
-                                  onClick={() => setEditingActivity(null)}
-                                  className="px-3 py-1.5 text-gray-600 hover:text-gray-800 text-sm font-medium"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={() => handleSaveActivity(editingActivity)}
-                                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg flex items-center space-x-1"
-                                >
-                                  <Save className="h-4 w-4" />
-                                  <span>Save Changes</span>
-                                </button>
-                              </div>
+                          {/* Activity Header */}
+                          <div className="p-4 border-b border-gray-200 bg-gray-50">
+                            <div className="flex items-start justify-between">
+                              <h4 className="font-bold text-gray-900 text-lg">
+                                {activity.activity}
+                              </h4>
+                              {activity.time > 0 && (
+                                <span className="ml-2 px-3 py-1 bg-gray-200 text-gray-800 text-sm font-medium rounded-full">
+                                  {activity.time} mins
+                                </span>
+                              )}
                             </div>
-                          ) : (
-                            <>
-                              {/* Activity Header */}
-                              <div className="p-4 border-b border-gray-200 bg-gray-50">
-                                <div className="flex items-start justify-between">
-                                  <h4 className="font-bold text-gray-900 text-lg">
-                                    {activity.activity}
-                                  </h4>
-                                  <div className="flex items-center space-x-2">
-                                    {activity.time > 0 && (
-                                      <span className="ml-2 px-3 py-1 bg-gray-200 text-gray-800 text-sm font-medium rounded-full">
-                                        {activity.time} mins
-                                      </span>
-                                    )}
-                                    <button
-                                      onClick={() => handleEditActivity(activity)}
-                                      className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                                    >
-                                      <Edit3 className="h-4 w-4" />
-                                    </button>
-                                  </div>
-                                </div>
-                                
-                                {activity.level && (
-                                  <div className="mt-2">
-                                    <span 
-                                      className="px-3 py-1 text-white text-sm font-medium rounded-full"
-                                      style={{ backgroundColor: getCategoryColor(category) }}
-                                    >
-                                      {activity.level}
-                                    </span>
-                                  </div>
-                                )}
+                            
+                            {activity.level && (
+                              <div className="mt-2">
+                                <span 
+                                  className="px-3 py-1 text-white text-sm font-medium rounded-full"
+                                  style={{ backgroundColor: getCategoryColor(category) }}
+                                >
+                                  {activity.level}
+                                </span>
                               </div>
-                              
-                              {/* Activity Content */}
-                              <div className="p-4">
-                                {/* Activity Text (if available) */}
-                                {activity.activityText && (
-                                  <div 
-                                    className="mb-4 prose prose-sm max-w-none"
-                                    dangerouslySetInnerHTML={{ __html: activity.activityText }}
-                                    dir="ltr"
-                                  />
-                                )}
-                                
-                                {/* Description */}
-                                <div 
-                                  className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
-                                  dangerouslySetInnerHTML={{ __html: formatDescription(activity.description) }}
-                                  dir="ltr"
-                                />
-                                
-                                {/* Unit Name */}
-                                {activity.unitName && (
-                                  <div className="mt-4 pt-4 border-t border-gray-100">
-                                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Unit:</span>
-                                    <p className="text-sm text-gray-700 font-medium" dir="ltr">{activity.unitName}</p>
-                                  </div>
-                                )}
-                                
-                                {/* Resources */}
-                                {(activity.videoLink || activity.musicLink || activity.backingLink || 
-                                  activity.resourceLink || activity.link || activity.vocalsLink || 
-                                  activity.imageLink) && (
-                                  <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                                    <h5 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-                                      <FileText className="h-4 w-4 mr-2" />
-                                      Resources
-                                    </h5>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                      {activity.videoLink && (
-                                        <a 
-                                          href={activity.videoLink} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
-                                          dir="ltr"
-                                        >
-                                          <span className="text-sm font-medium">Video</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
-                                        </a>
-                                      )}
-                                      {activity.musicLink && (
-                                        <a 
-                                          href={activity.musicLink} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
-                                          dir="ltr"
-                                        >
-                                          <span className="text-sm font-medium">Music</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
-                                        </a>
-                                      )}
-                                      {activity.backingLink && (
-                                        <a 
-                                          href={activity.backingLink} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
-                                          dir="ltr"
-                                        >
-                                          <span className="text-sm font-medium">Backing</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
-                                        </a>
-                                      )}
-                                      {activity.resourceLink && (
-                                        <a 
-                                          href={activity.resourceLink} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors"
-                                          dir="ltr"
-                                        >
-                                          <span className="text-sm font-medium">Resource</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
-                                        </a>
-                                      )}
-                                      {activity.link && (
-                                        <a 
-                                          href={activity.link} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors"
-                                          dir="ltr"
-                                        >
-                                          <span className="text-sm font-medium">Link</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
-                                        </a>
-                                      )}
-                                      {activity.vocalsLink && (
-                                        <a 
-                                          href={activity.vocalsLink} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors"
-                                          dir="ltr"
-                                        >
-                                          <span className="text-sm font-medium">Vocals</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
-                                        </a>
-                                      )}
-                                      {activity.imageLink && (
-                                        <a 
-                                          href={activity.imageLink} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 transition-colors"
-                                          dir="ltr"
-                                        >
-                                          <span className="text-sm font-medium">Image</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
-                                        </a>
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
+                            )}
+                          </div>
+                          
+                          {/* Activity Content */}
+                          <div className="p-4">
+                            {/* Activity Text (if available) */}
+                            {activity.activityText && (
+                              <div 
+                                className="mb-4 prose prose-sm max-w-none"
+                                dangerouslySetInnerHTML={{ __html: activity.activityText }}
+                                dir="ltr"
+                              />
+                            )}
+                            
+                            {/* Description */}
+                            <div 
+                              className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
+                              dangerouslySetInnerHTML={{ __html: formatDescription(activity.description) }}
+                              dir="ltr"
+                            />
+                            
+                            {/* Unit Name */}
+                            {activity.unitName && (
+                              <div className="mt-4 pt-4 border-t border-gray-100">
+                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Unit:</span>
+                                <p className="text-sm text-gray-700 font-medium" dir="ltr">{activity.unitName}</p>
                               </div>
-                            </>
-                          )}
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>

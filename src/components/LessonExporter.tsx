@@ -1,20 +1,22 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Download, FileText, File, Printer, X, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import html2canvas from 'html2canvas';
+import * as XLSX from 'xlsx';
 
 interface LessonExporterProps {
   lessonNumber: string;
   onClose: () => void;
+  initialExportType?: 'pdf' | 'doc';
 }
 
-export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
+export function LessonExporter({ lessonNumber, onClose, initialExportType }: LessonExporterProps) {
   const { allLessonsData, currentSheetInfo, eyfsStatements } = useData();
   const { getCategoryColor } = useSettings();
-  const [exportFormat, setExportFormat] = useState<'pdf' | 'preview'>('preview');
+  const [exportFormat, setExportFormat] = useState<'pdf' | 'doc' | 'preview'>('preview');
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
   const [showEyfs, setShowEyfs] = useState(true);
@@ -22,6 +24,14 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
 
   const lessonData = allLessonsData[lessonNumber];
   const lessonEyfs = eyfsStatements[lessonNumber] || [];
+
+  // Effect to handle initial export type
+  useEffect(() => {
+    if (initialExportType) {
+      setExportFormat(initialExportType);
+      handleExport(initialExportType);
+    }
+  }, [initialExportType]);
 
   if (!lessonData) {
     return (
@@ -59,11 +69,11 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
     groupedEyfs[area].push(detail);
   });
 
-  const handleExport = async () => {
+  const handleExport = async (type: 'pdf' | 'doc') => {
     setIsExporting(true);
     
     try {
-      if (exportFormat === 'pdf') {
+      if (type === 'pdf') {
         // Export to PDF using html2canvas to capture the styled preview
         if (previewRef.current) {
           const canvas = await html2canvas(previewRef.current, {
@@ -116,6 +126,79 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
           const title = lessonData.title || `Lesson ${lessonNumber}`;
           pdf.save(`${currentSheetInfo.sheet}_${title.replace(/\s+/g, '_')}.pdf`);
         }
+      } else if (type === 'doc') {
+        // Export to Excel (XLSX) format
+        const wb = XLSX.utils.book_new();
+        
+        // Create data for the worksheet
+        const data = [
+          ['Lesson', lessonNumber],
+          ['Title', lessonData.title || `Lesson ${lessonNumber}`],
+          ['Class', currentSheetInfo.display],
+          ['Duration', `${totalDuration} minutes`],
+          ['Categories', lessonData.categoryOrder.join(', ')],
+          [''],
+          ['ACTIVITIES']
+        ];
+        
+        // Add activities by category
+        lessonData.categoryOrder.forEach(category => {
+          const activities = lessonData.grouped[category] || [];
+          
+          data.push([category.toUpperCase(), '']);
+          
+          activities.forEach(activity => {
+            data.push([activity.activity, `${activity.time} mins`]);
+            
+            // Clean description text (remove HTML tags)
+            const cleanDescription = activity.description.replace(/<[^>]*>/g, '');
+            data.push(['Description:', cleanDescription]);
+            
+            // Add resources if available
+            const resources = [];
+            if (activity.videoLink) resources.push(`Video: ${activity.videoLink}`);
+            if (activity.musicLink) resources.push(`Music: ${activity.musicLink}`);
+            if (activity.backingLink) resources.push(`Backing: ${activity.backingLink}`);
+            if (activity.resourceLink) resources.push(`Resource: ${activity.resourceLink}`);
+            
+            if (resources.length > 0) {
+              data.push(['Resources:', '']);
+              resources.forEach(resource => {
+                data.push(['', resource]);
+              });
+            }
+            
+            data.push(['', '']); // Empty row between activities
+          });
+        });
+        
+        // Add EYFS standards if available
+        if (lessonEyfs.length > 0) {
+          data.push(['', '']);
+          data.push(['EYFS STANDARDS', '']);
+          
+          Object.entries(groupedEyfs).forEach(([area, statements]) => {
+            data.push([area, '']);
+            statements.forEach(statement => {
+              data.push(['', statement]);
+            });
+          });
+        }
+        
+        // Create worksheet and add to workbook
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        
+        // Set column widths
+        ws['!cols'] = [
+          { wch: 20 }, // First column
+          { wch: 60 }  // Second column
+        ];
+        
+        XLSX.utils.book_append_sheet(wb, ws, `Lesson ${lessonNumber}`);
+        
+        // Generate and download the file
+        const title = lessonData.title || `Lesson ${lessonNumber}`;
+        XLSX.writeFile(wb, `${currentSheetInfo.sheet}_${title.replace(/\s+/g, '_')}.xlsx`);
       }
       
       setExportSuccess(true);
@@ -152,6 +235,7 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
                     ? 'bg-white shadow-sm text-gray-900' 
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
+                disabled={isExporting}
               >
                 Preview
               </button>
@@ -162,8 +246,20 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
                     ? 'bg-white shadow-sm text-gray-900' 
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
+                disabled={isExporting}
               >
                 PDF
+              </button>
+              <button
+                onClick={() => setExportFormat('doc')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium ${
+                  exportFormat === 'doc' 
+                    ? 'bg-white shadow-sm text-gray-900' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+                disabled={isExporting}
+              >
+                DOCX
               </button>
             </div>
             <button
@@ -198,7 +294,7 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
                 <span>Print</span>
               </button>
               <button
-                onClick={handleExport}
+                onClick={() => handleExport(exportFormat === 'preview' ? 'pdf' : exportFormat)}
                 disabled={isExporting}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2 disabled:bg-blue-400"
               >
@@ -215,7 +311,7 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
                 ) : (
                   <>
                     <Download className="h-4 w-4" />
-                    <span>Export {exportFormat.toUpperCase()}</span>
+                    <span>Export {exportFormat === 'preview' ? 'PDF' : exportFormat.toUpperCase()}</span>
                   </>
                 )}
               </button>
