@@ -463,6 +463,12 @@ export function LessonLibraryCard({
             <Users className="h-4 w-4" />
             <span className="text-sm">{totalActivities} activities</span>
           </div>
+          {eyfsStatements[lessonNumber]?.length > 0 && (
+            <div className="flex items-center space-x-1">
+              <Tag className="h-4 w-4" />
+              <span className="text-sm">{eyfsStatements[lessonNumber].length} EYFS</span>
+            </div>
+          )}
         </div>
         
         {/* Categories */}
