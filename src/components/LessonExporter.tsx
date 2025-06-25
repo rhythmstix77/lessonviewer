@@ -22,9 +22,6 @@ export function LessonExporter({ lessonNumber, onClose, initialExportType }: Les
   const [showEyfs, setShowEyfs] = useState(true);
   const previewRef = useRef<HTMLDivElement>(null);
 
-  const lessonData = allLessonsData[lessonNumber];
-  const lessonEyfs = eyfsStatements[lessonNumber] || [];
-
   // Effect to handle initial export type
   useEffect(() => {
     if (initialExportType) {
@@ -32,6 +29,9 @@ export function LessonExporter({ lessonNumber, onClose, initialExportType }: Les
       handleExport(initialExportType);
     }
   }, [initialExportType]);
+
+  const lessonData = allLessonsData[lessonNumber];
+  const lessonEyfs = eyfsStatements[lessonNumber] || [];
 
   if (!lessonData) {
     return (
@@ -410,25 +410,88 @@ export function LessonExporter({ lessonNumber, onClose, initialExportType }: Les
                               <p className="font-medium text-gray-700">Resources:</p>
                               <ul className="pl-5 text-gray-600 text-sm">
                                 {activity.videoLink && (
-                                  <li>Video: {activity.videoLink}</li>
+                                  <li>
+                                    <a 
+                                      href={activity.videoLink} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:underline"
+                                    >
+                                      Video Resource
+                                    </a>
+                                  </li>
                                 )}
                                 {activity.musicLink && (
-                                  <li>Music: {activity.musicLink}</li>
+                                  <li>
+                                    <a 
+                                      href={activity.musicLink} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:underline"
+                                    >
+                                      Music Track
+                                    </a>
+                                  </li>
                                 )}
                                 {activity.backingLink && (
-                                  <li>Backing: {activity.backingLink}</li>
+                                  <li>
+                                    <a 
+                                      href={activity.backingLink} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:underline"
+                                    >
+                                      Backing Track
+                                    </a>
+                                  </li>
                                 )}
                                 {activity.resourceLink && (
-                                  <li>Resource: {activity.resourceLink}</li>
+                                  <li>
+                                    <a 
+                                      href={activity.resourceLink} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:underline"
+                                    >
+                                      Teaching Resource
+                                    </a>
+                                  </li>
                                 )}
                                 {activity.link && (
-                                  <li>Link: {activity.link}</li>
+                                  <li>
+                                    <a 
+                                      href={activity.link} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:underline"
+                                    >
+                                      Additional Resource
+                                    </a>
+                                  </li>
                                 )}
                                 {activity.vocalsLink && (
-                                  <li>Vocals: {activity.vocalsLink}</li>
+                                  <li>
+                                    <a 
+                                      href={activity.vocalsLink} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:underline"
+                                    >
+                                      Vocals Track
+                                    </a>
+                                  </li>
                                 )}
                                 {activity.imageLink && (
-                                  <li>Image: {activity.imageLink}</li>
+                                  <li>
+                                    <a 
+                                      href={activity.imageLink} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:underline"
+                                    >
+                                      Visual Aid
+                                    </a>
+                                  </li>
                                 )}
                               </ul>
                             </div>
