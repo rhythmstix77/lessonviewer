@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Clock, Users, Tag, X, ExternalLink, FileText, Edit3, Save, FolderPlus, ChevronDown, Trash2 } from 'lucide-react';
+import { Clock, Users, Tag, X, ExternalLink, FileText, Edit3, Save, FolderPlus, ChevronDown, Trash2, Calendar } from 'lucide-react';
 import type { LessonData, Activity } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useData } from '../contexts/DataContext';
@@ -94,7 +94,7 @@ export function LessonLibraryCard({
       // If already expanded, don't do anything (let inner elements handle their own clicks)
       return;
     }
-    setIsExpanded(true);
+    onClick();
   };
 
   const handleClose = (e: React.MouseEvent) => {
@@ -546,58 +546,213 @@ export function LessonLibraryCard({
 
   if (viewMode === 'compact') {
     return (
-      <div 
-        className="bg-white rounded-lg shadow-sm border-l-4 p-3 transition-all duration-200 hover:shadow-md cursor-pointer relative"
-        style={{ borderLeftColor: theme.primary }}
-        onClick={onClick}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex-1 min-w-0">
-            <h4 className="font-medium text-gray-900 text-sm truncate" dir="ltr">{lessonData.title || `Lesson ${lessonNumber}`}</h4>
-            <div className="flex items-center space-x-2 text-xs text-gray-500">
-              <span>{lessonData.totalTime} mins</span>
-              <span>•</span>
-              <span>{totalActivities} activities</span>
+      <div className="relative group">
+        <div 
+          className="bg-white rounded-lg shadow-sm border-l-4 p-3 transition-all duration-200 hover:shadow-md cursor-pointer relative"
+          style={{ borderLeftColor: theme.primary }}
+          onClick={handleCardClick}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium text-gray-900 text-sm truncate" dir="ltr">{lessonData.title || `Lesson ${lessonNumber}`}</h4>
+              <div className="flex items-center space-x-2 text-xs text-gray-500">
+                <span>{lessonData.totalTime} mins</span>
+                <span>•</span>
+                <span>{totalActivities} activities</span>
+              </div>
+            </div>
+            <div className="flex items-center space-x-1">
+              {onDelete && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(lessonNumber);
+                  }}
+                  className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 opacity-0 group-hover:opacity-100"
+                  title="Delete Lesson"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
             </div>
           </div>
-          <div className="flex items-center space-x-1">
-            {onDelete && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(lessonNumber);
-                }}
-                className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
-                title="Delete Lesson"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+        </div>
+        
+        {/* Assign to Unit Button - Appears on hover */}
+        {onAssignToUnit && halfTerms.length > 0 && (
+          <div className="absolute top-0 right-0 mt-2 mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200" ref={dropdownRef}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAssignClick();
+              }}
+              className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm"
+              title="Assign to Unit"
+            >
+              <Calendar className="h-4 w-4" />
+            </button>
+            
+            {showAssignDropdown && (
+              <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
+                <div className="p-2 border-b border-gray-200">
+                  <h3 className="text-xs font-medium text-gray-700">Assign to Half-Term</h3>
+                </div>
+                <div className="p-1 max-h-48 overflow-y-auto">
+                  {halfTerms.map(halfTerm => (
+                    <button
+                      key={halfTerm.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAssignToHalfTerm(halfTerm.id);
+                      }}
+                      className="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                    >
+                      {halfTerm.name} ({halfTerm.months})
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
-        </div>
+        )}
       </div>
     );
   }
 
   if (viewMode === 'list') {
     return (
-      <div 
-        className="bg-white rounded-xl shadow-md border border-gray-200 p-4 transition-all duration-200 hover:shadow-lg cursor-pointer hover:border-green-300 relative"
-        onClick={onClick}
-      >
-        <div className="flex items-start">
-          <div 
-            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 mr-4"
-            style={{ backgroundColor: theme.primary }}
-          >
-            {lessonNumber}
+      <div className="relative group">
+        <div 
+          className="bg-white rounded-xl shadow-md border border-gray-200 p-4 transition-all duration-200 hover:shadow-lg cursor-pointer hover:border-green-300 relative"
+          onClick={handleCardClick}
+        >
+          <div className="flex items-start">
+            <div 
+              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 mr-4"
+              style={{ backgroundColor: theme.primary }}
+            >
+              {lessonNumber}
+            </div>
+            
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <h4 className="font-semibold text-gray-900 text-base truncate">
+                  {lessonData.title || `Lesson ${lessonNumber}`}
+                </h4>
+                <div className="flex items-center space-x-1">
+                  {onDelete && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(lessonNumber);
+                      }}
+                      className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 opacity-0 group-hover:opacity-100"
+                      title="Delete Lesson"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3 mt-1 text-sm text-gray-600">
+                <div className="flex items-center space-x-1">
+                  <Clock className="h-4 w-4 text-gray-500" />
+                  <span>{lessonData.totalTime} mins</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Users className="h-4 w-4 text-gray-500" />
+                  <span>{totalActivities} activities</span>
+                </div>
+              </div>
+              
+              <div className="mt-2 flex flex-wrap gap-1">
+                {lessonData.categoryOrder.slice(0, 3).map(category => (
+                  <span 
+                    key={category}
+                    className="px-1.5 py-0.5 text-xs rounded-full"
+                    style={{
+                      backgroundColor: `${getCategoryColor(category)}20`,
+                      color: getCategoryColor(category)
+                    }}
+                  >
+                    {category}
+                  </span>
+                ))}
+                {lessonData.categoryOrder.length > 3 && (
+                  <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
+                    +{lessonData.categoryOrder.length - 3}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
+        </div>
+        
+        {/* Assign to Unit Button - Appears on hover */}
+        {onAssignToUnit && halfTerms.length > 0 && (
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200" ref={dropdownRef}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAssignClick();
+              }}
+              className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm flex items-center space-x-1"
+              title="Assign to Unit"
+            >
+              <FolderPlus className="h-4 w-4" />
+              <span className="text-xs">Assign</span>
+            </button>
+            
+            {showAssignDropdown && (
+              <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
+                <div className="p-2 border-b border-gray-200">
+                  <h3 className="text-xs font-medium text-gray-700">Assign to Half-Term</h3>
+                </div>
+                <div className="p-1 max-h-48 overflow-y-auto">
+                  {halfTerms.map(halfTerm => (
+                    <button
+                      key={halfTerm.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAssignToHalfTerm(halfTerm.id);
+                      }}
+                      className="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                    >
+                      {halfTerm.name} ({halfTerm.months})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Default grid view
+  return (
+    <div className="relative group">
+      <div 
+        className="bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl cursor-pointer overflow-hidden hover:scale-[1.02] relative h-full flex flex-col"
+        style={{ borderColor: theme.primary, borderWidth: '1px' }}
+        onClick={handleCardClick}
+      >
+        {/* Colorful Header */}
+        <div 
+          className="p-4 text-white relative overflow-hidden"
+          style={{ 
+            background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.secondary} 100%)` 
+          }}
+        >
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white bg-opacity-10 rounded-full -translate-y-10 translate-x-10"></div>
           
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between">
-              <h4 className="font-semibold text-gray-900 text-base truncate">
-                {lessonData.title || `Lesson ${lessonNumber}`}
-              </h4>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-bold">
+                Lesson {lessonNumber}
+              </h3>
               <div className="flex items-center space-x-1">
                 {onDelete && (
                   <button
@@ -605,7 +760,7 @@ export function LessonLibraryCard({
                       e.stopPropagation();
                       onDelete(lessonNumber);
                     }}
-                    className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 mr-1"
+                    className="p-1.5 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors duration-200 opacity-0 group-hover:opacity-100"
                     title="Delete Lesson"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -613,23 +768,33 @@ export function LessonLibraryCard({
                 )}
               </div>
             </div>
-            
-            <div className="flex items-center space-x-3 mt-1 text-sm text-gray-600">
-              <div className="flex items-center space-x-1">
-                <Clock className="h-4 w-4 text-gray-500" />
-                <span>{lessonData.totalTime} mins</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Users className="h-4 w-4 text-gray-500" />
-                <span>{totalActivities} activities</span>
-              </div>
+
+            <p className="text-white text-opacity-90 text-sm font-medium" dir="ltr">
+              {lessonData.title || `Lesson ${lessonNumber}`}
+            </p>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 flex-grow flex flex-col">
+          <div className="flex items-center space-x-4 text-gray-600 mb-3">
+            <div className="flex items-center space-x-1">
+              <Clock className="h-4 w-4" />
+              <span className="text-sm">{lessonData.totalTime} mins</span>
             </div>
-            
-            <div className="mt-2 flex flex-wrap gap-1">
-              {lessonData.categoryOrder.slice(0, 3).map(category => (
+            <div className="flex items-center space-x-1">
+              <Users className="h-4 w-4" />
+              <span className="text-sm">{totalActivities} activities</span>
+            </div>
+          </div>
+          
+          {/* Categories */}
+          <div className="mb-3">
+            <div className="flex flex-wrap gap-1">
+              {lessonData.categoryOrder.slice(0, 4).map(category => (
                 <span 
                   key={category}
-                  className="px-1.5 py-0.5 text-xs rounded-full"
+                  className="px-2 py-1 text-xs font-medium rounded-full"
                   style={{
                     backgroundColor: `${getCategoryColor(category)}20`,
                     color: getCategoryColor(category)
@@ -638,103 +803,59 @@ export function LessonLibraryCard({
                   {category}
                 </span>
               ))}
-              {lessonData.categoryOrder.length > 3 && (
-                <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
-                  +{lessonData.categoryOrder.length - 3}
+              {lessonData.categoryOrder.length > 4 && (
+                <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
+                  +{lessonData.categoryOrder.length - 4}
                 </span>
               )}
             </div>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Default grid view
-  return (
-    <div 
-      className="bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl cursor-pointer overflow-hidden hover:scale-[1.02] relative"
-      style={{ borderColor: theme.primary, borderWidth: '1px' }}
-      onClick={onClick}
-    >
-      {/* Colorful Header */}
-      <div 
-        className="p-4 text-white relative overflow-hidden"
-        style={{ 
-          background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.secondary} 100%)` 
-        }}
-      >
-        <div className="absolute top-0 right-0 w-20 h-20 bg-white bg-opacity-10 rounded-full -translate-y-10 translate-x-10"></div>
-        
-        <div className="relative z-10">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-bold">
-              Lesson {lessonNumber}
-            </h3>
-            <div className="flex items-center space-x-1">
-              {onDelete && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(lessonNumber);
-                  }}
-                  className="p-1.5 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors duration-200"
-                  title="Delete Lesson"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          <p className="text-white text-opacity-90 text-sm font-medium" dir="ltr">
-            {lessonData.title || `Lesson ${lessonNumber}`}
-          </p>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="p-4">
-        <div className="flex items-center space-x-4 text-gray-600 mb-3">
-          <div className="flex items-center space-x-1">
-            <Clock className="h-4 w-4" />
-            <span className="text-sm">{lessonData.totalTime} mins</span>
-          </div>
-          <div className="flex items-center space-x-1">
-            <Users className="h-4 w-4" />
-            <span className="text-sm">{totalActivities} activities</span>
+          
+          {/* Description Preview */}
+          <div className="mt-3 pt-3 border-t border-gray-100 flex-grow">
+            <p className="text-sm text-gray-600 line-clamp-2" dir="ltr">
+              {getFirstActivityDescription()}
+            </p>
           </div>
         </div>
         
-        {/* Categories */}
-        <div className="mb-3">
-          <div className="flex flex-wrap gap-1">
-            {lessonData.categoryOrder.slice(0, 4).map(category => (
-              <span 
-                key={category}
-                className="px-2 py-1 text-xs font-medium rounded-full"
-                style={{
-                  backgroundColor: `${getCategoryColor(category)}20`,
-                  color: getCategoryColor(category)
-                }}
-              >
-                {category}
-              </span>
-            ))}
-            {lessonData.categoryOrder.length > 4 && (
-              <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
-                +{lessonData.categoryOrder.length - 4}
-              </span>
+        {/* Assign to Unit Button - Appears on hover */}
+        {onAssignToUnit && halfTerms.length > 0 && (
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200" ref={dropdownRef}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAssignClick();
+              }}
+              className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm"
+              title="Assign to Unit"
+            >
+              <FolderPlus className="h-4 w-4" />
+            </button>
+            
+            {showAssignDropdown && (
+              <div className="absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
+                <div className="p-2 border-b border-gray-200">
+                  <h3 className="text-sm font-medium text-gray-700">Assign to Half-Term</h3>
+                </div>
+                <div className="p-2 max-h-60 overflow-y-auto">
+                  {halfTerms.map(halfTerm => (
+                    <button
+                      key={halfTerm.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAssignToHalfTerm(halfTerm.id);
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                    >
+                      {halfTerm.name} ({halfTerm.months})
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
-        </div>
-        
-        {/* Description Preview */}
-        <div className="mt-3 pt-3 border-t border-gray-100">
-          <p className="text-sm text-gray-600 line-clamp-2" dir="ltr">
-            {getFirstActivityDescription()}
-          </p>
-        </div>
+        )}
       </div>
     </div>
   );
