@@ -27,7 +27,7 @@ import { LessonDropZone } from './LessonDropZone';
 import { ActivityDetails } from './ActivityDetails';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
-import type { Activity } from '../contexts/DataContext';
+import type { Activity, LessonPlan } from '../contexts/DataContext';
 
 // Define half-term periods
 const HALF_TERMS = [
@@ -38,23 +38,6 @@ const HALF_TERMS = [
   { id: 'SM1', name: 'Summer 1', months: 'Apr-May' },
   { id: 'SM2', name: 'Summer 2', months: 'Jun-Jul' },
 ];
-
-interface LessonPlan {
-  id: string;
-  date: Date;
-  week: number;
-  className: string;
-  activities: Activity[];
-  duration: number;
-  notes: string;
-  status: 'planned' | 'completed' | 'cancelled';
-  createdAt: Date;
-  updatedAt: Date;
-  unitId?: string;
-  unitName?: string;
-  title?: string;
-  term?: string;
-}
 
 interface Unit {
   id: string;
@@ -68,7 +51,7 @@ interface Unit {
 }
 
 export function LessonPlanBuilder() {
-  const { currentSheetInfo, allLessonsData } = useData();
+  const { currentSheetInfo, allLessonsData, userCreatedLessonPlans, addOrUpdateUserLessonPlan, deleteUserLessonPlan } = useData();
   const { categories } = useSettings();
   
   // Initialize currentLessonPlan with a default value instead of null
@@ -87,7 +70,6 @@ export function LessonPlanBuilder() {
     updatedAt: new Date(),
   }));
   
-  const [lessonPlans, setLessonPlans] = useState<LessonPlan[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
@@ -101,19 +83,8 @@ export function LessonPlanBuilder() {
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Load lesson plans from localStorage
+  // Load library activities
   useEffect(() => {
-    const savedPlans = localStorage.getItem('lesson-plans');
-    if (savedPlans) {
-      const plans = JSON.parse(savedPlans).map((plan: any) => ({
-        ...plan,
-        date: new Date(plan.date),
-        createdAt: new Date(plan.createdAt),
-        updatedAt: new Date(plan.updatedAt),
-      }));
-      setLessonPlans(plans);
-    }
-
     // Load library activities
     const savedActivities = localStorage.getItem('library-activities');
     if (savedActivities) {
@@ -137,12 +108,6 @@ export function LessonPlanBuilder() {
     }
   }, [allLessonsData, currentSheetInfo.sheet]);
 
-  // Save lesson plans to localStorage
-  const saveLessonPlans = (plans: LessonPlan[]) => {
-    localStorage.setItem('lesson-plans', JSON.stringify(plans));
-    setLessonPlans(plans);
-  };
-
   // Save library activities to localStorage
   const saveLibraryActivities = (activities: Activity[]) => {
     localStorage.setItem('library-activities', JSON.stringify(activities));
@@ -153,21 +118,15 @@ export function LessonPlanBuilder() {
     try {
       // Validate that the plan has a title
       if (!updatedPlan.title.trim()) {
-        alert('Please provide a unit name');
+        alert('Please provide a lesson title');
         setSaveStatus('error');
         setTimeout(() => setSaveStatus('idle'), 3000);
         return false;
       }
       
-      const updatedPlans = lessonPlans.map(plan => 
-        plan.id === updatedPlan.id ? { ...updatedPlan, updatedAt: new Date() } : plan
-      );
+      // Update the lesson plan using the context function
+      addOrUpdateUserLessonPlan(updatedPlan);
       
-      if (!lessonPlans.find(plan => plan.id === updatedPlan.id)) {
-        updatedPlans.push({ ...updatedPlan, updatedAt: new Date() });
-      }
-      
-      saveLessonPlans(updatedPlans);
       setCurrentLessonPlan(updatedPlan);
       setSaveStatus('success');
       setHasUnsavedChanges(false);
@@ -281,13 +240,13 @@ export function LessonPlanBuilder() {
     }
     
     // Find the current lesson in the list of saved lessons
-    const currentIndex = lessonPlans.findIndex(plan => plan.id === currentLessonPlan.id);
+    const currentIndex = userCreatedLessonPlans.findIndex(plan => plan.id === currentLessonPlan.id);
     
     if (currentIndex === -1) {
       // Current lesson is not saved yet
-      if (direction === 'prev' && lessonPlans.length > 0) {
+      if (direction === 'prev' && userCreatedLessonPlans.length > 0) {
         // Navigate to the last saved lesson
-        setCurrentLessonPlan(lessonPlans[lessonPlans.length - 1]);
+        setCurrentLessonPlan(userCreatedLessonPlans[userCreatedLessonPlans.length - 1]);
       } else if (direction === 'next') {
         // Create a new lesson
         handleCreateNewAfterSave();
@@ -295,10 +254,10 @@ export function LessonPlanBuilder() {
     } else {
       // Current lesson is in the list
       if (direction === 'prev' && currentIndex > 0) {
-        setCurrentLessonPlan(lessonPlans[currentIndex - 1]);
-      } else if (direction === 'next' && currentIndex < lessonPlans.length - 1) {
-        setCurrentLessonPlan(lessonPlans[currentIndex + 1]);
-      } else if (direction === 'next' && currentIndex === lessonPlans.length - 1) {
+        setCurrentLessonPlan(userCreatedLessonPlans[currentIndex - 1]);
+      } else if (direction === 'next' && currentIndex < userCreatedLessonPlans.length - 1) {
+        setCurrentLessonPlan(userCreatedLessonPlans[currentIndex + 1]);
+      } else if (direction === 'next' && currentIndex === userCreatedLessonPlans.length - 1) {
         // Create a new lesson
         handleCreateNewAfterSave();
       }
@@ -591,12 +550,12 @@ export function LessonPlanBuilder() {
             {saveStatus === 'success' ? (
               <>
                 <Check className="h-5 w-5 text-green-600" />
-                <span>Unit saved successfully!</span>
+                <span>Lesson saved successfully!</span>
               </>
             ) : (
               <>
                 <AlertCircle className="h-5 w-5 text-red-600" />
-                <span>Failed to save unit. Please ensure you've provided a unit name.</span>
+                <span>Failed to save lesson. Please ensure you've provided a lesson title.</span>
               </>
             )}
           </div>

@@ -39,6 +39,25 @@ export interface SheetInfo {
   eyfs: string;
 }
 
+// Interface for user-created lesson plans
+export interface LessonPlan {
+  id: string;
+  date: Date;
+  week: number;
+  className: string;
+  activities: Activity[];
+  duration: number;
+  notes: string;
+  status: 'planned' | 'completed' | 'cancelled' | 'draft';
+  title?: string;
+  term?: string;
+  unitId?: string;
+  unitName?: string;
+  lessonNumber?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 interface DataContextType {
   currentSheetInfo: SheetInfo;
   setCurrentSheetInfo: (info: SheetInfo) => void;
@@ -53,7 +72,10 @@ interface DataContextType {
   addEyfsToLesson: (lessonNumber: string, eyfsStatement: string) => void;
   removeEyfsFromLesson: (lessonNumber: string, eyfsStatement: string) => void;
   updateAllEyfsStatements: (statements: string[]) => void;
-  updateLessonTitle: (lessonNumber: string, title: string) => void; // New function to update lesson title
+  updateLessonTitle: (lessonNumber: string, title: string) => void;
+  userCreatedLessonPlans: LessonPlan[];
+  addOrUpdateUserLessonPlan: (lessonPlan: LessonPlan) => void;
+  deleteUserLessonPlan: (lessonPlanId: string) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -183,6 +205,34 @@ const generateDefaultLessonTitle = (lessonData: LessonData): string => {
   return `${categories[0]} Lesson`;
 };
 
+// Convert LessonPlan to LessonData
+const convertLessonPlanToLessonData = (lessonPlan: LessonPlan): LessonData => {
+  // Group activities by category
+  const grouped: Record<string, Activity[]> = {};
+  const categoriesInLesson = new Set<string>();
+  let totalTime = 0;
+
+  lessonPlan.activities.forEach(activity => {
+    if (!grouped[activity.category]) {
+      grouped[activity.category] = [];
+    }
+    grouped[activity.category].push(activity);
+    categoriesInLesson.add(activity.category);
+    totalTime += activity.time || 0;
+  });
+
+  // Sort categories according to the predefined order
+  const categoryOrder = sortCategoriesByOrder(Array.from(categoriesInLesson));
+
+  return {
+    grouped,
+    categoryOrder,
+    totalTime,
+    title: lessonPlan.title || `Lesson ${lessonPlan.lessonNumber || ''}`,
+    eyfsStatements: []
+  };
+};
+
 export function DataProvider({ children }: DataProviderProps) {
   const [currentSheetInfo, setCurrentSheetInfo] = useState<SheetInfo>({
     sheet: 'LKG',
@@ -196,12 +246,33 @@ export function DataProvider({ children }: DataProviderProps) {
   const [eyfsStatements, setEyfsStatements] = useState<Record<string, string[]>>({});
   const [allEyfsStatements, setAllEyfsStatements] = useState<string[]>(DEFAULT_EYFS_STATEMENTS);
   const [loading, setLoading] = useState(true);
+  const [userCreatedLessonPlans, setUserCreatedLessonPlans] = useState<LessonPlan[]>([]);
 
   useEffect(() => {
     loadData();
     // Load EYFS statements
     loadEyfsStatements();
+    // Load user-created lesson plans
+    loadUserCreatedLessonPlans();
   }, [currentSheetInfo]);
+
+  const loadUserCreatedLessonPlans = () => {
+    try {
+      const savedPlans = localStorage.getItem('lesson-plans');
+      if (savedPlans) {
+        const plans = JSON.parse(savedPlans).map((plan: any) => ({
+          ...plan,
+          date: new Date(plan.date),
+          createdAt: new Date(plan.createdAt),
+          updatedAt: new Date(plan.updatedAt),
+        }));
+        setUserCreatedLessonPlans(plans);
+      }
+    } catch (error) {
+      console.error('Failed to load user-created lesson plans:', error);
+      setUserCreatedLessonPlans([]);
+    }
+  };
 
   const loadEyfsStatements = async () => {
     try {
@@ -247,44 +318,73 @@ export function DataProvider({ children }: DataProviderProps) {
     try {
       setLoading(true);
       
+      // Step 1: Load Excel-based lesson data
+      let excelLessonsData: Record<string, LessonData> = {};
+      let excelLessonNumbers: string[] = [];
+      let excelTeachingUnits: string[] = [];
+      let excelEyfsStatements: Record<string, string[]> = {};
+      
       // Try to load from server
       try {
         const lessonData = await lessonsApi.getBySheet(currentSheetInfo.sheet);
         if (lessonData && Object.keys(lessonData).length > 0) {
-          setAllLessonsData(lessonData.allLessonsData || {});
-          setLessonNumbers(lessonData.lessonNumbers || []);
-          setTeachingUnits(lessonData.teachingUnits || []);
-          setEyfsStatements(lessonData.eyfsStatements || {});
+          excelLessonsData = lessonData.allLessonsData || {};
+          excelLessonNumbers = lessonData.lessonNumbers || [];
+          excelTeachingUnits = lessonData.teachingUnits || [];
+          excelEyfsStatements = lessonData.eyfsStatements || {};
           console.log(`Loaded ${currentSheetInfo.sheet} data from server`);
-          setLoading(false);
-          return;
         }
       } catch (error) {
         console.warn(`Server data fetch failed for ${currentSheetInfo.sheet}, trying localStorage:`, error);
+        
+        // Try to load from localStorage as fallback
+        const savedData = localStorage.getItem(`lesson-data-${currentSheetInfo.sheet}`);
+        if (savedData) {
+          const parsedData = JSON.parse(savedData);
+          excelLessonsData = parsedData.allLessonsData || {};
+          excelLessonNumbers = parsedData.lessonNumbers || [];
+          excelTeachingUnits = parsedData.teachingUnits || [];
+          excelEyfsStatements = parsedData.eyfsStatements || {};
+          console.log(`Loaded ${currentSheetInfo.sheet} data from localStorage`);
+        } else {
+          // If no saved data, load sample data
+          await loadSampleData();
+          return;
+        }
       }
       
-      // Try to load from localStorage as fallback
-      const savedData = localStorage.getItem(`lesson-data-${currentSheetInfo.sheet}`);
-      if (savedData) {
-        const parsedData = JSON.parse(savedData);
-        setAllLessonsData(parsedData.allLessonsData || {});
-        setLessonNumbers(parsedData.lessonNumbers || []);
-        setTeachingUnits(parsedData.teachingUnits || []);
-        setEyfsStatements(parsedData.eyfsStatements || {});
-        console.log(`Loaded ${currentSheetInfo.sheet} data from localStorage`);
-        
-        // Try to save to server for future use, but don't wait for it
-        try {
-          lessonsApi.updateSheet(currentSheetInfo.sheet, parsedData)
-            .then(() => console.log(`Migrated ${currentSheetInfo.sheet} data to server`))
-            .catch(serverError => console.warn(`Failed to migrate ${currentSheetInfo.sheet} data to server:`, serverError));
-        } catch (serverError) {
-          console.warn(`Failed to migrate ${currentSheetInfo.sheet} data to server:`, serverError);
+      // Step 2: Process user-created lesson plans
+      const userLessonData: Record<string, LessonData> = {};
+      const userLessonNumbers: string[] = [];
+      
+      // Filter lesson plans for the current class
+      const relevantLessonPlans = userCreatedLessonPlans.filter(
+        plan => plan.className === currentSheetInfo.sheet && plan.lessonNumber
+      );
+      
+      // Convert each lesson plan to lesson data
+      relevantLessonPlans.forEach(plan => {
+        if (plan.lessonNumber) {
+          userLessonData[plan.lessonNumber] = convertLessonPlanToLessonData(plan);
+          if (!userLessonNumbers.includes(plan.lessonNumber)) {
+            userLessonNumbers.push(plan.lessonNumber);
+          }
         }
-      } else {
-        // If no saved data, load sample data
-        await loadSampleData();
-      }
+      });
+      
+      // Step 3: Merge Excel-based and user-created lesson data
+      const mergedLessonsData = { ...excelLessonsData, ...userLessonData };
+      
+      // Merge lesson numbers and sort them
+      const mergedLessonNumbers = [...new Set([...excelLessonNumbers, ...userLessonNumbers])]
+        .sort((a, b) => parseInt(a) - parseInt(b));
+      
+      // Update state with merged data
+      setAllLessonsData(mergedLessonsData);
+      setLessonNumbers(mergedLessonNumbers);
+      setTeachingUnits(excelTeachingUnits);
+      setEyfsStatements(excelEyfsStatements);
+      
     } catch (error) {
       console.error('Failed to load data:', error);
       // Load sample data as fallback
@@ -300,7 +400,13 @@ export function DataProvider({ children }: DataProviderProps) {
       const sheetData = SAMPLE_DATA[currentSheetInfo.sheet as keyof typeof SAMPLE_DATA];
       
       if (sheetData && sheetData.length > 0) {
-        await processSheetData(sheetData);
+        const processedData = processSheetDataHelper(sheetData);
+        
+        setLessonNumbers(processedData.lessonNumbers);
+        setTeachingUnits(processedData.teachingUnits);
+        setAllLessonsData(processedData.lessonsData);
+        setEyfsStatements(processedData.eyfsStatementsMap);
+        
         console.log(`Successfully loaded sample data for ${currentSheetInfo.sheet}`);
       } else {
         throw new Error(`No sample data available for ${currentSheetInfo.sheet}`);
@@ -362,162 +468,172 @@ export function DataProvider({ children }: DataProviderProps) {
     });
   };
 
+  const processSheetDataHelper = (sheetData: string[][]) => {
+    if (!sheetData || sheetData.length === 0) {
+      throw new Error(`No sheet data provided for ${currentSheetInfo.sheet}`);
+    }
+    
+    console.log(`Processing ${currentSheetInfo.sheet} sheet data, rows:`, sheetData.length);
+    
+    const headers = sheetData[0];
+    console.log('Headers:', headers);
+    
+    const activities: Activity[] = [];
+    const lessonNumbersSet = new Set<string>();
+    const categoriesSet = new Set<string>();
+    let currentLessonNumber = '';
+
+    for (let i = 1; i < sheetData.length; i++) {
+      const row = sheetData[i];
+      if (!row || row.length < 3) continue; // Skip empty or incomplete rows
+
+      // Safely extract data with fallbacks
+      const lessonNumber = (row[0] || '').toString().trim();
+      const category = (row[1] || '').toString().trim();
+      const activityName = (row[2] || '').toString().trim();
+      const description = (row[3] || '').toString().trim();
+      const level = (row[4] || '').toString().trim();
+      const timeStr = (row[5] || '0').toString().trim();
+      const video = (row[6] || '').toString().trim();
+      const music = (row[7] || '').toString().trim();
+      const backing = (row[8] || '').toString().trim();
+      const resource = (row[9] || '').toString().trim();
+      const unitName = (row[10] || '').toString().trim();
+
+      // Skip rows without category or activity name
+      if (!category || !activityName) continue;
+
+      // Handle lesson number logic - if empty, use the last seen lesson number
+      if (lessonNumber) {
+        currentLessonNumber = lessonNumber;
+        lessonNumbersSet.add(lessonNumber);
+      }
+
+      categoriesSet.add(category);
+
+      // Parse time safely
+      let time = 0;
+      try {
+        const parsedTime = parseInt(timeStr);
+        if (!isNaN(parsedTime) && parsedTime >= 0) {
+          time = parsedTime;
+        }
+      } catch (e) {
+        console.warn('Invalid time value:', timeStr);
+      }
+
+      const activity: Activity = {
+        _id: `${currentSheetInfo.sheet}-${activityName}-${category}-${Date.now()}`,
+        activity: activityName,
+        description: description.replace(/"/g, ''),
+        time,
+        videoLink: video,
+        musicLink: music,
+        backingLink: backing,
+        resourceLink: resource,
+        link: '',
+        vocalsLink: '',
+        imageLink: '',
+        teachingUnit: category,
+        category,
+        level,
+        unitName,
+        lessonNumber: currentLessonNumber || '1', // Default to lesson 1 if no lesson number
+        eyfsStandards: []
+      };
+
+      activities.push(activity);
+    }
+
+    console.log(`Processed ${currentSheetInfo.sheet} activities:`, activities.length);
+    console.log(`${currentSheetInfo.sheet} lesson numbers found:`, Array.from(lessonNumbersSet));
+    console.log(`${currentSheetInfo.sheet} categories found:`, Array.from(categoriesSet));
+
+    // Set lesson numbers and teaching units
+    const sortedLessonNumbers = Array.from(lessonNumbersSet)
+      .filter(num => num && !isNaN(parseInt(num)))
+      .sort((a, b) => parseInt(a) - parseInt(b));
+    
+    const sortedCategories = Array.from(categoriesSet).sort();
+
+    // Group activities by lesson
+    const lessonsData: Record<string, LessonData> = {};
+    
+    sortedLessonNumbers.forEach(lessonNum => {
+      const lessonActivities = activities.filter(activity => activity.lessonNumber === lessonNum);
+
+      const grouped: Record<string, Activity[]> = {};
+      const categoriesInLesson = new Set<string>();
+      let totalTime = 0;
+
+      lessonActivities.forEach(activity => {
+        if (!grouped[activity.category]) {
+          grouped[activity.category] = [];
+        }
+        grouped[activity.category].push(activity);
+        categoriesInLesson.add(activity.category);
+        totalTime += activity.time;
+      });
+
+      // Sort categories according to the predefined order
+      const categoryOrder = sortCategoriesByOrder(Array.from(categoriesInLesson));
+
+      // Generate a title for the lesson based on its content
+      const title = generateDefaultLessonTitle({
+        grouped,
+        categoryOrder,
+        totalTime,
+        eyfsStatements: []
+      });
+
+      lessonsData[lessonNum] = {
+        grouped,
+        categoryOrder,
+        totalTime,
+        eyfsStatements: [],
+        title // Add the generated title
+      };
+    });
+
+    // Set EYFS statements for each lesson
+    const eyfsStatementsMap: Record<string, string[]> = {};
+    sortedLessonNumbers.forEach(lessonNum => {
+      eyfsStatementsMap[lessonNum] = [];
+    });
+
+    return {
+      lessonsData,
+      lessonNumbers: sortedLessonNumbers,
+      teachingUnits: sortedCategories,
+      eyfsStatementsMap
+    };
+  };
+
   const processSheetData = async (sheetData: string[][]) => {
     try {
-      if (!sheetData || sheetData.length === 0) {
-        console.warn(`No sheet data provided for ${currentSheetInfo.sheet}`);
-        return;
-      }
+      const processedData = processSheetDataHelper(sheetData);
       
-      console.log(`Processing ${currentSheetInfo.sheet} sheet data, rows:`, sheetData.length);
-      
-      const headers = sheetData[0];
-      console.log('Headers:', headers);
-      
-      const activities: Activity[] = [];
-      const lessonNumbersSet = new Set<string>();
-      const categoriesSet = new Set<string>();
-      let currentLessonNumber = '';
-
-      for (let i = 1; i < sheetData.length; i++) {
-        const row = sheetData[i];
-        if (!row || row.length < 3) continue; // Skip empty or incomplete rows
-
-        // Safely extract data with fallbacks
-        const lessonNumber = (row[0] || '').toString().trim();
-        const category = (row[1] || '').toString().trim();
-        const activityName = (row[2] || '').toString().trim();
-        const description = (row[3] || '').toString().trim();
-        const level = (row[4] || '').toString().trim();
-        const timeStr = (row[5] || '0').toString().trim();
-        const video = (row[6] || '').toString().trim();
-        const music = (row[7] || '').toString().trim();
-        const backing = (row[8] || '').toString().trim();
-        const resource = (row[9] || '').toString().trim();
-        const unitName = (row[10] || '').toString().trim();
-
-        // Skip rows without category or activity name
-        if (!category || !activityName) continue;
-
-        // Handle lesson number logic - if empty, use the last seen lesson number
-        if (lessonNumber) {
-          currentLessonNumber = lessonNumber;
-          lessonNumbersSet.add(lessonNumber);
-        }
-
-        categoriesSet.add(category);
-
-        // Parse time safely
-        let time = 0;
-        try {
-          const parsedTime = parseInt(timeStr);
-          if (!isNaN(parsedTime) && parsedTime >= 0) {
-            time = parsedTime;
-          }
-        } catch (e) {
-          console.warn('Invalid time value:', timeStr);
-        }
-
-        const activity: Activity = {
-          _id: `${currentSheetInfo.sheet}-${activityName}-${category}-${Date.now()}`,
-          activity: activityName,
-          description: description.replace(/"/g, ''),
-          time,
-          videoLink: video,
-          musicLink: music,
-          backingLink: backing,
-          resourceLink: resource,
-          link: '',
-          vocalsLink: '',
-          imageLink: '',
-          teachingUnit: category,
-          category,
-          level,
-          unitName,
-          lessonNumber: currentLessonNumber || '1', // Default to lesson 1 if no lesson number
-          eyfsStandards: []
-        };
-
-        activities.push(activity);
-        
-        // Try to add to server, but don't block the process
-        try {
-          activitiesApi.create(activity)
-            .then(() => console.log(`Added activity to server: ${activity.activity}`))
-            .catch(error => console.warn('Failed to add activity to server:', error));
-        } catch (error) {
-          console.warn('Failed to add activity to server:', error);
-        }
-      }
-
-      console.log(`Processed ${currentSheetInfo.sheet} activities:`, activities.length);
-      console.log(`${currentSheetInfo.sheet} lesson numbers found:`, Array.from(lessonNumbersSet));
-      console.log(`${currentSheetInfo.sheet} categories found:`, Array.from(categoriesSet));
-
-      // Set lesson numbers and teaching units
-      const sortedLessonNumbers = Array.from(lessonNumbersSet)
-        .filter(num => num && !isNaN(parseInt(num)))
-        .sort((a, b) => parseInt(a) - parseInt(b));
-      
-      setLessonNumbers(sortedLessonNumbers);
-      setTeachingUnits(Array.from(categoriesSet).sort());
-
-      // Group activities by lesson
-      const lessonsData: Record<string, LessonData> = {};
-      
-      sortedLessonNumbers.forEach(lessonNum => {
-        const lessonActivities = activities.filter(activity => activity.lessonNumber === lessonNum);
-
-        const grouped: Record<string, Activity[]> = {};
-        const categoriesInLesson = new Set<string>();
-        let totalTime = 0;
-
-        lessonActivities.forEach(activity => {
-          if (!grouped[activity.category]) {
-            grouped[activity.category] = [];
-          }
-          grouped[activity.category].push(activity);
-          categoriesInLesson.add(activity.category);
-          totalTime += activity.time;
-        });
-
-        // Sort categories according to the predefined order
-        const categoryOrder = sortCategoriesByOrder(Array.from(categoriesInLesson));
-
-        // Generate a title for the lesson based on its content
-        const title = generateDefaultLessonTitle({
-          grouped,
-          categoryOrder,
-          totalTime,
-          eyfsStatements: []
-        });
-
-        lessonsData[lessonNum] = {
-          grouped,
-          categoryOrder,
-          totalTime,
-          eyfsStatements: [],
-          title // Add the generated title
-        };
-      });
-
-      console.log(`${currentSheetInfo.sheet} lessons data structure:`, Object.keys(lessonsData));
-      console.log(`Sample ${currentSheetInfo.sheet} lesson category order:`, lessonsData[sortedLessonNumbers[0]]?.categoryOrder);
-      setAllLessonsData(lessonsData);
-
-      // Set EYFS statements for each lesson
-      const eyfsStatementsMap: Record<string, string[]> = {};
-      sortedLessonNumbers.forEach(lessonNum => {
-        eyfsStatementsMap[lessonNum] = [];
-      });
-      setEyfsStatements(eyfsStatementsMap);
+      setLessonNumbers(processedData.lessonNumbers);
+      setTeachingUnits(processedData.teachingUnits);
+      setAllLessonsData(processedData.lessonsData);
+      setEyfsStatements(processedData.eyfsStatementsMap);
 
       // Save data to localStorage first (this is guaranteed to work)
-      saveDataToLocalStorage(lessonsData, sortedLessonNumbers, Array.from(categoriesSet), eyfsStatementsMap);
+      saveDataToLocalStorage(
+        processedData.lessonsData, 
+        processedData.lessonNumbers, 
+        processedData.teachingUnits, 
+        processedData.eyfsStatementsMap
+      );
       
       // Then try to save to server (this might fail, but we already have local backup)
       try {
-        await saveDataToServer(lessonsData, sortedLessonNumbers, Array.from(categoriesSet), eyfsStatementsMap);
+        await saveDataToServer(
+          processedData.lessonsData, 
+          processedData.lessonNumbers, 
+          processedData.teachingUnits, 
+          processedData.eyfsStatementsMap
+        );
       } catch (error) {
         console.warn(`Failed to save ${currentSheetInfo.sheet} data to server, but data is saved locally:`, error);
       }
@@ -803,32 +919,96 @@ export function DataProvider({ children }: DataProviderProps) {
 
   // Update lesson title
   const updateLessonTitle = (lessonNumber: string, title: string) => {
-    setAllLessonsData(prev => {
-      const updatedLessonsData = { ...prev };
-      if (updatedLessonsData[lessonNumber]) {
-        updatedLessonsData[lessonNumber] = {
-          ...updatedLessonsData[lessonNumber],
-          title
+    // First check if this is a user-created lesson
+    const userLessonPlan = userCreatedLessonPlans.find(
+      plan => plan.lessonNumber === lessonNumber && plan.className === currentSheetInfo.sheet
+    );
+    
+    if (userLessonPlan) {
+      // Update the user-created lesson plan
+      const updatedPlan = {
+        ...userLessonPlan,
+        title,
+        updatedAt: new Date()
+      };
+      addOrUpdateUserLessonPlan(updatedPlan);
+    } else {
+      // Update the Excel-based lesson
+      setAllLessonsData(prev => {
+        const updatedLessonsData = { ...prev };
+        if (updatedLessonsData[lessonNumber]) {
+          updatedLessonsData[lessonNumber] = {
+            ...updatedLessonsData[lessonNumber],
+            title
+          };
+          
+          // Save to localStorage first (this is guaranteed to work)
+          saveDataToLocalStorage(
+            updatedLessonsData,
+            lessonNumbers,
+            teachingUnits,
+            eyfsStatements
+          );
+          
+          // Try to save to server, but don't block the UI
+          saveDataToServer(
+            updatedLessonsData,
+            lessonNumbers,
+            teachingUnits,
+            eyfsStatements
+          ).catch(error => console.warn('Failed to save lesson title to server:', error));
+        }
+        return updatedLessonsData;
+      });
+    }
+  };
+
+  // Add or update a user-created lesson plan
+  const addOrUpdateUserLessonPlan = (lessonPlan: LessonPlan) => {
+    setUserCreatedLessonPlans(prev => {
+      // Check if the plan already exists
+      const existingPlanIndex = prev.findIndex(plan => plan.id === lessonPlan.id);
+      
+      let updatedPlans;
+      if (existingPlanIndex >= 0) {
+        // Update existing plan
+        updatedPlans = [...prev];
+        updatedPlans[existingPlanIndex] = {
+          ...lessonPlan,
+          updatedAt: new Date()
         };
-        
-        // Save to localStorage first (this is guaranteed to work)
-        saveDataToLocalStorage(
-          updatedLessonsData,
-          lessonNumbers,
-          teachingUnits,
-          eyfsStatements
-        );
-        
-        // Try to save to server, but don't block the UI
-        saveDataToServer(
-          updatedLessonsData,
-          lessonNumbers,
-          teachingUnits,
-          eyfsStatements
-        ).catch(error => console.warn('Failed to save lesson title to server:', error));
+      } else {
+        // Add new plan
+        updatedPlans = [...prev, {
+          ...lessonPlan,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }];
       }
-      return updatedLessonsData;
+      
+      // Save to localStorage
+      localStorage.setItem('lesson-plans', JSON.stringify(updatedPlans));
+      
+      return updatedPlans;
     });
+    
+    // Reload data to update allLessonsData with the new/updated lesson plan
+    loadData();
+  };
+
+  // Delete a user-created lesson plan
+  const deleteUserLessonPlan = (lessonPlanId: string) => {
+    setUserCreatedLessonPlans(prev => {
+      const updatedPlans = prev.filter(plan => plan.id !== lessonPlanId);
+      
+      // Save to localStorage
+      localStorage.setItem('lesson-plans', JSON.stringify(updatedPlans));
+      
+      return updatedPlans;
+    });
+    
+    // Reload data to update allLessonsData without the deleted lesson plan
+    loadData();
   };
 
   // Helper to structure EYFS statements by area
@@ -862,7 +1042,10 @@ export function DataProvider({ children }: DataProviderProps) {
     addEyfsToLesson,
     removeEyfsFromLesson,
     updateAllEyfsStatements,
-    updateLessonTitle
+    updateLessonTitle,
+    userCreatedLessonPlans,
+    addOrUpdateUserLessonPlan,
+    deleteUserLessonPlan
   };
 
   return (

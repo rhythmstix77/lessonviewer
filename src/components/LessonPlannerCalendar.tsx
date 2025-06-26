@@ -22,23 +22,7 @@ import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay, startOfMon
 import { useDrop } from 'react-dnd';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
-import type { Activity } from '../contexts/DataContext';
-
-interface LessonPlan {
-  id: string;
-  date: Date;
-  week: number;
-  className: string;
-  activities: any[]; // Activity IDs or objects
-  duration: number;
-  notes: string;
-  status: 'planned' | 'completed' | 'cancelled';
-  unitId?: string;
-  unitName?: string;
-  lessonNumber?: string;
-  title?: string;
-  time?: string; // Added time field for scheduled lessons
-}
+import type { Activity, LessonPlan } from '../contexts/DataContext';
 
 interface LessonPlannerCalendarProps {
   onDateSelect: (date: Date) => void;
@@ -57,7 +41,7 @@ export function LessonPlannerCalendar({
   onCreateLessonPlan,
   className
 }: LessonPlannerCalendarProps) {
-  const { allLessonsData } = useData();
+  const { allLessonsData, deleteUserLessonPlan } = useData();
   const { getThemeForClass, getCategoryColor } = useSettings();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
@@ -153,14 +137,8 @@ export function LessonPlannerCalendar({
 
   const handleDeletePlan = (planId: string) => {
     if (confirm('Are you sure you want to delete this lesson plan?')) {
-      // Filter out the plan to delete
-      const updatedPlans = lessonPlans.filter(plan => plan.id !== planId);
-      
-      // Save the updated plans
-      localStorage.setItem('lesson-plans', JSON.stringify(updatedPlans));
-      
-      // Update the state in the parent component
-      onUpdateLessonPlan({ ...lessonPlans.find(plan => plan.id === planId)!, id: 'deleted' });
+      // Delete the plan using the context function
+      deleteUserLessonPlan(planId);
       
       // Clear selected plan if it was deleted
       if (selectedPlan && selectedPlan.id === planId) {
@@ -169,8 +147,10 @@ export function LessonPlannerCalendar({
       
       // Close the lesson summary if all plans for the date are deleted
       if (selectedDateWithPlans) {
-        const remainingPlans = updatedPlans.filter(plan => 
-          isSameDay(new Date(plan.date), selectedDateWithPlans.date) && plan.className === className
+        const remainingPlans = lessonPlans.filter(plan => 
+          plan.id !== planId && 
+          isSameDay(new Date(plan.date), selectedDateWithPlans.date) && 
+          plan.className === className
         );
         
         if (remainingPlans.length === 0) {
