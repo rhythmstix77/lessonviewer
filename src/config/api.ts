@@ -101,14 +101,13 @@ export const lessonsApi = {
         .from(TABLES.LESSONS)
         .select('*')
         .eq('sheet_name', sheet)
-        .single();
+        .maybeSingle();
       
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // No data found for this sheet
-          return null;
-        }
-        throw error;
+      if (error) throw error;
+      
+      if (!data) {
+        // No data found for this sheet
+        return null;
       }
       
       return {
@@ -278,14 +277,13 @@ export const eyfsApi = {
         .from(TABLES.EYFS_STATEMENTS)
         .select('*')
         .eq('sheet_name', sheet)
-        .single();
+        .maybeSingle();
       
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // No data found for this sheet
-          return null;
-        }
-        throw error;
+      if (error) throw error;
+      
+      if (!data) {
+        // No data found for this sheet
+        return null;
       }
       
       return {
