@@ -25,7 +25,6 @@ import { LessonExporter } from './LessonExporter';
 interface LessonLibraryProps {
   onLessonSelect?: (lessonNumber: string) => void;
   className?: string;
-  onAssignToUnit?: (lessonNumber: string, halfTermId: string) => void;
 }
 
 // Define half-term periods
@@ -48,8 +47,8 @@ const LESSON_TO_HALF_TERM: Record<string, string> = {
   '31': 'SM2', '32': 'SM2', '33': 'SM2', '34': 'SM2', '35': 'SM2', '36': 'SM2',
 };
 
-export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }: LessonLibraryProps) {
-  const { lessonNumbers, allLessonsData, currentSheetInfo } = useData();
+export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryProps) {
+  const { lessonNumbers, allLessonsData, currentSheetInfo, userCreatedLessonPlans } = useData();
   const { getThemeForClass } = useSettings();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedHalfTerm, setSelectedHalfTerm] = useState<string>('all');
@@ -62,9 +61,26 @@ export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
 
+  // Combine imported lessons with user-created lessons
+  const allAvailableLessons = useMemo(() => {
+    // Get all lesson numbers from imported data
+    const importedLessons = lessonNumbers;
+    
+    // Get lesson numbers from user-created plans
+    const userCreatedLessons = userCreatedLessonPlans
+      .filter(plan => plan.lessonNumber && plan.className === currentSheetInfo.sheet)
+      .map(plan => plan.lessonNumber!);
+    
+    // Combine and remove duplicates
+    const allLessons = [...new Set([...importedLessons, ...userCreatedLessons])];
+    
+    // Sort numerically
+    return allLessons.sort((a, b) => parseInt(a) - parseInt(b));
+  }, [lessonNumbers, userCreatedLessonPlans, currentSheetInfo.sheet]);
+
   // Filter and sort lessons
   const filteredAndSortedLessons = useMemo(() => {
-    let filtered = lessonNumbers.filter(lessonNum => {
+    let filtered = allAvailableLessons.filter(lessonNum => {
       const lessonData = allLessonsData[lessonNum];
       if (!lessonData) return false;
       
@@ -122,7 +138,7 @@ export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }
     });
 
     return filtered;
-  }, [lessonNumbers, allLessonsData, searchQuery, selectedHalfTerm, sortBy, sortOrder]);
+  }, [allAvailableLessons, allLessonsData, searchQuery, selectedHalfTerm, sortBy, sortOrder]);
 
   const toggleSort = (field: 'number' | 'title' | 'activities' | 'time') => {
     if (sortBy === field) {
@@ -142,12 +158,6 @@ export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }
     }
   };
 
-  const handleAssignToUnit = (lessonNumber: string, halfTermId: string) => {
-    if (onAssignToUnit) {
-      onAssignToUnit(lessonNumber, halfTermId);
-    }
-  };
-
   return (
     <div className={`bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden ${className}`}>
       {/* Header */}
@@ -158,7 +168,7 @@ export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }
             <div>
               <h2 className="text-xl font-bold">Lesson Library</h2>
               <p className="text-green-100 text-sm">
-                {filteredAndSortedLessons.length} of {lessonNumbers.length} lessons
+                {filteredAndSortedLessons.length} of {allAvailableLessons.length} lessons
               </p>
             </div>
           </div>
@@ -283,8 +293,6 @@ export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }
                   viewMode={viewMode}
                   onClick={() => handleLessonClick(lessonNum)}
                   theme={theme}
-                  onAssignToUnit={handleAssignToUnit}
-                  halfTerms={HALF_TERMS}
                 />
               );
             })}

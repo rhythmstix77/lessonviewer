@@ -12,21 +12,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { RichTextEditor } from './RichTextEditor';
-import type { Activity } from '../contexts/DataContext';
+import type { Activity, LessonPlan } from '../contexts/DataContext';
 import { EyfsStandardsSelector } from './EyfsStandardsSelector';
-
-interface LessonPlan {
-  id: string;
-  date: Date;
-  week: number;
-  className: string;
-  activities: Activity[];
-  duration: number;
-  notes: string;
-  status: 'planned' | 'completed' | 'cancelled' | 'draft';
-  title?: string;
-  term?: string;
-}
 
 interface LessonDropZoneProps {
   lessonPlan: LessonPlan;
@@ -333,6 +320,13 @@ export function LessonDropZone({
                 <Users className="h-4 w-4" />
                 <span>{lessonPlan.activities.length} activities</span>
               </div>
+              
+              {lessonPlan.lessonNumber && (
+                <div className="flex items-center space-x-2 text-gray-600">
+                  <span>Lesson Number:</span>
+                  <span className="font-medium">{lessonPlan.lessonNumber}</span>
+                </div>
+              )}
             </div>
           </div>
           
