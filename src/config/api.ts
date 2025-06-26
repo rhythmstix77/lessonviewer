@@ -7,10 +7,31 @@ export const activitiesApi = {
     try {
       const { data, error } = await supabase
         .from(TABLES.ACTIVITIES)
-        .select('id, activity, description, activityText, time, videoLink, musicLink, backingLink, resourceLink, link, vocalsLink, imageLink, teachingUnit, category, level, unitName, lessonNumber, eyfsStandards');
+        .select('id, activity, description, activity_text, time, video_link, music_link, backing_link, resource_link, link, vocals_link, image_link, teaching_unit, category, level, unit_name, lesson_number, eyfs_standards');
       
       if (error) throw error;
-      return data || [];
+      
+      // Convert snake_case to camelCase for frontend
+      return (data || []).map(item => ({
+        id: item.id,
+        activity: item.activity,
+        description: item.description,
+        activityText: item.activity_text,
+        time: item.time,
+        videoLink: item.video_link,
+        musicLink: item.music_link,
+        backingLink: item.backing_link,
+        resourceLink: item.resource_link,
+        link: item.link,
+        vocalsLink: item.vocals_link,
+        imageLink: item.image_link,
+        teachingUnit: item.teaching_unit,
+        category: item.category,
+        level: item.level,
+        unitName: item.unit_name,
+        lessonNumber: item.lesson_number,
+        eyfsStandards: item.eyfs_standards
+      }));
     } catch (error) {
       console.warn('Failed to get activities from Supabase:', error);
       throw error;
@@ -19,17 +40,57 @@ export const activitiesApi = {
   
   create: async (activity: Activity) => {
     try {
-      // Remove uniqueId if it exists as it's not in the database schema
+      // Convert camelCase to snake_case for database
       const { uniqueId, ...activityData } = activity;
+      const dbActivity = {
+        activity: activityData.activity,
+        description: activityData.description,
+        activity_text: activityData.activityText,
+        time: activityData.time,
+        video_link: activityData.videoLink,
+        music_link: activityData.musicLink,
+        backing_link: activityData.backingLink,
+        resource_link: activityData.resourceLink,
+        link: activityData.link,
+        vocals_link: activityData.vocalsLink,
+        image_link: activityData.imageLink,
+        teaching_unit: activityData.teachingUnit,
+        category: activityData.category,
+        level: activityData.level,
+        unit_name: activityData.unitName,
+        lesson_number: activityData.lessonNumber,
+        eyfs_standards: activityData.eyfsStandards
+      };
       
       const { data, error } = await supabase
         .from(TABLES.ACTIVITIES)
-        .insert([activityData])
+        .insert([dbActivity])
         .select()
         .single();
       
       if (error) throw error;
-      return data;
+      
+      // Convert back to camelCase for frontend
+      return {
+        id: data.id,
+        activity: data.activity,
+        description: data.description,
+        activityText: data.activity_text,
+        time: data.time,
+        videoLink: data.video_link,
+        musicLink: data.music_link,
+        backingLink: data.backing_link,
+        resourceLink: data.resource_link,
+        link: data.link,
+        vocalsLink: data.vocals_link,
+        imageLink: data.image_link,
+        teachingUnit: data.teaching_unit,
+        category: data.category,
+        level: data.level,
+        unitName: data.unit_name,
+        lessonNumber: data.lesson_number,
+        eyfsStandards: data.eyfs_standards
+      };
     } catch (error) {
       console.warn('Failed to create activity in Supabase:', error);
       throw error;
@@ -38,18 +99,58 @@ export const activitiesApi = {
   
   update: async (id: string, activity: Activity) => {
     try {
-      // Remove uniqueId if it exists as it's not in the database schema
+      // Convert camelCase to snake_case for database
       const { uniqueId, ...activityData } = activity;
+      const dbActivity = {
+        activity: activityData.activity,
+        description: activityData.description,
+        activity_text: activityData.activityText,
+        time: activityData.time,
+        video_link: activityData.videoLink,
+        music_link: activityData.musicLink,
+        backing_link: activityData.backingLink,
+        resource_link: activityData.resourceLink,
+        link: activityData.link,
+        vocals_link: activityData.vocalsLink,
+        image_link: activityData.imageLink,
+        teaching_unit: activityData.teachingUnit,
+        category: activityData.category,
+        level: activityData.level,
+        unit_name: activityData.unitName,
+        lesson_number: activityData.lessonNumber,
+        eyfs_standards: activityData.eyfsStandards
+      };
       
       const { data, error } = await supabase
         .from(TABLES.ACTIVITIES)
-        .update(activityData)
+        .update(dbActivity)
         .eq('id', id)
         .select()
         .single();
       
       if (error) throw error;
-      return data;
+      
+      // Convert back to camelCase for frontend
+      return {
+        id: data.id,
+        activity: data.activity,
+        description: data.description,
+        activityText: data.activity_text,
+        time: data.time,
+        videoLink: data.video_link,
+        musicLink: data.music_link,
+        backingLink: data.backing_link,
+        resourceLink: data.resource_link,
+        link: data.link,
+        vocalsLink: data.vocals_link,
+        imageLink: data.image_link,
+        teachingUnit: data.teaching_unit,
+        category: data.category,
+        level: data.level,
+        unitName: data.unit_name,
+        lessonNumber: data.lesson_number,
+        eyfsStandards: data.eyfs_standards
+      };
     } catch (error) {
       console.warn('Failed to update activity in Supabase:', error);
       throw error;
@@ -73,8 +174,26 @@ export const activitiesApi = {
   
   import: async (activities: Activity[]) => {
     try {
-      // Remove uniqueId from all activities
-      const cleanedActivities = activities.map(({ uniqueId, ...activity }) => activity);
+      // Convert camelCase to snake_case for database
+      const cleanedActivities = activities.map(({ uniqueId, ...activity }) => ({
+        activity: activity.activity,
+        description: activity.description,
+        activity_text: activity.activityText,
+        time: activity.time,
+        video_link: activity.videoLink,
+        music_link: activity.musicLink,
+        backing_link: activity.backingLink,
+        resource_link: activity.resourceLink,
+        link: activity.link,
+        vocals_link: activity.vocalsLink,
+        image_link: activity.imageLink,
+        teaching_unit: activity.teachingUnit,
+        category: activity.category,
+        level: activity.level,
+        unit_name: activity.unitName,
+        lesson_number: activity.lessonNumber,
+        eyfs_standards: activity.eyfsStandards
+      }));
       
       // Use upsert to handle both inserts and updates
       const { data, error } = await supabase
@@ -350,8 +469,26 @@ export const dataApi = {
       const promises = [];
       
       if (data.activities && data.activities.length > 0) {
-        // Clean activities data (remove uniqueId)
-        const cleanedActivities = data.activities.map(({ uniqueId, ...activity }: any) => activity);
+        // Clean activities data (remove uniqueId and convert to snake_case)
+        const cleanedActivities = data.activities.map(({ uniqueId, ...activity }: any) => ({
+          activity: activity.activity,
+          description: activity.description,
+          activity_text: activity.activityText,
+          time: activity.time,
+          video_link: activity.videoLink,
+          music_link: activity.musicLink,
+          backing_link: activity.backingLink,
+          resource_link: activity.resourceLink,
+          link: activity.link,
+          vocals_link: activity.vocalsLink,
+          image_link: activity.imageLink,
+          teaching_unit: activity.teachingUnit,
+          category: activity.category,
+          level: activity.level,
+          unit_name: activity.unitName,
+          lesson_number: activity.lessonNumber,
+          eyfs_standards: activity.eyfsStandards
+        }));
         promises.push(
           supabase
             .from(TABLES.ACTIVITIES)
