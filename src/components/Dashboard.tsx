@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/Tabs";
 import { UnitViewer } from "./UnitViewer";
 import { LessonPlanBuilder } from "./LessonPlanBuilder";
 import { LessonPlannerCalendar } from "./LessonPlannerCalendar";
 import { ActivityLibrary } from "./ActivityLibrary";
 import { LessonLibrary } from "./LessonLibrary";
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Calendar, BookOpen, Edit3, GraduationCap, FolderOpen, Tag, Book } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -364,7 +364,6 @@ export function Dashboard() {
 
             <TabsContent value="lesson-library" className="mt-6">
               <LessonLibrary 
-                onLessonSelect={handleLessonSelect}
                 className={currentSheetInfo.sheet}
                 onAssignToUnit={handleAssignLessonToUnit}
               />
