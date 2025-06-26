@@ -27,7 +27,7 @@ import { LessonDropZone } from './LessonDropZone';
 import { ActivityDetails } from './ActivityDetails';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
-import type { Activity } from '../contexts/DataContext';
+import type { Activity, LessonPlan } from '../contexts/DataContext';
 
 // Define half-term periods
 const HALF_TERMS = [
@@ -39,36 +39,8 @@ const HALF_TERMS = [
   { id: 'SM2', name: 'Summer 2', months: 'Jun-Jul' },
 ];
 
-interface LessonPlan {
-  id: string;
-  date: Date;
-  week: number;
-  className: string;
-  activities: Activity[];
-  duration: number;
-  notes: string;
-  status: 'planned' | 'completed' | 'cancelled';
-  createdAt: Date;
-  updatedAt: Date;
-  unitId?: string;
-  unitName?: string;
-  title?: string;
-  term?: string;
-}
-
-interface Unit {
-  id: string;
-  name: string;
-  description: string;
-  lessonNumbers: string[];
-  color: string;
-  term?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 export function LessonPlanBuilder() {
-  const { currentSheetInfo, allLessonsData } = useData();
+  const { currentSheetInfo, allLessonsData, addOrUpdateUserLessonPlan, userCreatedLessonPlans } = useData();
   const { categories } = useSettings();
   
   // Initialize currentLessonPlan with a default value instead of null
@@ -87,7 +59,6 @@ export function LessonPlanBuilder() {
     updatedAt: new Date(),
   }));
   
-  const [lessonPlans, setLessonPlans] = useState<LessonPlan[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
@@ -100,20 +71,10 @@ export function LessonPlanBuilder() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lessonNumber, setLessonNumber] = useState<string>('');
 
-  // Load lesson plans from localStorage
+  // Load library activities
   useEffect(() => {
-    const savedPlans = localStorage.getItem('lesson-plans');
-    if (savedPlans) {
-      const plans = JSON.parse(savedPlans).map((plan: any) => ({
-        ...plan,
-        date: new Date(plan.date),
-        createdAt: new Date(plan.createdAt),
-        updatedAt: new Date(plan.updatedAt),
-      }));
-      setLessonPlans(plans);
-    }
-
     // Load library activities
     const savedActivities = localStorage.getItem('library-activities');
     if (savedActivities) {
@@ -135,39 +96,47 @@ export function LessonPlanBuilder() {
       setLibraryActivities(uniqueActivities);
       localStorage.setItem('library-activities', JSON.stringify(uniqueActivities));
     }
+
+    // Generate a lesson number
+    generateNextLessonNumber();
   }, [allLessonsData, currentSheetInfo.sheet]);
 
-  // Save lesson plans to localStorage
-  const saveLessonPlans = (plans: LessonPlan[]) => {
-    localStorage.setItem('lesson-plans', JSON.stringify(plans));
-    setLessonPlans(plans);
-  };
-
-  // Save library activities to localStorage
-  const saveLibraryActivities = (activities: Activity[]) => {
-    localStorage.setItem('library-activities', JSON.stringify(activities));
-    setLibraryActivities(activities);
+  // Generate the next available lesson number
+  const generateNextLessonNumber = () => {
+    const lessonNumbers = Object.keys(allLessonsData).map(num => parseInt(num));
+    if (lessonNumbers.length === 0) {
+      setLessonNumber('1');
+      return;
+    }
+    
+    const maxLessonNumber = Math.max(...lessonNumbers);
+    setLessonNumber((maxLessonNumber + 1).toString());
+    
+    // Also update the current lesson plan
+    setCurrentLessonPlan(prev => ({
+      ...prev,
+      lessonNumber: (maxLessonNumber + 1).toString()
+    }));
   };
 
   const handleUpdateLessonPlan = (updatedPlan: LessonPlan) => {
     try {
       // Validate that the plan has a title
       if (!updatedPlan.title.trim()) {
-        alert('Please provide a unit name');
+        alert('Please provide a lesson title');
         setSaveStatus('error');
         setTimeout(() => setSaveStatus('idle'), 3000);
         return false;
       }
       
-      const updatedPlans = lessonPlans.map(plan => 
-        plan.id === updatedPlan.id ? { ...updatedPlan, updatedAt: new Date() } : plan
-      );
-      
-      if (!lessonPlans.find(plan => plan.id === updatedPlan.id)) {
-        updatedPlans.push({ ...updatedPlan, updatedAt: new Date() });
+      // Make sure the lesson has a lesson number
+      if (!updatedPlan.lessonNumber) {
+        updatedPlan.lessonNumber = lessonNumber;
       }
       
-      saveLessonPlans(updatedPlans);
+      // Save the lesson plan using the context function
+      addOrUpdateUserLessonPlan(updatedPlan);
+      
       setCurrentLessonPlan(updatedPlan);
       setSaveStatus('success');
       setHasUnsavedChanges(false);
@@ -188,7 +157,7 @@ export function LessonPlanBuilder() {
     // Generate a unique ID for this activity instance to ensure it's treated as unique
     const uniqueActivity = {
       ...activityCopy,
-      _uniqueId: Date.now() + Math.random().toString(36).substring(2, 9)
+      uniqueId: Date.now() + Math.random().toString(36).substring(2, 9)
     };
     
     const updatedPlan = {
@@ -237,18 +206,40 @@ export function LessonPlanBuilder() {
   };
 
   const handleSaveLessonPlan = () => {
-    const success = handleUpdateLessonPlan(currentLessonPlan);
-    if (success) {
-      setHasUnsavedChanges(false);
+    // Make sure the lesson has a lesson number
+    if (!currentLessonPlan.lessonNumber) {
+      const updatedPlan = {
+        ...currentLessonPlan,
+        lessonNumber
+      };
+      setCurrentLessonPlan(updatedPlan);
+      const success = handleUpdateLessonPlan(updatedPlan);
+      if (success) {
+        setHasUnsavedChanges(false);
+      }
+    } else {
+      const success = handleUpdateLessonPlan(currentLessonPlan);
+      if (success) {
+        setHasUnsavedChanges(false);
+      }
     }
   };
 
   // Create a new lesson plan after saving the current one
   const handleCreateNewAfterSave = () => {
     // First save the current plan
-    const success = handleUpdateLessonPlan(currentLessonPlan);
+    const planToSave = {
+      ...currentLessonPlan,
+      lessonNumber: currentLessonPlan.lessonNumber || lessonNumber
+    };
+    
+    const success = handleUpdateLessonPlan(planToSave);
     
     if (success) {
+      // Generate a new lesson number
+      const newLessonNumber = (parseInt(lessonNumber) + 1).toString();
+      setLessonNumber(newLessonNumber);
+      
       // Create a new empty plan
       const newPlan: LessonPlan = {
         id: `plan-${Date.now()}`,
@@ -261,6 +252,7 @@ export function LessonPlanBuilder() {
         status: 'draft',
         title: '',
         term: currentLessonPlan.term, // Keep the same term
+        lessonNumber: newLessonNumber, // Use the new lesson number
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -280,14 +272,25 @@ export function LessonPlanBuilder() {
       }
     }
     
-    // Find the current lesson in the list of saved lessons
-    const currentIndex = lessonPlans.findIndex(plan => plan.id === currentLessonPlan.id);
+    // Find all user-created lesson plans for this class
+    const classLessonPlans = userCreatedLessonPlans
+      .filter(plan => plan.className === currentSheetInfo.sheet)
+      .sort((a, b) => {
+        // Sort by lesson number if available, otherwise by date
+        if (a.lessonNumber && b.lessonNumber) {
+          return parseInt(a.lessonNumber) - parseInt(b.lessonNumber);
+        }
+        return a.date.getTime() - b.date.getTime();
+      });
+    
+    // Find the current lesson in the list
+    const currentIndex = classLessonPlans.findIndex(plan => plan.id === currentLessonPlan.id);
     
     if (currentIndex === -1) {
       // Current lesson is not saved yet
-      if (direction === 'prev' && lessonPlans.length > 0) {
+      if (direction === 'prev' && classLessonPlans.length > 0) {
         // Navigate to the last saved lesson
-        setCurrentLessonPlan(lessonPlans[lessonPlans.length - 1]);
+        setCurrentLessonPlan(classLessonPlans[classLessonPlans.length - 1]);
       } else if (direction === 'next') {
         // Create a new lesson
         handleCreateNewAfterSave();
@@ -295,10 +298,10 @@ export function LessonPlanBuilder() {
     } else {
       // Current lesson is in the list
       if (direction === 'prev' && currentIndex > 0) {
-        setCurrentLessonPlan(lessonPlans[currentIndex - 1]);
-      } else if (direction === 'next' && currentIndex < lessonPlans.length - 1) {
-        setCurrentLessonPlan(lessonPlans[currentIndex + 1]);
-      } else if (direction === 'next' && currentIndex === lessonPlans.length - 1) {
+        setCurrentLessonPlan(classLessonPlans[currentIndex - 1]);
+      } else if (direction === 'next' && currentIndex < classLessonPlans.length - 1) {
+        setCurrentLessonPlan(classLessonPlans[currentIndex + 1]);
+      } else if (direction === 'next' && currentIndex === classLessonPlans.length - 1) {
         // Create a new lesson
         handleCreateNewAfterSave();
       }
@@ -390,7 +393,7 @@ export function LessonPlanBuilder() {
       // Add a unique ID
       return {
         ...activityCopy,
-        _uniqueId: Date.now() + Math.random().toString(36).substring(2, 9)
+        uniqueId: Date.now() + Math.random().toString(36).substring(2, 9)
       };
     });
     
@@ -591,12 +594,12 @@ export function LessonPlanBuilder() {
             {saveStatus === 'success' ? (
               <>
                 <Check className="h-5 w-5 text-green-600" />
-                <span>Unit saved successfully!</span>
+                <span>Lesson saved successfully!</span>
               </>
             ) : (
               <>
                 <AlertCircle className="h-5 w-5 text-red-600" />
-                <span>Failed to save unit. Please ensure you've provided a unit name.</span>
+                <span>Failed to save lesson. Please ensure you've provided a lesson title.</span>
               </>
             )}
           </div>
