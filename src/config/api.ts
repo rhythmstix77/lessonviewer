@@ -11,88 +11,177 @@ const api = axios.create({
   }
 });
 
+// Add error handling for network errors
+api.interceptors.request.use(
+  config => config,
+  error => {
+    console.error('API request error:', error);
+    return Promise.reject(error);
+  }
+);
+
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.message === 'Network Error') {
+      console.warn('Network error detected, falling back to local storage');
+    }
+    return Promise.reject(error);
+  }
+);
+
 // API endpoints for activities
 export const activitiesApi = {
   getAll: async () => {
-    const response = await api.get('/activities');
-    return response.data;
+    try {
+      const response = await api.get('/activities');
+      return response.data;
+    } catch (error) {
+      console.warn('Failed to get activities from server, using local storage');
+      throw error;
+    }
   },
   
   create: async (activity) => {
-    const response = await api.post('/activities', activity);
-    return response.data;
+    try {
+      const response = await api.post('/activities', activity);
+      return response.data;
+    } catch (error) {
+      console.warn('Failed to create activity on server');
+      throw error;
+    }
   },
   
   update: async (id, activity) => {
-    const response = await api.put(`/activities/${id}`, activity);
-    return response.data;
+    try {
+      const response = await api.put(`/activities/${id}`, activity);
+      return response.data;
+    } catch (error) {
+      console.warn('Failed to update activity on server');
+      throw error;
+    }
   },
   
   delete: async (id) => {
-    const response = await api.delete(`/activities/${id}`);
-    return response.data;
+    try {
+      const response = await api.delete(`/activities/${id}`);
+      return response.data;
+    } catch (error) {
+      console.warn('Failed to delete activity on server');
+      throw error;
+    }
   },
   
   import: async (activities) => {
-    const response = await api.post('/import', { activities });
-    return response.data;
+    try {
+      const response = await api.post('/import', { activities });
+      return response.data;
+    } catch (error) {
+      console.warn('Failed to import activities to server');
+      throw error;
+    }
   }
 };
 
 // API endpoints for lessons
 export const lessonsApi = {
   getBySheet: async (sheet) => {
-    const response = await api.get(`/lessons/${sheet}`);
-    return response.data;
+    try {
+      const response = await api.get(`/lessons/${sheet}`);
+      return response.data;
+    } catch (error) {
+      console.warn(`Failed to get lessons for ${sheet} from server`);
+      throw error;
+    }
   },
   
   updateSheet: async (sheet, data) => {
-    const response = await api.post(`/lessons/${sheet}`, data);
-    return response.data;
+    try {
+      const response = await api.post(`/lessons/${sheet}`, data);
+      return response.data;
+    } catch (error) {
+      console.warn(`Failed to update lessons for ${sheet} on server`);
+      throw error;
+    }
   }
 };
 
 // API endpoints for lesson plans
 export const lessonPlansApi = {
   getAll: async () => {
-    const response = await api.get('/lessonPlans');
-    return response.data;
+    try {
+      const response = await api.get('/lessonPlans');
+      return response.data;
+    } catch (error) {
+      console.warn('Failed to get lesson plans from server');
+      throw error;
+    }
   },
   
   create: async (plan) => {
-    const response = await api.post('/lessonPlans', plan);
-    return response.data;
+    try {
+      const response = await api.post('/lessonPlans', plan);
+      return response.data;
+    } catch (error) {
+      console.warn('Failed to create lesson plan on server');
+      throw error;
+    }
   },
   
   update: async (id, plan) => {
-    const response = await api.put(`/lessonPlans/${id}`, plan);
-    return response.data;
+    try {
+      const response = await api.put(`/lessonPlans/${id}`, plan);
+      return response.data;
+    } catch (error) {
+      console.warn('Failed to update lesson plan on server');
+      throw error;
+    }
   }
 };
 
 // API endpoints for EYFS standards
 export const eyfsApi = {
   getBySheet: async (sheet) => {
-    const response = await api.get(`/eyfs/${sheet}`);
-    return response.data;
+    try {
+      const response = await api.get(`/eyfs/${sheet}`);
+      return response.data;
+    } catch (error) {
+      console.warn(`Failed to get EYFS standards for ${sheet} from server`);
+      throw error;
+    }
   },
   
   updateSheet: async (sheet, data) => {
-    const response = await api.post(`/eyfs/${sheet}`, data);
-    return response.data;
+    try {
+      const response = await api.post(`/eyfs/${sheet}`, data);
+      return response.data;
+    } catch (error) {
+      console.warn(`Failed to update EYFS standards for ${sheet} on server`);
+      throw error;
+    }
   }
 };
 
 // Export/Import all data
 export const dataApi = {
   exportAll: async () => {
-    const response = await api.get('/export');
-    return response.data;
+    try {
+      const response = await api.get('/export');
+      return response.data;
+    } catch (error) {
+      console.warn('Failed to export data from server');
+      throw error;
+    }
   },
   
   importAll: async (data) => {
-    const response = await api.post('/import', data);
-    return response.data;
+    try {
+      const response = await api.post('/import', data);
+      return response.data;
+    } catch (error) {
+      console.warn('Failed to import data to server');
+      throw error;
+    }
   }
 };
 

@@ -9,7 +9,8 @@ export function DataSourceSettings() {
   const { refreshData, uploadExcelFile, loading } = useData();
   const [isOpen, setIsOpen] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
-  const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('offline'); // Default to offline
+  const [statusMessage, setStatusMessage] = useState('');
 
   // Check if user is admin - specifically Rob's email
   const isAdmin = user?.email === 'rob.reichstorer@gmail.com' || 
@@ -30,8 +31,28 @@ export function DataSourceSettings() {
   const checkServerStatus = async () => {
     try {
       setServerStatus('checking');
-      await dataApi.exportAll();
-      setServerStatus('online');
+      
+      // Use a timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      try {
+        // Try to fetch from the server with a timeout
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/export`, {
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          setServerStatus('online');
+        } else {
+          setServerStatus('offline');
+        }
+      } catch (error) {
+        console.warn('Server connection failed:', error);
+        setServerStatus('offline');
+      }
     } catch (error) {
       console.error('Server status check failed:', error);
       setServerStatus('offline');
@@ -106,10 +127,16 @@ export function DataSourceSettings() {
       });
       
       // Send all data to server
-      await dataApi.importAll(data);
+      try {
+        await dataApi.importAll(data);
+        setUploadStatus('success');
+        setStatusMessage('Data successfully migrated to server.');
+      } catch (error) {
+        console.error('Migration failed:', error);
+        setUploadStatus('error');
+        setStatusMessage('Failed to migrate data to server.');
+      }
       
-      setUploadStatus('success');
-      setStatusMessage('Data successfully migrated to server.');
       setTimeout(() => setUploadStatus('idle'), 3000);
     } catch (error) {
       console.error('Migration failed:', error);
@@ -118,8 +145,6 @@ export function DataSourceSettings() {
       setTimeout(() => setUploadStatus('idle'), 3000);
     }
   };
-
-  const [statusMessage, setStatusMessage] = useState('');
 
   if (!isOpen) {
     return (
@@ -162,7 +187,7 @@ export function DataSourceSettings() {
               <h3 className="text-lg font-semibold text-gray-900">Welcome, {user?.name}!</h3>
             </div>
             <p className="text-sm text-gray-600 mb-4">
-              You have full administrative access to manage the Rhythmstix Lesson Viewer system. 
+              You have full administrative access to manage the EYFS Lesson Builder system. 
               Use the options below to configure data sources and manage content.
             </p>
             <div className="bg-white rounded-lg p-4 border border-blue-200">
@@ -322,7 +347,7 @@ export function DataSourceSettings() {
               </div>
               <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200">
                 <span className="text-gray-600 font-medium">Authentication:</span>
-                <span className="font-semibold text-blue-600">Rhythmstix Admin</span>
+                <span className="font-semibold text-blue-600">EYFS Admin</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200 md:col-span-2">
                 <span className="text-gray-600 font-medium">Last Updated:</span>
@@ -347,7 +372,7 @@ export function DataSourceSettings() {
               </div>
               <div>
                 <p className="text-gray-700 font-medium mb-1">Class Data Sources:</p>
-                <p className="text-gray-600">LKG, UKG, and Reception data stored on server</p>
+                <p className="text-gray-600">LKG, UKG, and Reception data stored locally</p>
               </div>
               <div>
                 <p className="text-gray-700 font-medium mb-1">Update Frequency:</p>
