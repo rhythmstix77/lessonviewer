@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, Upload, RefreshCw, CheckCircle, AlertCircle, X, Database, Server } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../hooks/useAuth';
 import { dataApi } from '../config/api';
+import { isSupabaseConfigured } from '../config/supabase';
 
 export function DataSourceSettings() {
   const { user } = useAuth();
   const { refreshData, uploadExcelFile, loading } = useData();
   const [isOpen, setIsOpen] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
-  const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('offline'); // Default to offline
+  const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [statusMessage, setStatusMessage] = useState('');
 
   // Check if user is admin - specifically Rob's email
@@ -22,7 +23,7 @@ export function DataSourceSettings() {
   }
 
   // Check server status when opening the panel
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       checkServerStatus();
     }
@@ -32,25 +33,17 @@ export function DataSourceSettings() {
     try {
       setServerStatus('checking');
       
-      // Use a timeout to prevent hanging
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      try {
-        // Try to fetch from the server with a timeout
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'}/export`, {
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (response.ok) {
+      // Check if Supabase is configured
+      if (isSupabaseConfigured()) {
+        try {
+          // Try to fetch from Supabase
+          await dataApi.exportAll();
           setServerStatus('online');
-        } else {
+        } catch (error) {
+          console.warn('Supabase connection failed:', error);
           setServerStatus('offline');
         }
-      } catch (error) {
-        console.warn('Server connection failed:', error);
+      } else {
         setServerStatus('offline');
       }
     } catch (error) {
@@ -127,21 +120,15 @@ export function DataSourceSettings() {
       });
       
       // Send all data to server
-      try {
-        await dataApi.importAll(data);
-        setUploadStatus('success');
-        setStatusMessage('Data successfully migrated to server.');
-      } catch (error) {
-        console.error('Migration failed:', error);
-        setUploadStatus('error');
-        setStatusMessage('Failed to migrate data to server.');
-      }
+      await dataApi.importAll(data);
       
+      setUploadStatus('success');
+      setStatusMessage('Data successfully migrated to Supabase.');
       setTimeout(() => setUploadStatus('idle'), 3000);
     } catch (error) {
       console.error('Migration failed:', error);
       setUploadStatus('error');
-      setStatusMessage('Failed to migrate data to server.');
+      setStatusMessage('Failed to migrate data to Supabase.');
       setTimeout(() => setUploadStatus('idle'), 3000);
     }
   };
@@ -208,11 +195,11 @@ export function DataSourceSettings() {
           <div className="border border-gray-200 rounded-lg p-6">
             <div className="flex items-center space-x-3 mb-4">
               <Server className="h-6 w-6 text-blue-600" />
-              <h3 className="text-lg font-semibold text-gray-900">Server Status</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Supabase Status</h3>
             </div>
             <div className="bg-white rounded-lg p-4 border border-gray-200 mb-4">
               <div className="flex items-center justify-between">
-                <span className="text-gray-700 font-medium">API Server:</span>
+                <span className="text-gray-700 font-medium">Supabase Connection:</span>
                 {serverStatus === 'checking' ? (
                   <div className="flex items-center space-x-2">
                     <RefreshCw className="h-4 w-4 text-blue-600 animate-spin" />
@@ -221,12 +208,12 @@ export function DataSourceSettings() {
                 ) : serverStatus === 'online' ? (
                   <div className="flex items-center space-x-2">
                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-green-600 font-medium">Online</span>
+                    <span className="text-green-600 font-medium">Connected</span>
                   </div>
                 ) : (
                   <div className="flex items-center space-x-2">
                     <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <span className="text-red-600 font-medium">Offline</span>
+                    <span className="text-red-600 font-medium">Disconnected</span>
                   </div>
                 )}
               </div>
@@ -237,10 +224,9 @@ export function DataSourceSettings() {
                 <div className="flex items-start space-x-2">
                   <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm text-yellow-700 font-medium mb-1">Server is offline</p>
+                    <p className="text-sm text-yellow-700 font-medium mb-1">Supabase is disconnected</p>
                     <p className="text-sm text-yellow-600">
-                      The data server is not running. Please start the server using <code className="bg-yellow-100 px-1 py-0.5 rounded">npm run server</code> in a terminal.
-                      Your data will be stored locally until the server is available.
+                      The application is currently using local storage for data. Connect to Supabase to enable cloud storage and synchronization.
                     </p>
                   </div>
                 </div>
@@ -253,7 +239,7 @@ export function DataSourceSettings() {
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
               >
                 <Database className="h-5 w-5" />
-                <span>Migrate Local Data to Server</span>
+                <span>Migrate Local Data to Supabase</span>
               </button>
             )}
           </div>
@@ -342,7 +328,7 @@ export function DataSourceSettings() {
               <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200">
                 <span className="text-gray-600 font-medium">Primary Data Source:</span>
                 <span className="font-semibold text-green-600">
-                  {serverStatus === 'online' ? 'Server API' : 'Local Storage (Fallback)'}
+                  {serverStatus === 'online' ? 'Supabase' : 'Local Storage (Fallback)'}
                 </span>
               </div>
               <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200">
@@ -366,7 +352,7 @@ export function DataSourceSettings() {
                 <p className="text-gray-700 font-medium mb-1">Data Storage Method:</p>
                 <p className="text-gray-600">
                   {serverStatus === 'online' 
-                    ? 'Server-based storage with local fallback' 
+                    ? 'Supabase database with local fallback' 
                     : 'Local browser storage with Excel file import capability'}
                 </p>
               </div>

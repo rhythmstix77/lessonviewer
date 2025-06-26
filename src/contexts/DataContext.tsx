@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import * as XLSX from 'xlsx';
 import { activitiesApi, lessonsApi, eyfsApi } from '../config/api';
+import { supabase, TABLES, isSupabaseConfigured } from '../config/supabase';
 
 export interface Activity {
   _id?: string;
@@ -231,6 +232,49 @@ export function DataProvider({ children }: DataProviderProps) {
 
   const loadUserCreatedLessonPlans = () => {
     try {
+      // First try to load from Supabase if connected
+      if (isSupabaseConfigured()) {
+        supabase
+          .from(TABLES.LESSON_PLANS)
+          .select('*')
+          .then(({ data, error }) => {
+            if (error) {
+              console.warn('Failed to load lesson plans from Supabase:', error);
+              loadUserCreatedLessonPlansFromLocalStorage();
+            } else if (data) {
+              // Convert dates and snake_case to camelCase
+              const plans = data.map(plan => ({
+                id: plan.id,
+                date: new Date(plan.date),
+                week: plan.week,
+                className: plan.class_name,
+                activities: plan.activities || [],
+                duration: plan.duration || 0,
+                notes: plan.notes || '',
+                status: plan.status || 'planned',
+                unitId: plan.unit_id,
+                unitName: plan.unit_name,
+                lessonNumber: plan.lesson_number,
+                title: plan.title,
+                term: plan.term,
+                time: plan.time,
+                createdAt: new Date(plan.created_at),
+                updatedAt: new Date(plan.updated_at)
+              }));
+              setUserCreatedLessonPlans(plans);
+            }
+          });
+      } else {
+        loadUserCreatedLessonPlansFromLocalStorage();
+      }
+    } catch (error) {
+      console.error('Failed to load user-created lesson plans:', error);
+      loadUserCreatedLessonPlansFromLocalStorage();
+    }
+  };
+
+  const loadUserCreatedLessonPlansFromLocalStorage = () => {
+    try {
       const savedPlans = localStorage.getItem('user-created-lesson-plans');
       if (savedPlans) {
         const plans = JSON.parse(savedPlans).map((plan: any) => ({
@@ -242,21 +286,52 @@ export function DataProvider({ children }: DataProviderProps) {
         setUserCreatedLessonPlans(plans);
       }
     } catch (error) {
-      console.error('Failed to load user-created lesson plans:', error);
+      console.error('Failed to load user-created lesson plans from localStorage:', error);
       setUserCreatedLessonPlans([]);
     }
   };
 
-  const saveUserCreatedLessonPlans = (plans: LessonPlan[]) => {
+  const saveUserCreatedLessonPlans = async (plans: LessonPlan[]) => {
     try {
+      // Save to localStorage first (this is guaranteed to work)
       localStorage.setItem('user-created-lesson-plans', JSON.stringify(plans));
+      
+      // Then try to save to Supabase if connected
+      if (isSupabaseConfigured()) {
+        // Convert plans to the format expected by Supabase
+        const supabasePlans = plans.map(plan => ({
+          id: plan.id,
+          date: plan.date.toISOString(),
+          week: plan.week,
+          class_name: plan.className,
+          activities: plan.activities,
+          duration: plan.duration,
+          notes: plan.notes,
+          status: plan.status,
+          unit_id: plan.unitId,
+          unit_name: plan.unitName,
+          lesson_number: plan.lessonNumber,
+          title: plan.title,
+          term: plan.term,
+          time: plan.time
+        }));
+        
+        // Use upsert to handle both inserts and updates
+        const { error } = await supabase
+          .from(TABLES.LESSON_PLANS)
+          .upsert(supabasePlans, { onConflict: 'id' });
+        
+        if (error) {
+          console.warn('Failed to save lesson plans to Supabase:', error);
+        }
+      }
     } catch (error) {
       console.error('Failed to save user-created lesson plans:', error);
     }
   };
 
   // Add or update a user-created lesson plan
-  const addOrUpdateUserLessonPlan = (plan: LessonPlan) => {
+  const addOrUpdateUserLessonPlan = async (plan: LessonPlan) => {
     setUserCreatedLessonPlans(prev => {
       // Check if the plan already exists
       const existingPlanIndex = prev.findIndex(p => p.id === plan.id);
@@ -278,7 +353,7 @@ export function DataProvider({ children }: DataProviderProps) {
         }];
       }
       
-      // Save to localStorage
+      // Save to localStorage and Supabase
       saveUserCreatedLessonPlans(updatedPlans);
       
       // If the plan has a lesson number, update allLessonsData
@@ -291,12 +366,31 @@ export function DataProvider({ children }: DataProviderProps) {
   };
 
   // Delete a user-created lesson plan
-  const deleteUserLessonPlan = (planId: string) => {
-    setUserCreatedLessonPlans(prev => {
-      const updatedPlans = prev.filter(p => p.id !== planId);
-      saveUserCreatedLessonPlans(updatedPlans);
-      return updatedPlans;
-    });
+  const deleteUserLessonPlan = async (planId: string) => {
+    try {
+      setUserCreatedLessonPlans(prev => {
+        const updatedPlans = prev.filter(p => p.id !== planId);
+        
+        // Save to localStorage
+        localStorage.setItem('user-created-lesson-plans', JSON.stringify(updatedPlans));
+        
+        return updatedPlans;
+      });
+      
+      // Try to delete from Supabase if connected
+      if (isSupabaseConfigured()) {
+        const { error } = await supabase
+          .from(TABLES.LESSON_PLANS)
+          .delete()
+          .eq('id', planId);
+        
+        if (error) {
+          console.warn('Failed to delete lesson plan from Supabase:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to delete user-created lesson plan:', error);
+    }
   };
 
   // Delete a lesson
@@ -333,12 +427,10 @@ export function DataProvider({ children }: DataProviderProps) {
 
     localStorage.setItem(`lesson-data-${currentSheetInfo.sheet}`, JSON.stringify(dataToSave));
 
-    // Try to update the server data
-    try {
+    // Try to update the Supabase data
+    if (isSupabaseConfigured()) {
       lessonsApi.updateSheet(currentSheetInfo.sheet, dataToSave)
-        .catch(error => console.warn(`Failed to update server after deleting lesson ${lessonNumber}:`, error));
-    } catch (error) {
-      console.warn(`Failed to update server after deleting lesson ${lessonNumber}:`, error);
+        .catch(error => console.warn(`Failed to update Supabase after deleting lesson ${lessonNumber}:`, error));
     }
 
     // Also remove this lesson from any user-created lesson plans
@@ -439,19 +531,27 @@ export function DataProvider({ children }: DataProviderProps) {
     };
     
     localStorage.setItem(`lesson-data-${currentSheetInfo.sheet}`, JSON.stringify(dataToSave));
+    
+    // Try to update Supabase if connected
+    if (isSupabaseConfigured()) {
+      lessonsApi.updateSheet(currentSheetInfo.sheet, dataToSave)
+        .catch(error => console.warn(`Failed to update Supabase with user plan for lesson ${plan.lessonNumber}:`, error));
+    }
   };
 
   const loadEyfsStatements = async () => {
     try {
-      // Try to load from server
-      try {
-        const response = await eyfsApi.getBySheet(currentSheetInfo.sheet);
-        if (response && response.allStatements) {
-          setAllEyfsStatements(response.allStatements);
-          return;
+      // Try to load from Supabase if connected
+      if (isSupabaseConfigured()) {
+        try {
+          const response = await eyfsApi.getBySheet(currentSheetInfo.sheet);
+          if (response && response.allStatements) {
+            setAllEyfsStatements(response.allStatements);
+            return;
+          }
+        } catch (serverError) {
+          console.warn('Failed to load EYFS statements from Supabase:', serverError);
         }
-      } catch (serverError) {
-        console.warn('Failed to load EYFS statements from server:', serverError);
       }
       
       // Fallback to localStorage
@@ -485,20 +585,22 @@ export function DataProvider({ children }: DataProviderProps) {
     try {
       setLoading(true);
       
-      // Try to load from server
-      try {
-        const lessonData = await lessonsApi.getBySheet(currentSheetInfo.sheet);
-        if (lessonData && Object.keys(lessonData).length > 0) {
-          setAllLessonsData(lessonData.allLessonsData || {});
-          setLessonNumbers(lessonData.lessonNumbers || []);
-          setTeachingUnits(lessonData.teachingUnits || []);
-          setEyfsStatements(lessonData.eyfsStatements || {});
-          console.log(`Loaded ${currentSheetInfo.sheet} data from server`);
-          setLoading(false);
-          return;
+      // Try to load from Supabase if connected
+      if (isSupabaseConfigured()) {
+        try {
+          const lessonData = await lessonsApi.getBySheet(currentSheetInfo.sheet);
+          if (lessonData && Object.keys(lessonData).length > 0) {
+            setAllLessonsData(lessonData.allLessonsData || {});
+            setLessonNumbers(lessonData.lessonNumbers || []);
+            setTeachingUnits(lessonData.teachingUnits || []);
+            setEyfsStatements(lessonData.eyfsStatements || {});
+            console.log(`Loaded ${currentSheetInfo.sheet} data from Supabase`);
+            setLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.warn(`Supabase data fetch failed for ${currentSheetInfo.sheet}, trying localStorage:`, error);
         }
-      } catch (error) {
-        console.warn(`Server data fetch failed for ${currentSheetInfo.sheet}, trying localStorage:`, error);
       }
       
       // Try to load from localStorage as fallback
@@ -511,13 +613,11 @@ export function DataProvider({ children }: DataProviderProps) {
         setEyfsStatements(parsedData.eyfsStatements || {});
         console.log(`Loaded ${currentSheetInfo.sheet} data from localStorage`);
         
-        // Try to save to server for future use, but don't wait for it
-        try {
+        // Try to save to Supabase for future use, but don't wait for it
+        if (isSupabaseConfigured()) {
           lessonsApi.updateSheet(currentSheetInfo.sheet, parsedData)
-            .then(() => console.log(`Migrated ${currentSheetInfo.sheet} data to server`))
-            .catch(serverError => console.warn(`Failed to migrate ${currentSheetInfo.sheet} data to server:`, serverError));
-        } catch (serverError) {
-          console.warn(`Failed to migrate ${currentSheetInfo.sheet} data to server:`, serverError);
+            .then(() => console.log(`Migrated ${currentSheetInfo.sheet} data to Supabase`))
+            .catch(serverError => console.warn(`Failed to migrate ${currentSheetInfo.sheet} data to Supabase:`, serverError));
         }
       } else {
         // If no saved data, load sample data
@@ -678,13 +778,26 @@ export function DataProvider({ children }: DataProviderProps) {
 
         activities.push(activity);
         
-        // Try to add to server, but don't block the process
-        try {
-          activitiesApi.create(activity)
-            .then(() => console.log(`Added activity to server: ${activity.activity}`))
-            .catch(error => console.warn('Failed to add activity to server:', error));
-        } catch (error) {
-          console.warn('Failed to add activity to server:', error);
+        // Try to add to Supabase if connected
+        if (isSupabaseConfigured()) {
+          try {
+            // Remove _id as Supabase will generate its own id
+            const { _id, _uniqueId, ...activityForSupabase } = activity;
+            
+            supabase
+              .from(TABLES.ACTIVITIES)
+              .upsert([activityForSupabase], { 
+                onConflict: 'activity,category,lesson_number',
+                ignoreDuplicates: false
+              })
+              .then(({ error }) => {
+                if (error) {
+                  console.warn('Failed to add activity to Supabase:', error);
+                }
+              });
+          } catch (error) {
+            console.warn('Failed to add activity to Supabase:', error);
+          }
         }
       }
 
@@ -753,11 +866,13 @@ export function DataProvider({ children }: DataProviderProps) {
       // Save data to localStorage first (this is guaranteed to work)
       saveDataToLocalStorage(lessonsData, sortedLessonNumbers, Array.from(categoriesSet), eyfsStatementsMap);
       
-      // Then try to save to server (this might fail, but we already have local backup)
-      try {
-        await saveDataToServer(lessonsData, sortedLessonNumbers, Array.from(categoriesSet), eyfsStatementsMap);
-      } catch (error) {
-        console.warn(`Failed to save ${currentSheetInfo.sheet} data to server, but data is saved locally:`, error);
+      // Then try to save to Supabase if connected
+      if (isSupabaseConfigured()) {
+        try {
+          await saveDataToSupabase(lessonsData, sortedLessonNumbers, Array.from(categoriesSet), eyfsStatementsMap);
+        } catch (error) {
+          console.warn(`Failed to save ${currentSheetInfo.sheet} data to Supabase, but data is saved locally:`, error);
+        }
       }
 
     } catch (error) {
@@ -830,7 +945,7 @@ export function DataProvider({ children }: DataProviderProps) {
     }
   };
 
-  const saveDataToServer = async (
+  const saveDataToSupabase = async (
     lessonsData: Record<string, LessonData>, 
     lessonNums: string[], 
     categories: string[],
@@ -845,10 +960,10 @@ export function DataProvider({ children }: DataProviderProps) {
     
     try {
       await lessonsApi.updateSheet(currentSheetInfo.sheet, dataToSave);
-      console.log(`Saved ${currentSheetInfo.sheet} data to server`);
+      console.log(`Saved ${currentSheetInfo.sheet} data to Supabase`);
       return true;
     } catch (error) {
-      console.warn(`Failed to save ${currentSheetInfo.sheet} data to server:`, error);
+      console.warn(`Failed to save ${currentSheetInfo.sheet} data to Supabase:`, error);
       // Don't throw the error, just return false to indicate failure
       return false;
     }
@@ -930,6 +1045,8 @@ export function DataProvider({ children }: DataProviderProps) {
 
   const refreshData = async () => {
     await loadData();
+    await loadEyfsStatements();
+    loadUserCreatedLessonPlans();
   };
 
   // Add EYFS statement to a lesson
@@ -951,13 +1068,15 @@ export function DataProvider({ children }: DataProviderProps) {
         updatedStatements
       );
       
-      // Try to save to server, but don't block the UI
-      saveDataToServer(
-        allLessonsData, 
-        lessonNumbers, 
-        teachingUnits, 
-        updatedStatements
-      ).catch(error => console.warn('Failed to save EYFS statements to server:', error));
+      // Try to save to Supabase if connected
+      if (isSupabaseConfigured()) {
+        saveDataToSupabase(
+          allLessonsData, 
+          lessonNumbers, 
+          teachingUnits, 
+          updatedStatements
+        ).catch(error => console.warn('Failed to save EYFS statements to Supabase:', error));
+      }
       
       return updatedStatements;
     });
@@ -995,13 +1114,15 @@ export function DataProvider({ children }: DataProviderProps) {
         updatedStatements
       );
       
-      // Try to save to server, but don't block the UI
-      saveDataToServer(
-        allLessonsData, 
-        lessonNumbers, 
-        teachingUnits, 
-        updatedStatements
-      ).catch(error => console.warn('Failed to save EYFS statements to server:', error));
+      // Try to save to Supabase if connected
+      if (isSupabaseConfigured()) {
+        saveDataToSupabase(
+          allLessonsData, 
+          lessonNumbers, 
+          teachingUnits, 
+          updatedStatements
+        ).catch(error => console.warn('Failed to save EYFS statements to Supabase:', error));
+      }
       
       return updatedStatements;
     });
@@ -1028,14 +1149,16 @@ export function DataProvider({ children }: DataProviderProps) {
     localStorage.setItem(`eyfs-statements-flat-${currentSheetInfo.sheet}`, JSON.stringify(statements));
     localStorage.setItem(`eyfs-standards-${currentSheetInfo.sheet}`, JSON.stringify(structureEyfsStatements(statements)));
     
-    // Try to save to server, but don't block the UI
-    try {
-      eyfsApi.updateSheet(currentSheetInfo.sheet, {
-        allStatements: statements,
-        structuredStatements: structureEyfsStatements(statements)
-      }).catch(error => console.warn('Failed to save EYFS statements to server:', error));
-    } catch (error) {
-      console.error('Failed to save EYFS statements to server:', error);
+    // Try to save to Supabase if connected
+    if (isSupabaseConfigured()) {
+      try {
+        await eyfsApi.updateSheet(currentSheetInfo.sheet, {
+          allStatements: statements,
+          structuredStatements: structureEyfsStatements(statements)
+        });
+      } catch (error) {
+        console.error('Failed to save EYFS statements to Supabase:', error);
+      }
     }
   };
 
@@ -1057,13 +1180,15 @@ export function DataProvider({ children }: DataProviderProps) {
           eyfsStatements
         );
         
-        // Try to save to server, but don't block the UI
-        saveDataToServer(
-          updatedLessonsData,
-          lessonNumbers,
-          teachingUnits,
-          eyfsStatements
-        ).catch(error => console.warn('Failed to save lesson title to server:', error));
+        // Try to save to Supabase if connected
+        if (isSupabaseConfigured()) {
+          saveDataToSupabase(
+            updatedLessonsData,
+            lessonNumbers,
+            teachingUnits,
+            eyfsStatements
+          ).catch(error => console.warn('Failed to save lesson title to Supabase:', error));
+        }
       }
       return updatedLessonsData;
     });
