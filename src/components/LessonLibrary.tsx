@@ -269,6 +269,17 @@ export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }
                 : 'No lessons available in the library'
               }
             </p>
+            {(searchQuery || selectedHalfTerm !== 'all') && (
+              <button 
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedHalfTerm('all');
+                }}
+                className="mt-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm"
+              >
+                Clear Filters
+              </button>
+            )}
           </div>
         ) : (
           <div className={`
