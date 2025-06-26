@@ -15,13 +15,13 @@ import {
   Edit3,
   Download,
   Calendar,
-  ChevronRight,
   Trash2
 } from 'lucide-react';
 import { LessonLibraryCard } from './LessonLibraryCard';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { LessonExporter } from './LessonExporter';
+import { LessonDetailsModal } from './LessonDetailsModal';
 
 interface LessonLibraryProps {
   onLessonSelect?: (lessonNumber: string) => void;
@@ -57,8 +57,8 @@ export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }
   const [sortBy, setSortBy] = useState<'number' | 'title' | 'activities' | 'time'>('number');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
-  const [selectedLesson, setSelectedLesson] = useState<string | null>(null);
-  const [showExporter, setShowExporter] = useState(false);
+  const [selectedLessonForExport, setSelectedLessonForExport] = useState<string | null>(null);
+  const [selectedLessonForDetails, setSelectedLessonForDetails] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
   // Get theme colors for current class
@@ -139,8 +139,7 @@ export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }
     if (onLessonSelect) {
       onLessonSelect(lessonNumber);
     } else {
-      setSelectedLesson(lessonNumber);
-      setShowExporter(true);
+      setSelectedLessonForDetails(lessonNumber);
     }
   };
 
@@ -300,14 +299,24 @@ export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }
         )}
       </div>
 
-      {/* Lesson Exporter Modal */}
-      {selectedLesson && showExporter && (
-        <LessonExporter
-          lessonNumber={selectedLesson}
-          onClose={() => {
-            setShowExporter(false);
-            setSelectedLesson(null);
+      {/* Lesson Details Modal */}
+      {selectedLessonForDetails && (
+        <LessonDetailsModal
+          lessonNumber={selectedLessonForDetails}
+          onClose={() => setSelectedLessonForDetails(null)}
+          theme={theme}
+          onExport={() => {
+            setSelectedLessonForExport(selectedLessonForDetails);
+            setSelectedLessonForDetails(null);
           }}
+        />
+      )}
+
+      {/* Lesson Exporter */}
+      {selectedLessonForExport && (
+        <LessonExporter
+          lessonNumber={selectedLessonForExport}
+          onClose={() => setSelectedLessonForExport(null)}
         />
       )}
 
