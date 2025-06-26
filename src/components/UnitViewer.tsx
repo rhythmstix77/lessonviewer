@@ -77,41 +77,9 @@ export function UnitViewer() {
         setUnits([]);
       }
     } else {
-      // Create some sample units if none exist
-      const sampleUnits: Unit[] = [
-        {
-          id: 'unit-1',
-          name: 'Welcome Songs',
-          description: 'A collection of welcome songs and activities to start the lesson.',
-          lessonNumbers: ['1', '2', '3'],
-          color: '#3B82F6',
-          term: 'A1',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: 'unit-2',
-          name: 'Rhythm Activities',
-          description: 'Activities focused on developing rhythm skills using percussion instruments.',
-          lessonNumbers: ['4', '5', '6'],
-          color: '#F59E0B',
-          term: 'A2',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: 'unit-3',
-          name: 'Movement and Dance',
-          description: 'Activities that combine music with movement and dance elements.',
-          lessonNumbers: ['7', '8', '9'],
-          color: '#10B981',
-          term: 'SP1',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ];
-      setUnits(sampleUnits);
-      localStorage.setItem('units', JSON.stringify(sampleUnits));
+      // Initialize with an empty array instead of sample units
+      setUnits([]);
+      localStorage.setItem('units', JSON.stringify([]));
     }
   }, []);
 
@@ -448,7 +416,7 @@ export function UnitViewer() {
               <p className="text-gray-600">
                 {searchQuery || selectedTerm !== 'all' || focusedHalfTermId
                   ? 'Try adjusting your search or filters'
-                  : 'No units available in the library'
+                  : 'No units available in the library. Create a new unit to get started.'
                 }
               </p>
             </div>
