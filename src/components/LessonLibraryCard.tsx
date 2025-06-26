@@ -546,16 +546,7 @@ export function LessonLibraryCard({
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-between">
-            {onDelete && (
-              <button
-                onClick={handleDeleteClick}
-                className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-              >
-                <Trash2 className="h-5 w-5" />
-                <span>Delete Lesson</span>
-              </button>
-            )}
+          <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end">
             <button
               onClick={handleClose}
               className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
