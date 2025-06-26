@@ -7,7 +7,7 @@ export const activitiesApi = {
     try {
       const { data, error } = await supabase
         .from(TABLES.ACTIVITIES)
-        .select('*');
+        .select('id, activity, description, activityText, time, videoLink, musicLink, backingLink, resourceLink, link, vocalsLink, imageLink, teachingUnit, category, level, unitName, lessonNumber, eyfsStandards');
       
       if (error) throw error;
       return data || [];
