@@ -197,20 +197,20 @@ export function LessonDetailsModal({
           </div>
         </div>
 
-        {/* EYFS Standards Selector (conditionally shown) */}
-        {showEyfsSelector && (
-          <div className="p-4 border-b border-gray-200 bg-blue-50">
-            <EyfsStandardsSelector lessonNumber={lessonNumber} />
-          </div>
-        )}
-
-        {/* EYFS Standards List */}
-        <div className="p-4 border-b border-gray-200">
-          <EyfsStandardsList lessonNumber={lessonNumber} />
-        </div>
-
         {/* Content - Scrollable */}
         <div className="flex-1 overflow-y-auto p-6">
+          {/* EYFS Standards Selector (conditionally shown) */}
+          {showEyfsSelector && (
+            <div className="mb-6">
+              <EyfsStandardsSelector lessonNumber={lessonNumber} />
+            </div>
+          )}
+
+          {/* EYFS Standards List */}
+          <div className="mb-6">
+            <EyfsStandardsList lessonNumber={lessonNumber} />
+          </div>
+
           {/* Categories and Activities */}
           <div className="space-y-8">
             {lessonData.categoryOrder.map((category) => {
