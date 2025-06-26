@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   Search, 
   Filter, 
-  Grid, 
+  Grid3X3, 
   List, 
   Plus, 
   BookOpen, 
@@ -162,7 +162,7 @@ export function ActivityLibrary({ onActivitySelect, selectedActivities, classNam
                 viewMode === 'grid' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
               }`}
             >
-              <Grid className="h-5 w-5" />
+              <Grid3X3 className="h-5 w-5" />
             </button>
             <button
               onClick={() => setViewMode('list')}
