@@ -144,40 +144,6 @@ const DEFAULT_EYFS_STATEMENTS = [
   "Expressive Arts and Design: 🎨 Develops storylines in pretend play"
 ];
 
-// Sample data for initial load
-const SAMPLE_DATA = {
-  'LKG': [
-    ['Lesson Number', 'Category', 'Activity Name', 'Description', 'Level', 'Time (Mins)', 'Video', 'Music', 'Backing', 'Resource', 'Unit Name'],
-    ['1', 'Welcome', 'Hello Everyone', "Hello Everyone Hello Everyone Hello Everyone It's time for music now!", 'All', '3', 'https://example.com/video', '', '', '', ''],
-    ['1', 'Kodaly Songs', 'Cobbler Cobbler', "Sol/Mi - Song and Game. Children sit in a circle, sing Cobbler Cobbler Mend My Shoe. Keep the beat by tapping shoes with hands or rhythm sticks.", 'All', '5', '', 'https://example.com/music', '', '', ''],
-    ['1', 'Goodbye', 'Goodbye Song', "Goodbye everyone, goodbye everyone, we'll see you next time.", 'All', '2', '', 'https://example.com/goodbye', '', '', ''],
-    ['2', 'Welcome', 'Hello Friends', "Welcome song for class", 'All', '3', '', 'https://example.com/hello', '', '', ''],
-    ['2', 'Core Songs', 'I am a Robot', "Robot movement activity with sounds", 'EYFS U', '4', '', 'https://example.com/robot', '', '', 'Robot Unit'],
-    ['2', 'Goodbye', 'See You Soon', "Goodbye song with actions", 'All', '2', '', 'https://example.com/goodbye', '', '', ''],
-    ['3', 'Welcome', 'Good Morning', "Morning greeting song with actions", 'All', '3', '', 'https://example.com/morning', '', '', ''],
-    ['3', 'Action/Games Songs', 'Bounce High Bounce Low', "Movement game with ball", 'All', '4', '', 'https://example.com/bounce', '', '', ''],
-    ['3', 'Goodbye', 'Time to Go', "Farewell song with waves", 'All', '2', '', 'https://example.com/farewell', '', '', '']
-  ],
-  'UKG': [
-    ['Lesson Number', 'Category', 'Activity Name', 'Description', 'Level', 'Time (Mins)', 'Video', 'Music', 'Backing', 'Resource', 'Unit Name'],
-    ['1', 'Welcome', 'Hello Friends', "Welcome song for UKG class", 'All', '3', '', 'https://example.com/hello', '', '', ''],
-    ['1', 'Core Songs', 'I am a Robot', "Robot movement activity with sounds", 'EYFS U', '4', '', 'https://example.com/robot', '', '', 'Robot Unit'],
-    ['1', 'Goodbye', 'See You Soon', "Goodbye song with actions", 'All', '2', '', 'https://example.com/goodbye', '', '', ''],
-    ['2', 'Welcome', 'Morning Circle', "Circle time greeting", 'All', '3', '', 'https://example.com/circle', '', '', ''],
-    ['2', 'Rhythm Sticks', 'Tap and Stop', "Rhythm game with sticks", 'EYFS U', '5', '', 'https://example.com/rhythm', '', '', ''],
-    ['2', 'Goodbye', 'Wave Goodbye', "Farewell with waving", 'All', '2', '', 'https://example.com/wave', '', '', '']
-  ],
-  'Reception': [
-    ['Lesson Number', 'Category', 'Activity Name', 'Description', 'Level', 'Time (Mins)', 'Video', 'Music', 'Backing', 'Resource', 'Unit Name'],
-    ['1', 'Welcome', 'Good Morning', "Morning greeting song with actions", 'All', '3', '', 'https://example.com/morning', '', '', ''],
-    ['1', 'Action/Games Songs', 'Bounce High Bounce Low', "Movement game with ball", 'All', '4', '', 'https://example.com/bounce', '', '', ''],
-    ['1', 'Goodbye', 'Time to Go', "Farewell song with waves", 'All', '2', '', 'https://example.com/farewell', '', '', ''],
-    ['2', 'Welcome', 'Hello Circle', "Circle time greeting", 'All', '3', '', 'https://example.com/hello-circle', '', '', ''],
-    ['2', 'Percussion Games', 'Beat Makers', "Creating rhythms with percussion", 'Reception', '6', '', 'https://example.com/percussion', '', '', ''],
-    ['2', 'Goodbye', 'Goodbye Friends', "Farewell song", 'All', '2', '', 'https://example.com/goodbye-friends', '', '', '']
-  ]
-};
-
 // Default lesson titles based on categories
 const generateDefaultLessonTitle = (lessonData: LessonData): string => {
   // Get the main categories in this lesson
@@ -697,14 +663,14 @@ export function DataProvider({ children }: DataProviderProps) {
   const loadSampleData = async () => {
     try {
       console.log(`Loading sample data for ${currentSheetInfo.sheet}`);
-      const sheetData = SAMPLE_DATA[currentSheetInfo.sheet as keyof typeof SAMPLE_DATA];
       
-      if (sheetData && sheetData.length > 0) {
-        await processSheetData(sheetData);
-        console.log(`Successfully loaded sample data for ${currentSheetInfo.sheet}`);
-      } else {
-        throw new Error(`No sample data available for ${currentSheetInfo.sheet}`);
-      }
+      // Set empty data instead of sample data
+      setLessonNumbers([]);
+      setTeachingUnits([]);
+      setAllLessonsData({});
+      setEyfsStatements({});
+      
+      console.log(`Set empty data for ${currentSheetInfo.sheet}`);
     } catch (error) {
       console.error(`Sample data loading failed for ${currentSheetInfo.sheet}:`, error);
       
@@ -820,9 +786,30 @@ export function DataProvider({ children }: DataProviderProps) {
             // Remove id as Supabase will generate its own id
             const { id, uniqueId, ...activityForSupabase } = activity;
             
+            // Convert camelCase to snake_case for database
+            const dbActivity = {
+              activity: activityForSupabase.activity,
+              description: activityForSupabase.description,
+              activity_text: activityForSupabase.activityText,
+              time: activityForSupabase.time,
+              video_link: activityForSupabase.videoLink,
+              music_link: activityForSupabase.musicLink,
+              backing_link: activityForSupabase.backingLink,
+              resource_link: activityForSupabase.resourceLink,
+              link: activityForSupabase.link,
+              vocals_link: activityForSupabase.vocalsLink,
+              image_link: activityForSupabase.imageLink,
+              teaching_unit: activityForSupabase.teachingUnit,
+              category: activityForSupabase.category,
+              level: activityForSupabase.level,
+              unit_name: activityForSupabase.unitName,
+              lesson_number: activityForSupabase.lessonNumber,
+              eyfs_standards: activityForSupabase.eyfsStandards
+            };
+            
             supabase
               .from(TABLES.ACTIVITIES)
-              .upsert([activityForSupabase], { 
+              .upsert([dbActivity], { 
                 onConflict: 'activity,category,lesson_number',
                 ignoreDuplicates: false
               })

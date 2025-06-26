@@ -107,16 +107,17 @@ export function ActivityLibrary({
           // Save to localStorage
           localStorage.setItem('library-activities', JSON.stringify(activities));
           
-          // Try to save to server
+          // Try to add each activity to the server
           try {
             activities.forEach(async (activity) => {
               if (!activity._id) {
                 activity._id = `${activity.activity}-${activity.category}-${Date.now()}`;
               }
+              
               await activitiesApi.create(activity);
             });
-          } catch (saveError) {
-            console.warn('Failed to save activities to server:', saveError);
+          } catch (serverError) {
+            console.warn('Failed to add activities to server:', serverError);
           }
         }
         

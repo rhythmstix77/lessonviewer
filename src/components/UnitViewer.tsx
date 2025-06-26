@@ -464,6 +464,18 @@ export function UnitViewer() {
                   : 'No units available in the library. Create a new unit to get started.'
                 }
               </p>
+              {(searchQuery || selectedTerm !== 'all' || focusedHalfTermId) && (
+                <button 
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedTerm('all');
+                    setFocusedHalfTermId(null);
+                  }}
+                  className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm"
+                >
+                  Clear Filters
+                </button>
+              )}
               {!searchQuery && selectedTerm === 'all' && !focusedHalfTermId && (
                 <button 
                   onClick={handleCreateUnit}

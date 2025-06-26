@@ -132,13 +132,6 @@ export function LessonLibraryCard({
     }
   };
 
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onDelete) {
-      onDelete(lessonNumber);
-    }
-  };
-
   const handleEditActivity = (activity: Activity) => {
     setEditingActivity({...activity});
   };
@@ -220,417 +213,15 @@ export function LessonLibraryCard({
     );
   };
 
-  if (isExpanded) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-2xl shadow-xl w-full max-w-full max-h-[95vh] overflow-hidden flex flex-col">
-          {/* Header */}
-          <div 
-            className="p-6 text-white relative"
-            style={{ 
-              background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.secondary} 100%)` 
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                {editedTitle !== null ? (
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="text"
-                      value={editedTitle}
-                      onChange={(e) => setEditedTitle(e.target.value)}
-                      className="text-2xl font-bold bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
-                      autoFocus
-                    />
-                    <button
-                      onClick={handleSaveTitle}
-                      className="p-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white"
-                    >
-                      <Save className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => setEditedTitle(null)}
-                      className="p-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
-                  </div>
-                ) : (
-                  <h1 className="text-2xl font-bold mb-1 flex items-center space-x-2">
-                    <span>{lessonData.title || `Lesson ${lessonNumber}`}</span>
-                    <button
-                      onClick={() => setEditedTitle(lessonData.title || `Lesson ${lessonNumber}`)}
-                      className="p-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-white"
-                      title="Edit lesson title"
-                    >
-                      <Edit3 className="h-4 w-4" />
-                    </button>
-                  </h1>
-                )}
-                <p className="text-white text-opacity-90 text-lg">
-                  {lessonData.totalTime} minutes • {lessonData.categoryOrder.length} categories • {totalActivities} activities
-                </p>
-              </div>
-              <div className="flex items-center space-x-3">
-                {onAssignToUnit && halfTerms.length > 0 && (
-                  <div className="relative" ref={dropdownRef}>
-                    <button
-                      onClick={handleAssignClick}
-                      className="p-3 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 flex items-center space-x-2"
-                      title="Assign to Unit"
-                    >
-                      <FolderPlus className="h-6 w-6" />
-                      <span className="text-base font-medium">Assign to Unit</span>
-                      <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${showAssignDropdown ? 'rotate-180' : ''}`} />
-                    </button>
-                    
-                    {showAssignDropdown && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
-                        <div className="p-2 border-b border-gray-200">
-                          <h3 className="text-sm font-medium text-gray-700">Select Half-Term</h3>
-                        </div>
-                        <div className="p-2 max-h-60 overflow-y-auto">
-                          {halfTerms.map(halfTerm => (
-                            <button
-                              key={halfTerm.id}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAssignToHalfTerm(halfTerm.id);
-                              }}
-                              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                            >
-                              {halfTerm.name} ({halfTerm.months})
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {onDelete && (
-                  <button
-                    onClick={handleDeleteClick}
-                    className="p-3 bg-red-500 bg-opacity-80 hover:bg-opacity-100 rounded-lg transition-all duration-200 flex items-center space-x-2"
-                    title="Delete Lesson"
-                  >
-                    <Trash2 className="h-6 w-6" />
-                    <span className="text-base font-medium">Delete</span>
-                  </button>
-                )}
-                <button
-                  onClick={handleSaveTitle}
-                  className="p-3 bg-green-500 bg-opacity-80 hover:bg-opacity-100 rounded-lg transition-all duration-200 flex items-center space-x-2"
-                  title="Save Changes"
-                >
-                  <Save className="h-6 w-6" />
-                  <span className="text-base font-medium">Save</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Content - Scrollable */}
-          <div className="flex-1 overflow-y-auto p-6">
-            {/* EYFS Standards Section */}
-            {Object.keys(groupedEyfs).length > 0 && (
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-6">
-                <h3 className="text-lg font-semibold text-blue-900 mb-3 flex items-center space-x-2">
-                  <Tag className="h-5 w-5 text-blue-600" />
-                  <span>EYFS Standards</span>
-                </h3>
-                
-                <div className="space-y-3">
-                  {Object.entries(groupedEyfs).map(([area, details]) => (
-                    <div key={area} className="bg-white rounded-lg p-3 border border-blue-100">
-                      <button 
-                        className="w-full flex items-center justify-between text-left font-medium text-blue-800 text-sm mb-2"
-                        onClick={() => toggleEyfsArea(area)}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <Hand className="h-4 w-4 text-blue-600" />
-                          <span>{area}</span>
-                        </div>
-                        <ChevronDown 
-                          className={`h-4 w-4 text-blue-600 transition-transform duration-200 ${
-                            expandedEyfsAreas.includes(area) ? 'rotate-180' : ''
-                          }`} 
-                        />
-                      </button>
-                      
-                      {expandedEyfsAreas.includes(area) && (
-                        <ul className="space-y-1 mt-2 pl-6">
-                          {details.map((detail, index) => (
-                            <li key={index} className="flex items-start space-x-2 text-sm text-gray-700">
-                              <svg className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                              <span>{detail}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Categories and Activities */}
-            <div className="space-y-8">
-              {lessonData.categoryOrder.map((category) => {
-                const activities = lessonData.grouped[category] || [];
-                
-                return (
-                  <div key={category} className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-                    {/* Category Header */}
-                    <div 
-                      className="p-4 border-b border-gray-200"
-                      style={{ 
-                        background: `linear-gradient(to right, ${getCategoryColor(category)}20, ${getCategoryColor(category)}05)`,
-                        borderLeft: `4px solid ${getCategoryColor(category)}`
-                      }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-xl font-bold text-gray-900">{category}</h3>
-                        <span className="bg-white px-3 py-1 rounded-full text-sm font-medium shadow-sm" style={{ color: getCategoryColor(category) }}>
-                          {activities.length} {activities.length === 1 ? 'activity' : 'activities'}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Activities */}
-                    <div className="p-4 space-y-6">
-                      {activities.map((activity, index) => (
-                        <div 
-                          key={`${category}-${index}`}
-                          className="bg-white rounded-lg border border-gray-200 hover:border-green-300 transition-all duration-200 overflow-hidden shadow-sm hover:shadow-md"
-                        >
-                          {editingActivity && editingActivity.activity === activity.activity && editingActivity.category === activity.category ? (
-                            <div className="p-4">
-                              <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Activity Name
-                                </label>
-                                <input
-                                  type="text"
-                                  value={editingActivity.activity}
-                                  onChange={(e) => setEditingActivity({...editingActivity, activity: e.target.value})}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                              </div>
-                              
-                              <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  Description
-                                </label>
-                                <RichTextEditor
-                                  value={editingActivity.description}
-                                  onChange={(value) => setEditingActivity({...editingActivity, description: value})}
-                                  placeholder="Enter activity description..."
-                                  minHeight="150px"
-                                />
-                              </div>
-                              
-                              <div className="flex justify-end space-x-2">
-                                <button
-                                  onClick={() => setEditingActivity(null)}
-                                  className="px-3 py-1.5 text-gray-600 hover:text-gray-800 text-sm font-medium"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={() => handleSaveActivity(editingActivity)}
-                                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg flex items-center space-x-1"
-                                >
-                                  <Save className="h-4 w-4" />
-                                  <span>Save Changes</span>
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <>
-                              {/* Activity Header */}
-                              <div className="p-4 border-b border-gray-200 bg-white">
-                                <div className="flex items-start justify-between">
-                                  <h4 className="font-bold text-gray-900 text-lg">
-                                    {activity.activity}
-                                  </h4>
-                                  <div className="flex items-center space-x-2">
-                                    {activity.time > 0 && (
-                                      <span className="ml-2 px-3 py-1 bg-gray-200 text-gray-800 text-sm font-medium rounded-full">
-                                        {activity.time} mins
-                                      </span>
-                                    )}
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleEditActivity(activity);
-                                      }}
-                                      className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                                    >
-                                      <Edit3 className="h-4 w-4" />
-                                    </button>
-                                  </div>
-                                </div>
-                                
-                                {activity.level && (
-                                  <div className="mt-2">
-                                    <span 
-                                      className="px-3 py-1 text-white text-sm font-medium rounded-full"
-                                      style={{ backgroundColor: getCategoryColor(category) }}
-                                    >
-                                      {activity.level}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                              
-                              {/* Activity Content */}
-                              <div className="p-4">
-                                {/* Activity Text (if available) */}
-                                {activity.activityText && (
-                                  <div 
-                                    className="mb-4 prose prose-sm max-w-none"
-                                    dangerouslySetInnerHTML={{ __html: activity.activityText }}
-                                  />
-                                )}
-                                
-                                {/* Description */}
-                                <div 
-                                  className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
-                                  dangerouslySetInnerHTML={{ __html: formatDescription(activity.description) }}
-                                />
-                                
-                                {/* Unit Name */}
-                                {activity.unitName && (
-                                  <div className="mt-4 pt-4 border-t border-gray-100">
-                                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Unit:</span>
-                                    <p className="text-sm text-gray-700 font-medium">{activity.unitName}</p>
-                                  </div>
-                                )}
-                                
-                                {/* Web Links Section - Prominently displayed */}
-                                {(activity.videoLink || activity.musicLink || activity.backingLink || 
-                                  activity.resourceLink || activity.link || activity.vocalsLink || 
-                                  activity.imageLink) && (
-                                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                                    <h5 className="text-sm font-medium text-blue-800 mb-2 flex items-center">
-                                      <FileText className="h-4 w-4 mr-1" />
-                                      Web Resources
-                                    </h5>
-                                    <div className="grid grid-cols-2 gap-2">
-                                      {activity.videoLink && (
-                                        <a 
-                                          href={activity.videoLink} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-colors cursor-pointer"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <span className="text-sm font-medium">Video</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
-                                        </a>
-                                      )}
-                                      {activity.musicLink && (
-                                        <a 
-                                          href={activity.musicLink} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 transition-colors cursor-pointer"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <span className="text-sm font-medium">Music</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
-                                        </a>
-                                      )}
-                                      {activity.backingLink && (
-                                        <a 
-                                          href={activity.backingLink} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <span className="text-sm font-medium">Backing</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
-                                        </a>
-                                      )}
-                                      {activity.resourceLink && (
-                                        <a 
-                                          href={activity.resourceLink} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors cursor-pointer"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <span className="text-sm font-medium">Resource</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
-                                        </a>
-                                      )}
-                                      {activity.link && (
-                                        <a 
-                                          href={activity.link} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <span className="text-sm font-medium">Link</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
-                                        </a>
-                                      )}
-                                      {activity.vocalsLink && (
-                                        <a 
-                                          href={activity.vocalsLink} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors cursor-pointer"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <span className="text-sm font-medium">Vocals</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
-                                        </a>
-                                      )}
-                                      {activity.imageLink && (
-                                        <a 
-                                          href={activity.imageLink} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 transition-colors cursor-pointer"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <span className="text-sm font-medium">Image</span>
-                                          <ExternalLink className="h-3.5 w-3.5 ml-auto" />
-                                        </a>
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (viewMode === 'compact') {
     return (
       <div className="relative group">
         <div 
-          className="bg-white rounded-lg shadow-sm border-l-4 p-3 transition-all duration-200 hover:shadow-md cursor-pointer relative"
+          className="bg-white rounded-lg shadow-sm border-l-4 p-3 transition-all duration-200 hover:shadow-md cursor-pointer h-full"
           style={{ borderLeftColor: theme.primary }}
           onClick={handleCardClick}
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between h-full">
             <div className="flex-1 min-w-0">
               <h4 className="font-medium text-gray-900 text-sm truncate" dir="ltr">{lessonData.title || `Lesson ${lessonNumber}`}</h4>
               <div className="flex items-center space-x-2 text-xs text-gray-500">
@@ -702,7 +293,7 @@ export function LessonLibraryCard({
     return (
       <div className="relative group">
         <div 
-          className="bg-white rounded-xl shadow-md border border-gray-200 p-4 transition-all duration-200 hover:shadow-lg cursor-pointer hover:border-green-300 relative"
+          className="bg-white rounded-xl shadow-md border border-gray-200 p-4 transition-all duration-200 hover:shadow-lg cursor-pointer hover:border-blue-300"
           onClick={handleCardClick}
         >
           <div className="flex items-start">
@@ -714,8 +305,8 @@ export function LessonLibraryCard({
             </div>
             
             <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <h4 className="font-semibold text-gray-900 text-base truncate">
+              <div className="flex justify-between items-center">
+                <h4 className="font-semibold text-gray-900 text-base flex items-center space-x-2">
                   {lessonData.title || `Lesson ${lessonNumber}`}
                 </h4>
               </div>
@@ -799,7 +390,7 @@ export function LessonLibraryCard({
   return (
     <div className="relative group">
       <div 
-        className="bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl cursor-pointer overflow-hidden hover:scale-[1.02] relative h-full flex flex-col"
+        className="bg-white rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl cursor-pointer overflow-hidden hover:scale-[1.02] h-full flex flex-col"
         style={{ borderColor: theme.primary, borderWidth: '1px' }}
         onClick={handleCardClick}
       >
@@ -841,32 +432,31 @@ export function LessonLibraryCard({
           {/* Categories */}
           <div className="mb-3">
             <div className="flex flex-wrap gap-1">
-              {lessonData.categoryOrder.slice(0, 4).map(category => (
-                <span 
+              {lessonData.categoryOrder.slice(0, 4).map((category) => (
+                <span
                   key={category}
-                  className="px-2 py-1 text-xs font-medium rounded-full"
+                  className="px-2 py-1 rounded-full text-sm font-medium border shadow-sm"
                   style={{
                     backgroundColor: `${getCategoryColor(category)}20`,
-                    color: getCategoryColor(category)
+                    color: getCategoryColor(category),
+                    borderColor: `${getCategoryColor(category)}40`
                   }}
                 >
                   {category}
                 </span>
               ))}
               {lessonData.categoryOrder.length > 4 && (
-                <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
-                  +{lessonData.categoryOrder.length - 4}
+                <span className="px-2 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 border border-gray-200 shadow-sm">
+                  +{lessonData.categoryOrder.length - 4} more
                 </span>
               )}
             </div>
           </div>
           
           {/* Description Preview */}
-          <div className="mt-3 pt-3 border-t border-gray-100 flex-grow">
-            <p className="text-sm text-gray-600 line-clamp-2" dir="ltr">
-              {getFirstActivityDescription()}
-            </p>
-          </div>
+          <p className="mt-2 text-sm text-gray-600 line-clamp-1" dir="ltr">
+            {getFirstActivityDescription()}
+          </p>
         </div>
         
         {/* Action buttons - Positioned with proper spacing */}
