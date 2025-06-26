@@ -1,5 +1,5 @@
 import React from 'react';
-import { FolderOpen, Clock, BookOpen, Calendar, ChevronRight, Tag, Eye, EyeOff } from 'lucide-react';
+import { FolderOpen, Clock, BookOpen, Calendar, Tag, Eye, EyeOff } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 
 interface Unit {
@@ -100,7 +100,6 @@ export function UnitCard({
               <span>{getTermName(unit.term)}</span>
             </div>
           </div>
-          <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
         </div>
         
         {/* Focus button */}
@@ -140,7 +139,6 @@ export function UnitCard({
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
               <h4 className="font-semibold text-gray-900 text-base truncate" dir="ltr">{unit.name}</h4>
-              <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0 ml-2" />
             </div>
             
             <div className="flex items-center space-x-3 mt-1 text-sm text-gray-600">
@@ -199,7 +197,6 @@ export function UnitCard({
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-lg font-bold truncate" dir="ltr">{unit.name}</h3>
-            <ChevronRight className="h-5 w-5" />
           </div>
 
           <div className="flex items-center space-x-2 text-white text-opacity-90">

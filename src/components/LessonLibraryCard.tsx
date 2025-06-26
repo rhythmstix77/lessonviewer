@@ -109,6 +109,25 @@ export function LessonLibraryCard({
     setSelectedActivity(activity);
   };
 
+  const handleAssignClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowAssignDropdown(!showAssignDropdown);
+  };
+
+  const handleAssignToHalfTerm = (halfTermId: string) => {
+    if (onAssignToUnit) {
+      onAssignToUnit(lessonNumber, halfTermId);
+      setShowAssignDropdown(false);
+    }
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) {
+      onDelete(lessonNumber);
+    }
+  };
+
   const handleEditActivity = (activity: Activity) => {
     setEditingActivity({...activity});
   };
@@ -120,7 +139,7 @@ export function LessonLibraryCard({
     
     if (updatedLessonData.grouped[category]) {
       const activityIndex = updatedLessonData.grouped[category].findIndex(a => 
-        a.activity === activity.activity && a._id === activity._id
+        a.activity === activity.activity && a.id === activity.id
       );
       
       if (activityIndex !== -1) {
@@ -145,25 +164,6 @@ export function LessonLibraryCard({
     if (editedTitle !== null) {
       updateLessonTitle(lessonNumber, editedTitle);
       setEditedTitle(null);
-    }
-  };
-
-  const handleAssignClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowAssignDropdown(!showAssignDropdown);
-  };
-
-  const handleAssignToHalfTerm = (halfTermId: string) => {
-    if (onAssignToUnit) {
-      onAssignToUnit(lessonNumber, halfTermId);
-      setShowAssignDropdown(false);
-    }
-  };
-
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onDelete) {
-      onDelete(lessonNumber);
     }
   };
 
@@ -595,7 +595,7 @@ export function LessonLibraryCard({
           
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
-              <h4 className="font-semibold text-gray-900 text-base truncate" dir="ltr">
+              <h4 className="font-semibold text-gray-900 text-base truncate">
                 {lessonData.title || `Lesson ${lessonNumber}`}
               </h4>
               <div className="flex items-center space-x-1">
