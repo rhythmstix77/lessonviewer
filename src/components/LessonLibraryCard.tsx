@@ -629,60 +629,61 @@ export function LessonLibraryCard({
                 <span>{totalActivities} activities</span>
               </div>
             </div>
-            <div className="flex items-center space-x-1">
-              {onDelete && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(lessonNumber);
-                  }}
-                  className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 opacity-0 group-hover:opacity-100"
-                  title="Delete Lesson"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-            </div>
           </div>
         </div>
         
-        {/* Assign to Unit Button - Appears on hover */}
-        {onAssignToUnit && halfTerms.length > 0 && (
-          <div className="absolute top-0 right-0 mt-2 mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200" ref={dropdownRef}>
+        {/* Action buttons - Positioned absolutely with proper spacing */}
+        <div className="absolute top-0 right-0 h-full flex items-center pr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          {onAssignToUnit && halfTerms.length > 0 && (
+            <div className="mr-2" ref={dropdownRef}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAssignClick(e);
+                }}
+                className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm"
+                title="Assign to Unit"
+              >
+                <Calendar className="h-4 w-4" />
+              </button>
+              
+              {showAssignDropdown && (
+                <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
+                  <div className="p-2 border-b border-gray-200">
+                    <h3 className="text-xs font-medium text-gray-700">Assign to Half-Term</h3>
+                  </div>
+                  <div className="p-1 max-h-48 overflow-y-auto">
+                    {halfTerms.map(halfTerm => (
+                      <button
+                        key={halfTerm.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAssignToHalfTerm(halfTerm.id);
+                        }}
+                        className="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                      >
+                        {halfTerm.name} ({halfTerm.months})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {onDelete && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handleAssignClick();
+                onDelete(lessonNumber);
               }}
-              className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm"
-              title="Assign to Unit"
+              className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+              title="Delete Lesson"
             >
-              <Calendar className="h-4 w-4" />
+              <Trash2 className="h-4 w-4" />
             </button>
-            
-            {showAssignDropdown && (
-              <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
-                <div className="p-2 border-b border-gray-200">
-                  <h3 className="text-xs font-medium text-gray-700">Assign to Half-Term</h3>
-                </div>
-                <div className="p-1 max-h-48 overflow-y-auto">
-                  {halfTerms.map(halfTerm => (
-                    <button
-                      key={halfTerm.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAssignToHalfTerm(halfTerm.id);
-                      }}
-                      className="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                    >
-                      {halfTerm.name} ({halfTerm.months})
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     );
   }
@@ -707,20 +708,6 @@ export function LessonLibraryCard({
                 <h4 className="font-semibold text-gray-900 text-base truncate">
                   {lessonData.title || `Lesson ${lessonNumber}`}
                 </h4>
-                <div className="flex items-center space-x-1">
-                  {onDelete && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(lessonNumber);
-                      }}
-                      className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 opacity-0 group-hover:opacity-100"
-                      title="Delete Lesson"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
               </div>
               
               <div className="flex items-center space-x-3 mt-1 text-sm text-gray-600">
@@ -757,44 +744,59 @@ export function LessonLibraryCard({
           </div>
         </div>
         
-        {/* Assign to Unit Button - Appears on hover */}
-        {onAssignToUnit && halfTerms.length > 0 && (
-          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200" ref={dropdownRef}>
+        {/* Action buttons - Positioned with proper spacing */}
+        <div className="absolute top-2 right-2 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          {onAssignToUnit && halfTerms.length > 0 && (
+            <div ref={dropdownRef}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAssignClick(e);
+                }}
+                className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm flex items-center space-x-1"
+                title="Assign to Unit"
+              >
+                <FolderPlus className="h-4 w-4" />
+                <span className="text-xs">Assign</span>
+              </button>
+              
+              {showAssignDropdown && (
+                <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
+                  <div className="p-2 border-b border-gray-200">
+                    <h3 className="text-xs font-medium text-gray-700">Assign to Half-Term</h3>
+                  </div>
+                  <div className="p-1 max-h-48 overflow-y-auto">
+                    {halfTerms.map(halfTerm => (
+                      <button
+                        key={halfTerm.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAssignToHalfTerm(halfTerm.id);
+                        }}
+                        className="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                      >
+                        {halfTerm.name} ({halfTerm.months})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {onDelete && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handleAssignClick();
+                onDelete(lessonNumber);
               }}
-              className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm flex items-center space-x-1"
-              title="Assign to Unit"
+              className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+              title="Delete Lesson"
             >
-              <FolderPlus className="h-4 w-4" />
-              <span className="text-xs">Assign</span>
+              <Trash2 className="h-4 w-4" />
             </button>
-            
-            {showAssignDropdown && (
-              <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
-                <div className="p-2 border-b border-gray-200">
-                  <h3 className="text-xs font-medium text-gray-700">Assign to Half-Term</h3>
-                </div>
-                <div className="p-1 max-h-48 overflow-y-auto">
-                  {halfTerms.map(halfTerm => (
-                    <button
-                      key={halfTerm.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAssignToHalfTerm(halfTerm.id);
-                      }}
-                      className="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                    >
-                      {halfTerm.name} ({halfTerm.months})
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     );
   }
@@ -821,20 +823,6 @@ export function LessonLibraryCard({
               <h3 className="text-lg font-bold">
                 Lesson {lessonNumber}
               </h3>
-              <div className="flex items-center space-x-1">
-                {onDelete && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(lessonNumber);
-                    }}
-                    className="p-1.5 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors duration-200 opacity-0 group-hover:opacity-100"
-                    title="Delete Lesson"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
             </div>
 
             <p className="text-white text-opacity-90 text-sm font-medium" dir="ltr">
@@ -887,43 +875,58 @@ export function LessonLibraryCard({
           </div>
         </div>
         
-        {/* Assign to Unit Button - Appears on hover */}
-        {onAssignToUnit && halfTerms.length > 0 && (
-          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200" ref={dropdownRef}>
+        {/* Action buttons - Positioned with proper spacing */}
+        <div className="absolute top-2 right-2 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          {onAssignToUnit && halfTerms.length > 0 && (
+            <div ref={dropdownRef}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAssignClick(e);
+                }}
+                className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm"
+                title="Assign to Unit"
+              >
+                <FolderPlus className="h-4 w-4" />
+              </button>
+              
+              {showAssignDropdown && (
+                <div className="absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
+                  <div className="p-2 border-b border-gray-200">
+                    <h3 className="text-sm font-medium text-gray-700">Assign to Half-Term</h3>
+                  </div>
+                  <div className="p-2 max-h-60 overflow-y-auto">
+                    {halfTerms.map(halfTerm => (
+                      <button
+                        key={halfTerm.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAssignToHalfTerm(halfTerm.id);
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                      >
+                        {halfTerm.name} ({halfTerm.months})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {onDelete && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handleAssignClick();
+                onDelete(lessonNumber);
               }}
-              className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm"
-              title="Assign to Unit"
+              className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+              title="Delete Lesson"
             >
-              <FolderPlus className="h-4 w-4" />
+              <Trash2 className="h-4 w-4" />
             </button>
-            
-            {showAssignDropdown && (
-              <div className="absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
-                <div className="p-2 border-b border-gray-200">
-                  <h3 className="text-sm font-medium text-gray-700">Assign to Half-Term</h3>
-                </div>
-                <div className="p-2 max-h-60 overflow-y-auto">
-                  {halfTerms.map(halfTerm => (
-                    <button
-                      key={halfTerm.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAssignToHalfTerm(halfTerm.id);
-                      }}
-                      className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                    >
-                      {halfTerm.name} ({halfTerm.months})
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
