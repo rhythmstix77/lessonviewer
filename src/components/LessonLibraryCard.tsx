@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Clock, Users, ChevronRight, Tag, X, Download, ExternalLink, FileText, Edit3, Save, FolderPlus, ChevronDown } from 'lucide-react';
+import { Clock, Users, ChevronRight, Tag, X, Download, ExternalLink, FileText, Edit3, Save, FolderPlus, ChevronDown, Trash2 } from 'lucide-react';
 import type { LessonData, Activity } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useData } from '../contexts/DataContext';
@@ -24,6 +24,7 @@ interface LessonLibraryCardProps {
   };
   onAssignToUnit?: (lessonNumber: string, halfTermId: string) => void;
   halfTerms?: HalfTerm[];
+  onDelete?: (lessonNumber: string) => void;
 }
 
 export function LessonLibraryCard({
@@ -33,7 +34,8 @@ export function LessonLibraryCard({
   onClick,
   theme,
   onAssignToUnit,
-  halfTerms = []
+  halfTerms = [],
+  onDelete
 }: LessonLibraryCardProps) {
   const { getCategoryColor } = useSettings();
   const { eyfsStatements, updateLessonTitle } = useData();
@@ -158,6 +160,13 @@ export function LessonLibraryCard({
     }
   };
 
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) {
+      onDelete(lessonNumber);
+    }
+  };
+
   // Format description with line breaks
   const formatDescription = (text: string) => {
     if (!text) return '';
@@ -257,6 +266,16 @@ export function LessonLibraryCard({
                       </div>
                     )}
                   </div>
+                )}
+                {onDelete && (
+                  <button
+                    onClick={handleDeleteClick}
+                    className="p-3 bg-red-500 bg-opacity-80 hover:bg-opacity-100 rounded-lg transition-all duration-200 flex items-center space-x-2"
+                    title="Delete Lesson"
+                  >
+                    <Trash2 className="h-6 w-6" />
+                    <span className="text-base font-medium">Delete</span>
+                  </button>
                 )}
                 <button
                   onClick={onClick}
@@ -527,7 +546,16 @@ export function LessonLibraryCard({
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end">
+          <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-between">
+            {onDelete && (
+              <button
+                onClick={handleDeleteClick}
+                className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+              >
+                <Trash2 className="h-5 w-5" />
+                <span>Delete Lesson</span>
+              </button>
+            )}
             <button
               onClick={handleClose}
               className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
@@ -593,6 +621,18 @@ export function LessonLibraryCard({
                 )}
               </div>
             )}
+            {onDelete && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(lessonNumber);
+                }}
+                className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                title="Delete Lesson"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
             <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
           </div>
         </div>
@@ -655,6 +695,18 @@ export function LessonLibraryCard({
                       </div>
                     )}
                   </div>
+                )}
+                {onDelete && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(lessonNumber);
+                    }}
+                    className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 mr-1"
+                    title="Delete Lesson"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 )}
                 <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0" />
               </div>
@@ -753,6 +805,18 @@ export function LessonLibraryCard({
                     </div>
                   )}
                 </div>
+              )}
+              {onDelete && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(lessonNumber);
+                  }}
+                  className="p-1.5 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors duration-200"
+                  title="Delete Lesson"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               )}
               <ChevronRight className="h-5 w-5" />
             </div>

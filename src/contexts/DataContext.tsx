@@ -75,6 +75,8 @@ interface DataContextType {
   updateLessonTitle: (lessonNumber: string, title: string) => void;
   userCreatedLessonPlans: LessonPlan[]; // New property for user-created lesson plans
   addOrUpdateUserLessonPlan: (plan: LessonPlan) => void; // New function to add/update user lesson plans
+  deleteUserLessonPlan: (planId: string) => void; // New function to delete user lesson plans
+  deleteLesson: (lessonNumber: string) => void; // New function to delete a lesson
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -286,6 +288,92 @@ export function DataProvider({ children }: DataProviderProps) {
       
       return updatedPlans;
     });
+  };
+
+  // Delete a user-created lesson plan
+  const deleteUserLessonPlan = (planId: string) => {
+    setUserCreatedLessonPlans(prev => {
+      const updatedPlans = prev.filter(p => p.id !== planId);
+      saveUserCreatedLessonPlans(updatedPlans);
+      return updatedPlans;
+    });
+  };
+
+  // Delete a lesson
+  const deleteLesson = (lessonNumber: string) => {
+    // Remove the lesson from allLessonsData
+    setAllLessonsData(prev => {
+      const updated = { ...prev };
+      delete updated[lessonNumber];
+      return updated;
+    });
+
+    // Remove the lesson from lessonNumbers
+    setLessonNumbers(prev => prev.filter(num => num !== lessonNumber));
+
+    // Remove the lesson from eyfsStatements
+    setEyfsStatements(prev => {
+      const updated = { ...prev };
+      delete updated[lessonNumber];
+      return updated;
+    });
+
+    // Save the updated data to localStorage
+    const dataToSave = {
+      allLessonsData: { ...allLessonsData },
+      lessonNumbers: lessonNumbers.filter(num => num !== lessonNumber),
+      teachingUnits,
+      eyfsStatements: { ...eyfsStatements }
+    };
+
+    // Delete the lesson from allLessonsData
+    delete dataToSave.allLessonsData[lessonNumber];
+    // Delete the lesson from eyfsStatements
+    delete dataToSave.eyfsStatements[lessonNumber];
+
+    localStorage.setItem(`lesson-data-${currentSheetInfo.sheet}`, JSON.stringify(dataToSave));
+
+    // Try to update the server data
+    try {
+      lessonsApi.updateSheet(currentSheetInfo.sheet, dataToSave)
+        .catch(error => console.warn(`Failed to update server after deleting lesson ${lessonNumber}:`, error));
+    } catch (error) {
+      console.warn(`Failed to update server after deleting lesson ${lessonNumber}:`, error);
+    }
+
+    // Also remove this lesson from any user-created lesson plans
+    setUserCreatedLessonPlans(prev => {
+      const updatedPlans = prev.filter(plan => plan.lessonNumber !== lessonNumber);
+      saveUserCreatedLessonPlans(updatedPlans);
+      return updatedPlans;
+    });
+
+    // Also update any units that contain this lesson
+    try {
+      const savedUnits = localStorage.getItem('units');
+      if (savedUnits) {
+        const units = JSON.parse(savedUnits);
+        let unitsUpdated = false;
+
+        const updatedUnits = units.map((unit: any) => {
+          if (unit.lessonNumbers.includes(lessonNumber)) {
+            unitsUpdated = true;
+            return {
+              ...unit,
+              lessonNumbers: unit.lessonNumbers.filter((num: string) => num !== lessonNumber),
+              updatedAt: new Date()
+            };
+          }
+          return unit;
+        });
+
+        if (unitsUpdated) {
+          localStorage.setItem('units', JSON.stringify(updatedUnits));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to update units after deleting lesson:', error);
+    }
   };
 
   // Update allLessonsData with a user-created lesson plan
@@ -1014,7 +1102,9 @@ export function DataProvider({ children }: DataProviderProps) {
     updateAllEyfsStatements,
     updateLessonTitle,
     userCreatedLessonPlans,
-    addOrUpdateUserLessonPlan
+    addOrUpdateUserLessonPlan,
+    deleteUserLessonPlan,
+    deleteLesson
   };
 
   return (
