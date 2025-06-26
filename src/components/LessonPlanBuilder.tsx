@@ -51,8 +51,35 @@ interface Unit {
 }
 
 export function LessonPlanBuilder() {
-  const { currentSheetInfo, allLessonsData, userCreatedLessonPlans, addOrUpdateUserLessonPlan, deleteUserLessonPlan } = useData();
+  const { currentSheetInfo, allLessonsData, userCreatedLessonPlans, addOrUpdateUserLessonPlan, deleteUserLessonPlan, lessonNumbers } = useData();
   const { categories } = useSettings();
+  
+  // Helper function to get the next available lesson number
+  const getNextAvailableLessonNumber = () => {
+    // Get all existing lesson numbers from both imported data and user-created plans
+    const existingNumbers = [...lessonNumbers];
+    
+    // Add lesson numbers from user-created plans that might not be in lessonNumbers yet
+    userCreatedLessonPlans.forEach(plan => {
+      if (plan.lessonNumber && !existingNumbers.includes(plan.lessonNumber)) {
+        existingNumbers.push(plan.lessonNumber);
+      }
+    });
+    
+    // Convert to integers and find the maximum
+    const numericLessonNumbers = existingNumbers
+      .map(num => parseInt(num))
+      .filter(num => !isNaN(num));
+    
+    // If there are no existing lesson numbers, start with 1
+    if (numericLessonNumbers.length === 0) {
+      return "1";
+    }
+    
+    // Find the maximum and add 1
+    const maxLessonNumber = Math.max(...numericLessonNumbers);
+    return (maxLessonNumber + 1).toString();
+  };
   
   // Initialize currentLessonPlan with a default value instead of null
   const [currentLessonPlan, setCurrentLessonPlan] = useState<LessonPlan>(() => ({
@@ -66,6 +93,7 @@ export function LessonPlanBuilder() {
     status: 'draft', // Changed from 'planned' to 'draft' to be more accurate
     title: '', // Empty title by default
     term: 'A1', // Default to Autumn 1
+    lessonNumber: getNextAvailableLessonNumber(), // Assign a lesson number
     createdAt: new Date(),
     updatedAt: new Date(),
   }));
@@ -220,6 +248,7 @@ export function LessonPlanBuilder() {
         status: 'draft',
         title: '',
         term: currentLessonPlan.term, // Keep the same term
+        lessonNumber: getNextAvailableLessonNumber(), // Assign a new lesson number
         createdAt: new Date(),
         updatedAt: new Date()
       };
