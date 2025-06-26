@@ -1,20 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  Search, 
-  Filter, 
-  Grid3x3, 
-  List, 
-  Plus, 
-  BookOpen, 
-  Clock, 
-  Tag,
-  ArrowUpDown,
-  ArrowDownUp,
-  Eye,
-  MoreVertical,
-  Upload,
-  Download
-} from 'lucide-react';
+import { Search, Filter, Grid as Grid3x3, List, Plus, BookOpen, Clock, Tag, ArrowUpDown, ArrowDownUp, Eye, MoreVertical, Upload, Download } from 'lucide-react';
 import { ActivityCard } from './ActivityCard';
 import { ActivityDetails } from './ActivityDetails';
 import { ActivityImporter } from './ActivityImporter';

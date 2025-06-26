@@ -1,22 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  FolderOpen, 
-  Search, 
-  Filter, 
-  Grid3x3, 
-  List, 
-  MoreVertical, 
-  ChevronLeft, 
-  Clock, 
-  BookOpen, 
-  Calendar, 
-  Tag, 
-  X,
-  Download,
-  Edit3,
-  Eye,
-  EyeOff
-} from 'lucide-react';
+import { FolderOpen, Search, Filter, Grid as Grid3x3, List, MoreVertical, ChevronLeft, Clock, BookOpen, Calendar, Tag, X, Download, Edit3, Eye, EyeOff } from 'lucide-react';
 import { UnitCard } from './UnitCard';
 import { LessonLibraryCard } from './LessonLibraryCard';
 import { ActivityDetails } from './ActivityDetails';

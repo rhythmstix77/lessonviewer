@@ -1,27 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { 
-  Save, 
-  Clock, 
-  Users, 
-  Search,
-  Grid3x3,
-  List,
-  Tag,
-  ArrowUpDown,
-  ArrowDownUp,
-  MoreVertical,
-  Plus,
-  Check,
-  Filter,
-  Edit3,
-  FolderOpen,
-  AlertCircle,
-  Calendar,
-  ChevronLeft,
-  ChevronRight
-} from 'lucide-react';
+import { Save, Clock, Users, Search, Grid as Grid3x3, List, Tag, ArrowUpDown, ArrowDownUp, MoreVertical, Plus, Check, Filter, Edit3, FolderOpen, AlertCircle, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ActivityCard } from './ActivityCard';
 import { LessonDropZone } from './LessonDropZone';
 import { ActivityDetails } from './ActivityDetails';
