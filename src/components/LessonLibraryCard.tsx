@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Clock, Users, ChevronRight, Tag, X, Download, ExternalLink, FileText, Edit3, Save, FolderPlus, ChevronDown, Trash2 } from 'lucide-react';
+import { Clock, Users, ChevronRight, Tag, X, ExternalLink, FileText, Edit3, Save, FolderPlus, ChevronDown, Trash2 } from 'lucide-react';
 import type { LessonData, Activity } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useData } from '../contexts/DataContext';
@@ -277,14 +277,6 @@ export function LessonLibraryCard({
                     <span className="text-base font-medium">Delete</span>
                   </button>
                 )}
-                <button
-                  onClick={onClick}
-                  className="p-3 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 flex items-center space-x-2"
-                  title="Export Lesson"
-                >
-                  <Download className="h-6 w-6" />
-                  <span className="text-base font-medium">Export</span>
-                </button>
                 <button
                   onClick={handleClose}
                   className="p-3 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200"
