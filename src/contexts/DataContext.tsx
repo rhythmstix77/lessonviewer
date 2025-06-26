@@ -4,7 +4,7 @@ import { activitiesApi, lessonsApi, eyfsApi } from '../config/api';
 import { supabase, TABLES, isSupabaseConfigured } from '../config/supabase';
 
 export interface Activity {
-  _id?: string;
+  id?: string;
   activity: string;
   description: string;
   activityText?: string; // New field for activity text
@@ -23,7 +23,7 @@ export interface Activity {
   unitName: string;
   lessonNumber: string;
   eyfsStandards?: string[];
-  _uniqueId?: string; // Added for drag and drop uniqueness
+  uniqueId?: string; // Added for drag and drop uniqueness
 }
 
 export interface LessonData {
@@ -757,7 +757,7 @@ export function DataProvider({ children }: DataProviderProps) {
         }
 
         const activity: Activity = {
-          _id: `${currentSheetInfo.sheet}-${activityName}-${category}-${Date.now()}`,
+          id: `${currentSheetInfo.sheet}-${activityName}-${category}-${Date.now()}`,
           activity: activityName,
           description: description.replace(/"/g, ''),
           time,
@@ -781,8 +781,8 @@ export function DataProvider({ children }: DataProviderProps) {
         // Try to add to Supabase if connected
         if (isSupabaseConfigured()) {
           try {
-            // Remove _id as Supabase will generate its own id
-            const { _id, _uniqueId, ...activityForSupabase } = activity;
+            // Remove id as Supabase will generate its own id
+            const { id, uniqueId, ...activityForSupabase } = activity;
             
             supabase
               .from(TABLES.ACTIVITIES)

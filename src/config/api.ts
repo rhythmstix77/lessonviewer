@@ -19,8 +19,8 @@ export const activitiesApi = {
   
   create: async (activity: Activity) => {
     try {
-      // Remove _uniqueId if it exists as it's not in the database schema
-      const { _uniqueId, ...activityData } = activity;
+      // Remove uniqueId if it exists as it's not in the database schema
+      const { uniqueId, ...activityData } = activity;
       
       const { data, error } = await supabase
         .from(TABLES.ACTIVITIES)
@@ -38,8 +38,8 @@ export const activitiesApi = {
   
   update: async (id: string, activity: Activity) => {
     try {
-      // Remove _uniqueId if it exists as it's not in the database schema
-      const { _uniqueId, ...activityData } = activity;
+      // Remove uniqueId if it exists as it's not in the database schema
+      const { uniqueId, ...activityData } = activity;
       
       const { data, error } = await supabase
         .from(TABLES.ACTIVITIES)
@@ -73,8 +73,8 @@ export const activitiesApi = {
   
   import: async (activities: Activity[]) => {
     try {
-      // Remove _uniqueId from all activities
-      const cleanedActivities = activities.map(({ _uniqueId, ...activity }) => activity);
+      // Remove uniqueId from all activities
+      const cleanedActivities = activities.map(({ uniqueId, ...activity }) => activity);
       
       // Use upsert to handle both inserts and updates
       const { data, error } = await supabase
@@ -350,8 +350,8 @@ export const dataApi = {
       const promises = [];
       
       if (data.activities && data.activities.length > 0) {
-        // Clean activities data (remove _uniqueId)
-        const cleanedActivities = data.activities.map(({ _uniqueId, ...activity }: any) => activity);
+        // Clean activities data (remove uniqueId)
+        const cleanedActivities = data.activities.map(({ uniqueId, ...activity }: any) => activity);
         promises.push(
           supabase
             .from(TABLES.ACTIVITIES)

@@ -185,7 +185,7 @@ export function ActivityImporter({ onImport, onClose }: ActivityImporterProps) {
       }
 
       const activity: Activity = {
-        _id: `imported-${Date.now()}-${i}`,
+        id: `imported-${Date.now()}-${i}`,
         activity: String(row[activityNameIdx] || '').trim(),
         description: description,
         time,
