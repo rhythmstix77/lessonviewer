@@ -277,13 +277,6 @@ export function LessonLibraryCard({
                     <span className="text-base font-medium">Delete</span>
                   </button>
                 )}
-                <button
-                  onClick={handleClose}
-                  className="p-3 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200"
-                  title="Close"
-                >
-                  <X className="h-6 w-6" />
-                </button>
               </div>
             </div>
           </div>
@@ -531,16 +524,6 @@ export function LessonLibraryCard({
                 );
               })}
             </div>
-          </div>
-
-          {/* Footer */}
-          <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end">
-            <button
-              onClick={handleClose}
-              className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
-            >
-              Close
-            </button>
           </div>
         </div>
       </div>
