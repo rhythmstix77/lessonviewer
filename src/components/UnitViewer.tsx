@@ -3,7 +3,7 @@ import {
   FolderOpen, 
   Search, 
   Filter, 
-  Grid3X3, 
+  Grid3x3, 
   List, 
   MoreVertical, 
   ChevronLeft, 
@@ -343,7 +343,7 @@ export function UnitViewer() {
                     viewMode === 'grid' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
                   }`}
                 >
-                  <Grid3X3 className="h-5 w-5" />
+                  <Grid3x3 className="h-5 w-5" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}

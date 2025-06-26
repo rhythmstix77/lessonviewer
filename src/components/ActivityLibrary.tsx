@@ -2,14 +2,14 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Search, 
   Filter, 
-  Grid3X3, 
+  Grid3x3, 
   List, 
   Plus, 
   BookOpen, 
   Clock, 
   Tag,
-  SortAsc,
-  SortDesc,
+  ArrowUpDown,
+  ArrowDownUp,
   Eye,
   MoreVertical,
   Upload,
@@ -479,7 +479,7 @@ export function ActivityLibrary({
               }`}
             >
               <Tag className="h-4 w-4" />
-              {sortBy === 'category' && (sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />)}
+              {sortBy === 'category' && (sortOrder === 'asc' ? <ArrowUpDown className="h-4 w-4" /> : <ArrowDownUp className="h-4 w-4" />)}
             </button>
             <button
               onClick={() => toggleSort('time')}
@@ -488,7 +488,7 @@ export function ActivityLibrary({
               }`}
             >
               <Clock className="h-4 w-4" />
-              {sortBy === 'time' && (sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />)}
+              {sortBy === 'time' && (sortOrder === 'asc' ? <ArrowUpDown className="h-4 w-4" /> : <ArrowDownUp className="h-4 w-4" />)}
             </button>
             
             <div className="flex items-center space-x-2 ml-auto">
@@ -498,7 +498,7 @@ export function ActivityLibrary({
                   viewMode === 'grid' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
                 }`}
               >
-                <Grid3X3 className="h-5 w-5" />
+                <Grid3x3 className="h-5 w-5" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
