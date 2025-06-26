@@ -585,42 +585,6 @@ export function LessonLibraryCard({
             </div>
           </div>
           <div className="flex items-center space-x-1">
-            {onAssignToUnit && halfTerms.length > 0 && (
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowAssignDropdown(!showAssignDropdown);
-                  }}
-                  className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                  title="Assign to Unit"
-                >
-                  <FolderPlus className="h-4 w-4" />
-                </button>
-                
-                {showAssignDropdown && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
-                    <div className="p-2 border-b border-gray-200">
-                      <h3 className="text-xs font-medium text-gray-700">Assign to Half-Term</h3>
-                    </div>
-                    <div className="p-2 max-h-60 overflow-y-auto">
-                      {halfTerms.map(halfTerm => (
-                        <button
-                          key={halfTerm.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAssignToHalfTerm(halfTerm.id);
-                          }}
-                          className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                        >
-                          {halfTerm.name} ({halfTerm.months})
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
             {onDelete && (
               <button
                 onClick={(e) => {
@@ -660,42 +624,6 @@ export function LessonLibraryCard({
                 {lessonData.title || `Lesson ${lessonNumber}`}
               </h4>
               <div className="flex items-center space-x-1">
-                {onAssignToUnit && halfTerms.length > 0 && (
-                  <div className="relative" ref={dropdownRef}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowAssignDropdown(!showAssignDropdown);
-                      }}
-                      className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200 mr-1"
-                      title="Assign to Unit"
-                    >
-                      <FolderPlus className="h-4 w-4" />
-                    </button>
-                    
-                    {showAssignDropdown && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
-                        <div className="p-2 border-b border-gray-200">
-                          <h3 className="text-xs font-medium text-gray-700">Assign to Half-Term</h3>
-                        </div>
-                        <div className="p-2 max-h-60 overflow-y-auto">
-                          {halfTerms.map(halfTerm => (
-                            <button
-                              key={halfTerm.id}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAssignToHalfTerm(halfTerm.id);
-                              }}
-                              className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                            >
-                              {halfTerm.name} ({halfTerm.months})
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
                 {onDelete && (
                   <button
                     onClick={(e) => {
@@ -770,42 +698,6 @@ export function LessonLibraryCard({
               Lesson {lessonNumber}
             </h3>
             <div className="flex items-center space-x-1">
-              {onAssignToUnit && halfTerms.length > 0 && (
-                <div className="relative" ref={dropdownRef}>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowAssignDropdown(!showAssignDropdown);
-                    }}
-                    className="p-1.5 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors duration-200"
-                    title="Assign to Unit"
-                  >
-                    <FolderPlus className="h-4 w-4" />
-                  </button>
-                  
-                  {showAssignDropdown && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
-                      <div className="p-2 border-b border-gray-200">
-                        <h3 className="text-xs font-medium text-gray-700">Assign to Half-Term</h3>
-                      </div>
-                      <div className="p-2 max-h-60 overflow-y-auto">
-                        {halfTerms.map(halfTerm => (
-                          <button
-                            key={halfTerm.id}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAssignToHalfTerm(halfTerm.id);
-                            }}
-                            className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                          >
-                            {halfTerm.name} ({halfTerm.months})
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
               {onDelete && (
                 <button
                   onClick={(e) => {
