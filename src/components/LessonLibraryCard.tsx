@@ -377,7 +377,10 @@ export function LessonLibraryCard({
                                       </span>
                                     )}
                                     <button
-                                      onClick={() => handleEditActivity(activity)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditActivity(activity);
+                                      }}
                                       className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors duration-200"
                                     >
                                       <Edit3 className="h-4 w-4" />

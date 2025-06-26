@@ -62,7 +62,7 @@ export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
   // Get theme colors for current class
-  const theme = getThemeForClass(currentSheetInfo.sheet);
+  const theme = getThemeForClass(className);
 
   // Filter and sort lessons
   const filteredAndSortedLessons = useMemo(() => {
