@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Clock, Users, Tag, X, ExternalLink, FileText, Edit3, Save, FolderPlus, ChevronDown, Trash2, Calendar } from 'lucide-react';
+import { Clock, Users, Tag, X, ExternalLink, FileText, Edit3, Save, FolderPlus, ChevronDown, Trash2, Calendar, Hand } from 'lucide-react';
 import type { LessonData, Activity } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useData } from '../contexts/DataContext';
@@ -44,6 +44,7 @@ export function LessonLibraryCard({
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [editedTitle, setEditedTitle] = useState<string | null>(null);
   const [showAssignDropdown, setShowAssignDropdown] = useState(false);
+  const [expandedEyfsAreas, setExpandedEyfsAreas] = useState<string[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   // Calculate total activities
@@ -180,6 +181,35 @@ export function LessonLibraryCard({
     return text.replace(/\n/g, '<br>');
   };
 
+  // Group EYFS statements by area
+  const groupedEyfs = React.useMemo(() => {
+    const lessonEyfsStatements = eyfsStatements[lessonNumber] || [];
+    const grouped: Record<string, string[]> = {};
+    
+    lessonEyfsStatements.forEach(statement => {
+      const parts = statement.split(':');
+      const area = parts[0].trim();
+      const detail = parts.length > 1 ? parts[1].trim() : statement;
+      
+      if (!grouped[area]) {
+        grouped[area] = [];
+      }
+      
+      grouped[area].push(detail);
+    });
+    
+    return grouped;
+  }, [eyfsStatements, lessonNumber]);
+
+  // Toggle EYFS area expansion
+  const toggleEyfsArea = (area: string) => {
+    setExpandedEyfsAreas(prev => 
+      prev.includes(area) 
+        ? prev.filter(a => a !== area)
+        : [...prev, area]
+    );
+  };
+
   if (isExpanded) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
@@ -277,12 +307,64 @@ export function LessonLibraryCard({
                     <span className="text-base font-medium">Delete</span>
                   </button>
                 )}
+                <button
+                  onClick={handleSaveTitle}
+                  className="p-3 bg-green-500 bg-opacity-80 hover:bg-opacity-100 rounded-lg transition-all duration-200 flex items-center space-x-2"
+                  title="Save Changes"
+                >
+                  <Save className="h-6 w-6" />
+                  <span className="text-base font-medium">Save</span>
+                </button>
               </div>
             </div>
           </div>
 
           {/* Content - Scrollable */}
           <div className="flex-1 overflow-y-auto p-6">
+            {/* EYFS Standards Section */}
+            {Object.keys(groupedEyfs).length > 0 && (
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-6">
+                <h3 className="text-lg font-semibold text-blue-900 mb-3 flex items-center space-x-2">
+                  <Tag className="h-5 w-5 text-blue-600" />
+                  <span>EYFS Standards</span>
+                </h3>
+                
+                <div className="space-y-3">
+                  {Object.entries(groupedEyfs).map(([area, details]) => (
+                    <div key={area} className="bg-white rounded-lg p-3 border border-blue-100">
+                      <button 
+                        className="w-full flex items-center justify-between text-left font-medium text-blue-800 text-sm mb-2"
+                        onClick={() => toggleEyfsArea(area)}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <Hand className="h-4 w-4 text-blue-600" />
+                          <span>{area}</span>
+                        </div>
+                        <ChevronDown 
+                          className={`h-4 w-4 text-blue-600 transition-transform duration-200 ${
+                            expandedEyfsAreas.includes(area) ? 'rotate-180' : ''
+                          }`} 
+                        />
+                      </button>
+                      
+                      {expandedEyfsAreas.includes(area) && (
+                        <ul className="space-y-1 mt-2 pl-6">
+                          {details.map((detail, index) => (
+                            <li key={index} className="flex items-start space-x-2 text-sm text-gray-700">
+                              <svg className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span>{detail}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Categories and Activities */}
             <div className="space-y-8">
               {lessonData.categoryOrder.map((category) => {
@@ -432,7 +514,7 @@ export function LessonLibraryCard({
                                           href={activity.videoLink} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
+                                          className="flex items-center space-x-2 p-2 rounded-lg border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-colors cursor-pointer"
                                           onClick={(e) => e.stopPropagation()}
                                         >
                                           <span className="text-sm font-medium">Video</span>
@@ -444,7 +526,7 @@ export function LessonLibraryCard({
                                           href={activity.musicLink} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+                                          className="flex items-center space-x-2 p-2 rounded-lg border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 transition-colors cursor-pointer"
                                           onClick={(e) => e.stopPropagation()}
                                         >
                                           <span className="text-sm font-medium">Music</span>
@@ -456,7 +538,7 @@ export function LessonLibraryCard({
                                           href={activity.backingLink} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+                                          className="flex items-center space-x-2 p-2 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer"
                                           onClick={(e) => e.stopPropagation()}
                                         >
                                           <span className="text-sm font-medium">Backing</span>
@@ -468,7 +550,7 @@ export function LessonLibraryCard({
                                           href={activity.resourceLink} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors"
+                                          className="flex items-center space-x-2 p-2 rounded-lg border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors cursor-pointer"
                                           onClick={(e) => e.stopPropagation()}
                                         >
                                           <span className="text-sm font-medium">Resource</span>
@@ -480,7 +562,7 @@ export function LessonLibraryCard({
                                           href={activity.link} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors"
+                                          className="flex items-center space-x-2 p-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
                                           onClick={(e) => e.stopPropagation()}
                                         >
                                           <span className="text-sm font-medium">Link</span>
@@ -492,7 +574,7 @@ export function LessonLibraryCard({
                                           href={activity.vocalsLink} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors"
+                                          className="flex items-center space-x-2 p-2 rounded-lg border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors cursor-pointer"
                                           onClick={(e) => e.stopPropagation()}
                                         >
                                           <span className="text-sm font-medium">Vocals</span>
@@ -504,7 +586,7 @@ export function LessonLibraryCard({
                                           href={activity.imageLink} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
-                                          className="flex items-center space-x-2 p-2 rounded-lg border border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 transition-colors"
+                                          className="flex items-center space-x-2 p-2 rounded-lg border border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 transition-colors cursor-pointer"
                                           onClick={(e) => e.stopPropagation()}
                                         >
                                           <span className="text-sm font-medium">Image</span>
