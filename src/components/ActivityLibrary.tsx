@@ -68,8 +68,9 @@ export function ActivityLibrary({
     }
   };
 
-  // Load activities from server or extract from lessons data
+  // Load library activities
   useEffect(() => {
+    // Load library activities
     const fetchActivities = async () => {
       setLoading(true);
       try {
@@ -97,9 +98,11 @@ export function ActivityLibrary({
           });
           
           // Remove duplicates based on activity name and category
-          activities = extractedActivities.filter((activity, index, self) => 
+          const uniqueActivities = extractedActivities.filter((activity, index, self) => 
             index === self.findIndex(a => a.activity === activity.activity && a.category === activity.category)
           );
+          
+          activities = uniqueActivities;
           
           // Save to localStorage
           localStorage.setItem('library-activities', JSON.stringify(activities));
@@ -127,7 +130,7 @@ export function ActivityLibrary({
     };
     
     fetchActivities();
-  }, [allLessonsData]);
+  }, [allLessonsData, currentSheetInfo.sheet]);
 
   // Get unique categories and levels
   const uniqueCategories = useMemo(() => {
@@ -306,16 +309,16 @@ export function ActivityLibrary({
   const handleViewActivityDetails = (activity: Activity, initialResource?: {url: string, title: string, type: string}) => {
     setSelectedActivityDetails(activity);
     if (initialResource) {
-      setInitialResourceToOpen(initialResource);
+      setInitialResource(initialResource);
     } else {
-      setInitialResourceToOpen(null);
+      setInitialResource(null);
     }
   };
 
   const handleResourceClick = (url: string, title: string, type: string) => {
     // If we have a selected activity, open the resource in the ActivityDetails modal
     if (selectedActivityDetails) {
-      setInitialResourceToOpen({url, title, type});
+      setInitialResource({url, title, type});
     } else {
       // Find the activity that contains this resource
       const activity = libraryActivities.find(a => 
@@ -554,7 +557,7 @@ export function ActivityLibrary({
       {/* Activity Grid */}
       <div className="p-6">
         {loading ? (
-          <div className="text-center py-12">
+          <div className="text-center py-8">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Loading activities...</p>
           </div>
@@ -565,9 +568,30 @@ export function ActivityLibrary({
             <p className="text-gray-600">
               {searchQuery || localSelectedCategory !== 'all' || selectedLevel !== 'all'
                 ? 'Try adjusting your search or filters'
-                : 'No activities available in the library'
+                : 'No activities available in the library. Create a new activity or import activities to get started.'
               }
             </p>
+            {(searchQuery || localSelectedCategory !== 'all' || selectedLevel !== 'all') && (
+              <button 
+                onClick={() => {
+                  setSearchQuery('');
+                  handleCategoryChange('all');
+                  setSelectedLevel('all');
+                }}
+                className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm"
+              >
+                Clear Filters
+              </button>
+            )}
+            {!searchQuery && localSelectedCategory === 'all' && selectedLevel === 'all' && (
+              <button 
+                onClick={() => setShowCreator(true)}
+                className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm flex items-center space-x-2 mx-auto"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Create First Activity</span>
+              </button>
+            )}
           </div>
         ) : (
           <div className={`
@@ -604,7 +628,7 @@ export function ActivityLibrary({
           onClose={() => {
             setSelectedActivityDetails(null);
             setEditingActivity(null);
-            setInitialResourceToOpen(null);
+            setInitialResource(null);
           }}
           onAddToLesson={() => {
             onActivitySelect(selectedActivityDetails);
