@@ -244,6 +244,12 @@ export function DataProvider({ children }: DataProviderProps) {
 
   const loadUserCreatedLessonPlans = () => {
     try {
+      // If data was cleared, don't load any plans
+      if (dataWasCleared) {
+        setUserCreatedLessonPlans([]);
+        return;
+      }
+      
       // First try to load from Supabase if connected
       if (isSupabaseConfigured()) {
         supabase
@@ -287,6 +293,12 @@ export function DataProvider({ children }: DataProviderProps) {
 
   const loadUserCreatedLessonPlansFromLocalStorage = () => {
     try {
+      // If data was cleared, don't load any plans
+      if (dataWasCleared) {
+        setUserCreatedLessonPlans([]);
+        return;
+      }
+      
       const savedPlans = localStorage.getItem('user-created-lesson-plans');
       if (savedPlans) {
         const plans = JSON.parse(savedPlans).map((plan: any) => ({
@@ -553,6 +565,12 @@ export function DataProvider({ children }: DataProviderProps) {
 
   const loadEyfsStatements = async () => {
     try {
+      // If data was cleared, set empty state
+      if (dataWasCleared) {
+        setAllEyfsStatements(DEFAULT_EYFS_STATEMENTS);
+        return;
+      }
+      
       // Try to load from Supabase if connected
       if (isSupabaseConfigured()) {
         try {
@@ -596,6 +614,17 @@ export function DataProvider({ children }: DataProviderProps) {
   const loadData = async () => {
     try {
       setLoading(true);
+      
+      // If data was cleared, set empty state
+      if (dataWasCleared) {
+        console.log(`Data was cleared, setting empty state for ${currentSheetInfo.sheet}`);
+        setAllLessonsData({});
+        setLessonNumbers([]);
+        setTeachingUnits([]);
+        setEyfsStatements({});
+        setLoading(false);
+        return;
+      }
       
       // Try to load from Supabase if connected
       if (isSupabaseConfigured()) {
@@ -679,7 +708,7 @@ export function DataProvider({ children }: DataProviderProps) {
     } catch (error) {
       console.error(`Sample data loading failed for ${currentSheetInfo.sheet}:`, error);
       
-      // Set minimal fallback data
+      // Set empty data instead of minimal fallback data
       setLessonNumbers([]);
       setTeachingUnits([]);
       setAllLessonsData({});

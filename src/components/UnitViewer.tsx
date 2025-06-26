@@ -77,7 +77,7 @@ export function UnitViewer() {
         setUnits([]);
       }
     } else {
-      // Initialize with an empty array instead of sample units
+      // Initialize with an empty array
       setUnits([]);
       localStorage.setItem('units', JSON.stringify([]));
     }

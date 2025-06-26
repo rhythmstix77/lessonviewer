@@ -49,7 +49,7 @@ export function ActivityLibrary({
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [selectedActivityDetails, setSelectedActivityDetails] = useState<Activity | null>(null);
-  const [initialResourceToOpen, setInitialResourceToOpen] = useState<{url: string, title: string, type: string} | null>(null);
+  const [initialResource, setInitialResource] = useState<{url: string, title: string, type: string} | null>(null);
   const [showImporter, setShowImporter] = useState(false);
   const [showCreator, setShowCreator] = useState(false);
   const [libraryActivities, setLibraryActivities] = useState<Activity[]>([]);
@@ -120,6 +120,7 @@ export function ActivityLibrary({
         setLibraryActivities(activities);
       } catch (error) {
         console.error('Failed to load activities:', error);
+        setLibraryActivities([]);
       } finally {
         setLoading(false);
       }
@@ -615,7 +616,7 @@ export function ActivityLibrary({
             setEditingActivity(null);
             setSelectedActivityDetails(null);
           }}
-          initialResource={initialResourceToOpen}
+          initialResource={initialResource}
         />
       )}
 
