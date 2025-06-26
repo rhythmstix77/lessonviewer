@@ -27,6 +27,16 @@ interface LessonLibraryCardProps {
   onDelete?: (lessonNumber: string) => void;
 }
 
+// Map term IDs to readable names
+const TERM_NAMES: Record<string, string> = {
+  'A1': 'Autumn 1',
+  'A2': 'Autumn 2',
+  'SP1': 'Spring 1',
+  'SP2': 'Spring 2',
+  'SM1': 'Summer 1',
+  'SM2': 'Summer 2',
+};
+
 export function LessonLibraryCard({
   lessonNumber,
   lessonData,
@@ -632,7 +642,7 @@ export function LessonLibraryCard({
           </div>
         </div>
         
-        {/* Action buttons - Positioned absolutely with proper spacing */}
+        {/* Action buttons - Larger, more accessible hover area */}
         <div className="absolute top-0 right-0 h-full flex items-center pr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           {onAssignToUnit && halfTerms.length > 0 && (
             <div className="mr-2" ref={dropdownRef}>
@@ -641,10 +651,10 @@ export function LessonLibraryCard({
                   e.stopPropagation();
                   handleAssignClick(e);
                 }}
-                className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm"
+                className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm"
                 title="Assign to Unit"
               >
-                <Calendar className="h-4 w-4" />
+                <Calendar className="h-5 w-5" />
               </button>
               
               {showAssignDropdown && (
@@ -677,10 +687,10 @@ export function LessonLibraryCard({
                 e.stopPropagation();
                 onDelete(lessonNumber);
               }}
-              className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+              className="p-2.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
               title="Delete Lesson"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-5 w-5" />
             </button>
           )}
         </div>
@@ -721,25 +731,9 @@ export function LessonLibraryCard({
                 </div>
               </div>
               
-              <div className="mt-2 flex flex-wrap gap-1">
-                {lessonData.categoryOrder.slice(0, 3).map(category => (
-                  <span 
-                    key={category}
-                    className="px-1.5 py-0.5 text-xs rounded-full"
-                    style={{
-                      backgroundColor: `${getCategoryColor(category)}20`,
-                      color: getCategoryColor(category)
-                    }}
-                  >
-                    {category}
-                  </span>
-                ))}
-                {lessonData.categoryOrder.length > 3 && (
-                  <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
-                    +{lessonData.categoryOrder.length - 3}
-                  </span>
-                )}
-              </div>
+              <p className="mt-2 text-sm text-gray-600 line-clamp-1" dir="ltr">
+                {getFirstActivityDescription()}
+              </p>
             </div>
           </div>
         </div>
@@ -753,10 +747,10 @@ export function LessonLibraryCard({
                   e.stopPropagation();
                   handleAssignClick(e);
                 }}
-                className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm flex items-center space-x-1"
+                className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm flex items-center space-x-1"
                 title="Assign to Unit"
               >
-                <FolderPlus className="h-4 w-4" />
+                <FolderPlus className="h-5 w-5" />
                 <span className="text-xs">Assign</span>
               </button>
               
@@ -790,10 +784,10 @@ export function LessonLibraryCard({
                 e.stopPropagation();
                 onDelete(lessonNumber);
               }}
-              className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+              className="p-2.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
               title="Delete Lesson"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-5 w-5" />
             </button>
           )}
         </div>
@@ -884,10 +878,10 @@ export function LessonLibraryCard({
                   e.stopPropagation();
                   handleAssignClick(e);
                 }}
-                className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm"
+                className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm"
                 title="Assign to Unit"
               >
-                <FolderPlus className="h-4 w-4" />
+                <FolderPlus className="h-5 w-5" />
               </button>
               
               {showAssignDropdown && (
@@ -920,10 +914,10 @@ export function LessonLibraryCard({
                 e.stopPropagation();
                 onDelete(lessonNumber);
               }}
-              className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+              className="p-2.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
               title="Delete Lesson"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-5 w-5" />
             </button>
           )}
         </div>
