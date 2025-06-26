@@ -39,7 +39,7 @@ export function ActivityLibrary({
   selectedCategory = 'all',
   onCategoryChange
 }: ActivityLibraryProps) {
-  const { allLessonsData } = useData();
+  const { allLessonsData, currentSheetInfo } = useData();
   const { getCategoryColor, categories } = useSettings();
   const [searchQuery, setSearchQuery] = useState('');
   const [localSelectedCategory, setLocalSelectedCategory] = useState(selectedCategory);
@@ -130,7 +130,7 @@ export function ActivityLibrary({
     };
     
     fetchActivities();
-  }, [allLessonsData, currentSheetInfo.sheet]);
+  }, [allLessonsData, currentSheetInfo?.sheet]);
 
   // Get unique categories and levels
   const uniqueCategories = useMemo(() => {
