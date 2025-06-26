@@ -240,7 +240,7 @@ export function LessonDetailsModal({
                       <button
                         key={`${category}-${index}`}
                         onClick={() => setSelectedActivity(activity)}
-                        className="w-full text-left bg-gray-50 hover:bg-blue-50 rounded-xl border border-gray-200 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow-md overflow-hidden"
+                        className="w-full text-left bg-gray-50 hover:bg-blue-50 rounded-xl border border-gray-200 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow-md overflow-hidden cursor-pointer"
                       >
                         {/* Activity Header */}
                         <div className="p-4 border-b border-gray-200 bg-white">
@@ -309,16 +309,15 @@ export function LessonDetailsModal({
                                     href={activity.videoLink} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
-                                    className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                    className="p-2 rounded-lg border transition-colors text-red-700 bg-red-50 border-red-200 hover:bg-red-100 flex items-center cursor-pointer"
                                     onClick={(e) => {
                                       e.preventDefault();
                                       e.stopPropagation();
                                       handleResourceClick(activity.videoLink, `${activity.activity} - Video`, 'video');
                                     }}
                                   >
-                                    <span className="w-2 h-2 bg-red-500 rounded-full mr-1"></span>
-                                    Video Link
-                                    <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
+                                    <span className="text-sm font-medium truncate">Video</span>
+                                    <ExternalLink className="h-3.5 w-3.5 ml-auto flex-shrink-0" />
                                   </a>
                                 )}
                                 {activity.musicLink && (
@@ -326,16 +325,15 @@ export function LessonDetailsModal({
                                     href={activity.musicLink} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
-                                    className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                    className="p-2 rounded-lg border transition-colors text-green-700 bg-green-50 border-green-200 hover:bg-green-100 flex items-center cursor-pointer"
                                     onClick={(e) => {
                                       e.preventDefault();
                                       e.stopPropagation();
                                       handleResourceClick(activity.musicLink, `${activity.activity} - Music`, 'music');
                                     }}
                                   >
-                                    <span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                                    Music Link
-                                    <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
+                                    <span className="text-sm font-medium truncate">Music</span>
+                                    <ExternalLink className="h-3.5 w-3.5 ml-auto flex-shrink-0" />
                                   </a>
                                 )}
                                 {activity.backingLink && (
@@ -343,16 +341,15 @@ export function LessonDetailsModal({
                                     href={activity.backingLink} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
-                                    className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                    className="p-2 rounded-lg border transition-colors text-blue-700 bg-blue-50 border-blue-200 hover:bg-blue-100 flex items-center cursor-pointer"
                                     onClick={(e) => {
                                       e.preventDefault();
                                       e.stopPropagation();
                                       handleResourceClick(activity.backingLink, `${activity.activity} - Backing Track`, 'backing');
                                     }}
                                   >
-                                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-1"></span>
-                                    Backing Track
-                                    <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
+                                    <span className="text-sm font-medium truncate">Backing</span>
+                                    <ExternalLink className="h-3.5 w-3.5 ml-auto flex-shrink-0" />
                                   </a>
                                 )}
                                 {activity.resourceLink && (
@@ -360,16 +357,15 @@ export function LessonDetailsModal({
                                     href={activity.resourceLink} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
-                                    className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                    className="p-2 rounded-lg border transition-colors text-purple-700 bg-purple-50 border-purple-200 hover:bg-purple-100 flex items-center cursor-pointer"
                                     onClick={(e) => {
                                       e.preventDefault();
                                       e.stopPropagation();
                                       handleResourceClick(activity.resourceLink, `${activity.activity} - Resource`, 'resource');
                                     }}
                                   >
-                                    <span className="w-2 h-2 bg-purple-500 rounded-full mr-1"></span>
-                                    Resource
-                                    <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
+                                    <span className="text-sm font-medium truncate">Resource</span>
+                                    <ExternalLink className="h-3.5 w-3.5 ml-auto flex-shrink-0" />
                                   </a>
                                 )}
                                 {activity.link && (
@@ -377,16 +373,15 @@ export function LessonDetailsModal({
                                     href={activity.link} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
-                                    className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                    className="p-2 rounded-lg border transition-colors text-gray-700 bg-gray-50 border-gray-200 hover:bg-gray-100 flex items-center cursor-pointer"
                                     onClick={(e) => {
                                       e.preventDefault();
                                       e.stopPropagation();
                                       handleResourceClick(activity.link, `${activity.activity} - Link`, 'link');
                                     }}
                                   >
-                                    <span className="w-2 h-2 bg-gray-500 rounded-full mr-1"></span>
-                                    Additional Link
-                                    <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
+                                    <span className="text-sm font-medium truncate">Link</span>
+                                    <ExternalLink className="h-3.5 w-3.5 ml-auto flex-shrink-0" />
                                   </a>
                                 )}
                                 {activity.vocalsLink && (
@@ -394,16 +389,15 @@ export function LessonDetailsModal({
                                     href={activity.vocalsLink} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
-                                    className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                    className="p-2 rounded-lg border transition-colors text-orange-700 bg-orange-50 border-orange-200 hover:bg-orange-100 flex items-center cursor-pointer"
                                     onClick={(e) => {
                                       e.preventDefault();
                                       e.stopPropagation();
                                       handleResourceClick(activity.vocalsLink, `${activity.activity} - Vocals`, 'vocals');
                                     }}
                                   >
-                                    <span className="w-2 h-2 bg-orange-500 rounded-full mr-1"></span>
-                                    Vocals
-                                    <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
+                                    <span className="text-sm font-medium truncate">Vocals</span>
+                                    <ExternalLink className="h-3.5 w-3.5 ml-auto flex-shrink-0" />
                                   </a>
                                 )}
                                 {activity.imageLink && (
@@ -411,16 +405,15 @@ export function LessonDetailsModal({
                                     href={activity.imageLink} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
-                                    className="text-xs text-blue-600 hover:text-blue-800 hover:underline truncate flex items-center"
+                                    className="p-2 rounded-lg border transition-colors text-pink-700 bg-pink-50 border-pink-200 hover:bg-pink-100 flex items-center cursor-pointer"
                                     onClick={(e) => {
                                       e.preventDefault();
                                       e.stopPropagation();
                                       handleResourceClick(activity.imageLink, `${activity.activity} - Image`, 'image');
                                     }}
                                   >
-                                    <span className="w-2 h-2 bg-pink-500 rounded-full mr-1"></span>
-                                    Image
-                                    <ExternalLink className="h-3 w-3 ml-1 flex-shrink-0" />
+                                    <span className="text-sm font-medium truncate">Image</span>
+                                    <ExternalLink className="h-3.5 w-3.5 ml-auto flex-shrink-0" />
                                   </a>
                                 )}
                               </div>
