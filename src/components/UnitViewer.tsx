@@ -1,5 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { FolderOpen, Search, Filter, Grid as Grid3x3, List, MoreVertical, ChevronLeft, Clock, BookOpen, Calendar, Tag, X, Download, Edit3, Eye, EyeOff } from 'lucide-react';
+import { 
+  FolderOpen, 
+  Search, 
+  Filter, 
+  Grid, 
+  List, 
+  MoreVertical, 
+  ChevronLeft, 
+  Clock, 
+  BookOpen, 
+  Calendar, 
+  Tag, 
+  X,
+  Download,
+  Edit3,
+  Eye,
+  EyeOff
+} from 'lucide-react';
 import { UnitCard } from './UnitCard';
 import { LessonLibraryCard } from './LessonLibraryCard';
 import { ActivityDetails } from './ActivityDetails';
@@ -326,7 +343,7 @@ export function UnitViewer() {
                     viewMode === 'grid' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
                   }`}
                 >
-                  <Grid3x3 className="h-5 w-5" />
+                  <Grid className="h-5 w-5" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}

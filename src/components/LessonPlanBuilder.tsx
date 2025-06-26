@@ -1,13 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { Save, Clock, Users, Search, Grid as Grid3x3, List, Tag, ArrowUpDown, ArrowDownUp, MoreVertical, Plus, Check, Filter, Edit3, FolderOpen, AlertCircle, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { 
+  Save, 
+  Clock, 
+  Users, 
+  Search,
+  Grid,
+  List,
+  Tag,
+  ArrowUpDown,
+  ArrowDownUp,
+  MoreVertical,
+  Plus,
+  Check,
+  Filter,
+  Edit3,
+  FolderOpen,
+  AlertCircle,
+  Calendar,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
 import { ActivityCard } from './ActivityCard';
 import { LessonDropZone } from './LessonDropZone';
 import { ActivityDetails } from './ActivityDetails';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
-import type { Activity, LessonPlan } from '../contexts/DataContext';
+import type { Activity } from '../contexts/DataContext';
 
 // Define half-term periods
 const HALF_TERMS = [
@@ -18,6 +38,23 @@ const HALF_TERMS = [
   { id: 'SM1', name: 'Summer 1', months: 'Apr-May' },
   { id: 'SM2', name: 'Summer 2', months: 'Jun-Jul' },
 ];
+
+interface LessonPlan {
+  id: string;
+  date: Date;
+  week: number;
+  className: string;
+  activities: Activity[];
+  duration: number;
+  notes: string;
+  status: 'planned' | 'completed' | 'cancelled';
+  createdAt: Date;
+  updatedAt: Date;
+  unitId?: string;
+  unitName?: string;
+  title?: string;
+  term?: string;
+}
 
 interface Unit {
   id: string;
@@ -31,35 +68,8 @@ interface Unit {
 }
 
 export function LessonPlanBuilder() {
-  const { currentSheetInfo, allLessonsData, userCreatedLessonPlans, addOrUpdateUserLessonPlan, deleteUserLessonPlan, lessonNumbers } = useData();
+  const { currentSheetInfo, allLessonsData } = useData();
   const { categories } = useSettings();
-  
-  // Helper function to get the next available lesson number
-  const getNextAvailableLessonNumber = () => {
-    // Get all existing lesson numbers from both imported data and user-created plans
-    const existingNumbers = [...lessonNumbers];
-    
-    // Add lesson numbers from user-created plans that might not be in lessonNumbers yet
-    userCreatedLessonPlans.forEach(plan => {
-      if (plan.lessonNumber && !existingNumbers.includes(plan.lessonNumber)) {
-        existingNumbers.push(plan.lessonNumber);
-      }
-    });
-    
-    // Convert to integers and find the maximum
-    const numericLessonNumbers = existingNumbers
-      .map(num => parseInt(num))
-      .filter(num => !isNaN(num));
-    
-    // If there are no existing lesson numbers, start with 1
-    if (numericLessonNumbers.length === 0) {
-      return "1";
-    }
-    
-    // Find the maximum and add 1
-    const maxLessonNumber = Math.max(...numericLessonNumbers);
-    return (maxLessonNumber + 1).toString();
-  };
   
   // Initialize currentLessonPlan with a default value instead of null
   const [currentLessonPlan, setCurrentLessonPlan] = useState<LessonPlan>(() => ({
@@ -73,11 +83,11 @@ export function LessonPlanBuilder() {
     status: 'draft', // Changed from 'planned' to 'draft' to be more accurate
     title: '', // Empty title by default
     term: 'A1', // Default to Autumn 1
-    lessonNumber: getNextAvailableLessonNumber(), // Assign a lesson number
     createdAt: new Date(),
     updatedAt: new Date(),
   }));
   
+  const [lessonPlans, setLessonPlans] = useState<LessonPlan[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
@@ -91,8 +101,19 @@ export function LessonPlanBuilder() {
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Load library activities
+  // Load lesson plans from localStorage
   useEffect(() => {
+    const savedPlans = localStorage.getItem('lesson-plans');
+    if (savedPlans) {
+      const plans = JSON.parse(savedPlans).map((plan: any) => ({
+        ...plan,
+        date: new Date(plan.date),
+        createdAt: new Date(plan.createdAt),
+        updatedAt: new Date(plan.updatedAt),
+      }));
+      setLessonPlans(plans);
+    }
+
     // Load library activities
     const savedActivities = localStorage.getItem('library-activities');
     if (savedActivities) {
@@ -116,6 +137,12 @@ export function LessonPlanBuilder() {
     }
   }, [allLessonsData, currentSheetInfo.sheet]);
 
+  // Save lesson plans to localStorage
+  const saveLessonPlans = (plans: LessonPlan[]) => {
+    localStorage.setItem('lesson-plans', JSON.stringify(plans));
+    setLessonPlans(plans);
+  };
+
   // Save library activities to localStorage
   const saveLibraryActivities = (activities: Activity[]) => {
     localStorage.setItem('library-activities', JSON.stringify(activities));
@@ -126,15 +153,21 @@ export function LessonPlanBuilder() {
     try {
       // Validate that the plan has a title
       if (!updatedPlan.title.trim()) {
-        alert('Please provide a lesson title');
+        alert('Please provide a unit name');
         setSaveStatus('error');
         setTimeout(() => setSaveStatus('idle'), 3000);
         return false;
       }
       
-      // Update the lesson plan using the context function
-      addOrUpdateUserLessonPlan(updatedPlan);
+      const updatedPlans = lessonPlans.map(plan => 
+        plan.id === updatedPlan.id ? { ...updatedPlan, updatedAt: new Date() } : plan
+      );
       
+      if (!lessonPlans.find(plan => plan.id === updatedPlan.id)) {
+        updatedPlans.push({ ...updatedPlan, updatedAt: new Date() });
+      }
+      
+      saveLessonPlans(updatedPlans);
       setCurrentLessonPlan(updatedPlan);
       setSaveStatus('success');
       setHasUnsavedChanges(false);
@@ -228,7 +261,6 @@ export function LessonPlanBuilder() {
         status: 'draft',
         title: '',
         term: currentLessonPlan.term, // Keep the same term
-        lessonNumber: getNextAvailableLessonNumber(), // Assign a new lesson number
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -249,13 +281,13 @@ export function LessonPlanBuilder() {
     }
     
     // Find the current lesson in the list of saved lessons
-    const currentIndex = userCreatedLessonPlans.findIndex(plan => plan.id === currentLessonPlan.id);
+    const currentIndex = lessonPlans.findIndex(plan => plan.id === currentLessonPlan.id);
     
     if (currentIndex === -1) {
       // Current lesson is not saved yet
-      if (direction === 'prev' && userCreatedLessonPlans.length > 0) {
+      if (direction === 'prev' && lessonPlans.length > 0) {
         // Navigate to the last saved lesson
-        setCurrentLessonPlan(userCreatedLessonPlans[userCreatedLessonPlans.length - 1]);
+        setCurrentLessonPlan(lessonPlans[lessonPlans.length - 1]);
       } else if (direction === 'next') {
         // Create a new lesson
         handleCreateNewAfterSave();
@@ -263,10 +295,10 @@ export function LessonPlanBuilder() {
     } else {
       // Current lesson is in the list
       if (direction === 'prev' && currentIndex > 0) {
-        setCurrentLessonPlan(userCreatedLessonPlans[currentIndex - 1]);
-      } else if (direction === 'next' && currentIndex < userCreatedLessonPlans.length - 1) {
-        setCurrentLessonPlan(userCreatedLessonPlans[currentIndex + 1]);
-      } else if (direction === 'next' && currentIndex === userCreatedLessonPlans.length - 1) {
+        setCurrentLessonPlan(lessonPlans[currentIndex - 1]);
+      } else if (direction === 'next' && currentIndex < lessonPlans.length - 1) {
+        setCurrentLessonPlan(lessonPlans[currentIndex + 1]);
+      } else if (direction === 'next' && currentIndex === lessonPlans.length - 1) {
         // Create a new lesson
         handleCreateNewAfterSave();
       }
@@ -559,12 +591,12 @@ export function LessonPlanBuilder() {
             {saveStatus === 'success' ? (
               <>
                 <Check className="h-5 w-5 text-green-600" />
-                <span>Lesson saved successfully!</span>
+                <span>Unit saved successfully!</span>
               </>
             ) : (
               <>
                 <AlertCircle className="h-5 w-5 text-red-600" />
-                <span>Failed to save lesson. Please ensure you've provided a lesson title.</span>
+                <span>Failed to save unit. Please ensure you've provided a unit name.</span>
               </>
             )}
           </div>

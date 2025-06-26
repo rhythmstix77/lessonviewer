@@ -2,14 +2,14 @@ import React, { useState, useMemo } from 'react';
 import { 
   Search, 
   Filter, 
-  Grid3X3, 
+  Grid, 
   List, 
   Plus, 
   BookOpen, 
   Clock, 
   Tag,
-  SortAsc,
-  SortDesc,
+  ArrowUpDown,
+  ArrowDownUp,
   Eye,
   MoreVertical,
   Edit3,
@@ -48,7 +48,7 @@ const LESSON_TO_HALF_TERM: Record<string, string> = {
 };
 
 export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryProps) {
-  const { lessonNumbers, allLessonsData, currentSheetInfo, userCreatedLessonPlans } = useData();
+  const { lessonNumbers, allLessonsData, currentSheetInfo } = useData();
   const { getThemeForClass } = useSettings();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedHalfTerm, setSelectedHalfTerm] = useState<string>('all');
@@ -61,26 +61,9 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
 
-  // Combine imported lessons with user-created lessons
-  const allAvailableLessons = useMemo(() => {
-    // Get all lesson numbers from imported data
-    const importedLessons = lessonNumbers;
-    
-    // Get lesson numbers from user-created plans
-    const userCreatedLessons = userCreatedLessonPlans
-      .filter(plan => plan.lessonNumber && plan.className === currentSheetInfo.sheet)
-      .map(plan => plan.lessonNumber!);
-    
-    // Combine and remove duplicates
-    const allLessons = [...new Set([...importedLessons, ...userCreatedLessons])];
-    
-    // Sort numerically
-    return allLessons.sort((a, b) => parseInt(a) - parseInt(b));
-  }, [lessonNumbers, userCreatedLessonPlans, currentSheetInfo.sheet]);
-
   // Filter and sort lessons
   const filteredAndSortedLessons = useMemo(() => {
-    let filtered = allAvailableLessons.filter(lessonNum => {
+    let filtered = lessonNumbers.filter(lessonNum => {
       const lessonData = allLessonsData[lessonNum];
       if (!lessonData) return false;
       
@@ -138,7 +121,7 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
     });
 
     return filtered;
-  }, [allAvailableLessons, allLessonsData, searchQuery, selectedHalfTerm, sortBy, sortOrder]);
+  }, [lessonNumbers, allLessonsData, searchQuery, selectedHalfTerm, sortBy, sortOrder]);
 
   const toggleSort = (field: 'number' | 'title' | 'activities' | 'time') => {
     if (sortBy === field) {
@@ -168,7 +151,7 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
             <div>
               <h2 className="text-xl font-bold">Lesson Library</h2>
               <p className="text-green-100 text-sm">
-                {filteredAndSortedLessons.length} of {allAvailableLessons.length} lessons
+                {filteredAndSortedLessons.length} of {lessonNumbers.length} lessons
               </p>
             </div>
           </div>
@@ -180,7 +163,7 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
                 viewMode === 'grid' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
               }`}
             >
-              <Grid3X3 className="h-5 w-5" />
+              <Grid className="h-5 w-5" />
             </button>
             <button
               onClick={() => setViewMode('list')}
@@ -237,7 +220,7 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
               }`}
             >
               <span className="text-sm">#</span>
-              {sortBy === 'number' && (sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />)}
+              {sortBy === 'number' && (sortOrder === 'asc' ? <ArrowUpDown className="h-4 w-4" /> : <ArrowDownUp className="h-4 w-4" />)}
             </button>
             <button
               onClick={() => toggleSort('time')}
@@ -246,7 +229,7 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
               }`}
             >
               <Clock className="h-4 w-4" />
-              {sortBy === 'time' && (sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />)}
+              {sortBy === 'time' && (sortOrder === 'asc' ? <ArrowUpDown className="h-4 w-4" /> : <ArrowDownUp className="h-4 w-4" />)}
             </button>
             <button
               onClick={() => toggleSort('activities')}
@@ -255,7 +238,7 @@ export function LessonLibrary({ onLessonSelect, className = '' }: LessonLibraryP
               }`}
             >
               <Tag className="h-4 w-4" />
-              {sortBy === 'activities' && (sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />)}
+              {sortBy === 'activities' && (sortOrder === 'asc' ? <ArrowUpDown className="h-4 w-4" /> : <ArrowDownUp className="h-4 w-4" />)}
             </button>
           </div>
         </div>
