@@ -49,6 +49,7 @@ export function ActivityLibrary({
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [selectedActivityDetails, setSelectedActivityDetails] = useState<Activity | null>(null);
+  const [initialResourceToOpen, setInitialResourceToOpen] = useState<{url: string, title: string, type: string} | null>(null);
   const [showImporter, setShowImporter] = useState(false);
   const [showCreator, setShowCreator] = useState(false);
   const [libraryActivities, setLibraryActivities] = useState<Activity[]>([]);
@@ -301,8 +302,36 @@ export function ActivityLibrary({
     }
   };
 
-  const handleViewActivityDetails = (activity: Activity) => {
+  const handleViewActivityDetails = (activity: Activity, initialResource?: {url: string, title: string, type: string}) => {
     setSelectedActivityDetails(activity);
+    if (initialResource) {
+      setInitialResourceToOpen(initialResource);
+    } else {
+      setInitialResourceToOpen(null);
+    }
+  };
+
+  const handleResourceClick = (url: string, title: string, type: string) => {
+    // If we have a selected activity, open the resource in the ActivityDetails modal
+    if (selectedActivityDetails) {
+      setInitialResourceToOpen({url, title, type});
+    } else {
+      // Find the activity that contains this resource
+      const activity = libraryActivities.find(a => 
+        a.videoLink === url || 
+        a.musicLink === url || 
+        a.backingLink === url || 
+        a.resourceLink === url || 
+        a.link === url || 
+        a.vocalsLink === url || 
+        a.imageLink === url
+      );
+      
+      if (activity) {
+        // Open the activity details with this resource
+        handleViewActivityDetails(activity, {url, title, type});
+      }
+    }
   };
 
   const handleEditActivity = (activity: Activity) => {
@@ -558,6 +587,7 @@ export function ActivityLibrary({
                   categoryColor={getCategoryColor(activity.category)}
                   viewMode={viewMode === 'grid' ? 'detailed' : viewMode === 'list' ? 'compact' : 'minimal'}
                   onActivityClick={handleViewActivityDetails}
+                  onResourceClick={handleResourceClick}
                   draggable={true}
                 />
               </div>
@@ -573,6 +603,7 @@ export function ActivityLibrary({
           onClose={() => {
             setSelectedActivityDetails(null);
             setEditingActivity(null);
+            setInitialResourceToOpen(null);
           }}
           onAddToLesson={() => {
             onActivitySelect(selectedActivityDetails);
@@ -584,6 +615,7 @@ export function ActivityLibrary({
             setEditingActivity(null);
             setSelectedActivityDetails(null);
           }}
+          initialResource={initialResourceToOpen}
         />
       )}
 

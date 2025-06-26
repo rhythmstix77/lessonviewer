@@ -11,6 +11,7 @@ interface ActivityDetailsProps {
   onAddToLesson?: () => void;
   isEditing?: boolean;
   onUpdate?: (updatedActivity: Activity) => void;
+  initialResource?: {url: string, title: string, type: string} | null;
 }
 
 export function ActivityDetails({ 
@@ -18,7 +19,8 @@ export function ActivityDetails({
   onClose, 
   onAddToLesson,
   isEditing = false,
-  onUpdate
+  onUpdate,
+  initialResource = null
 }: ActivityDetailsProps) {
   const { allEyfsStatements, eyfsStatements, addEyfsToLesson, removeEyfsFromLesson } = useData();
   const [selectedLink, setSelectedLink] = useState<{ url: string; title: string; type: string } | null>(null);
@@ -29,6 +31,13 @@ export function ActivityDetails({
   const [isEditMode, setIsEditMode] = useState(isEditing);
   const containerRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+
+  // Set the initial resource if provided
+  useEffect(() => {
+    if (initialResource) {
+      setSelectedLink(initialResource);
+    }
+  }, [initialResource]);
 
   // Fullscreen functionality
   const toggleFullscreen = async () => {
