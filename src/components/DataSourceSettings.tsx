@@ -162,9 +162,9 @@ export function DataSourceSettings() {
       setUploadStatus('success');
       setStatusMessage('All local data has been cleared. The page will reload.');
       
-      // Reload the page after a short delay
+      // Reload the page after a short delay with a parameter to indicate data was cleared
       setTimeout(() => {
-        window.location.reload();
+        window.location.href = window.location.pathname + '?cleared=true' + window.location.hash;
       }, 1500);
     }
   };

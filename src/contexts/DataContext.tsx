@@ -221,8 +221,20 @@ export function DataProvider({ children }: DataProviderProps) {
   const [allEyfsStatements, setAllEyfsStatements] = useState<string[]>(DEFAULT_EYFS_STATEMENTS);
   const [loading, setLoading] = useState(true);
   const [userCreatedLessonPlans, setUserCreatedLessonPlans] = useState<LessonPlan[]>([]);
+  // Flag to track if data was just cleared
+  const [dataWasCleared, setDataWasCleared] = useState(false);
 
   useEffect(() => {
+    // Check if data was just cleared by looking for a URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const cleared = urlParams.get('cleared');
+    if (cleared === 'true') {
+      setDataWasCleared(true);
+      // Remove the parameter from the URL
+      const newUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+    
     loadData();
     // Load EYFS statements
     loadEyfsStatements();
@@ -620,13 +632,34 @@ export function DataProvider({ children }: DataProviderProps) {
             .catch(serverError => console.warn(`Failed to migrate ${currentSheetInfo.sheet} data to Supabase:`, serverError));
         }
       } else {
-        // If no saved data, load sample data
-        await loadSampleData();
+        // If no saved data and data was not just cleared, load sample data
+        // Otherwise, set empty state
+        if (dataWasCleared) {
+          console.log(`Data was cleared, setting empty state for ${currentSheetInfo.sheet}`);
+          setAllLessonsData({});
+          setLessonNumbers([]);
+          setTeachingUnits([]);
+          setEyfsStatements({});
+          setDataWasCleared(false); // Reset the flag
+        } else {
+          // Load sample data only if data wasn't cleared
+          await loadSampleData();
+        }
       }
     } catch (error) {
       console.error('Failed to load data:', error);
-      // Load sample data as fallback
-      await loadSampleData();
+      // If data was cleared, set empty state instead of loading sample data
+      if (dataWasCleared) {
+        console.log(`Data was cleared, setting empty state for ${currentSheetInfo.sheet}`);
+        setAllLessonsData({});
+        setLessonNumbers([]);
+        setTeachingUnits([]);
+        setEyfsStatements({});
+        setDataWasCleared(false); // Reset the flag
+      } else {
+        // Load sample data only if data wasn't cleared
+        await loadSampleData();
+      }
     } finally {
       setLoading(false);
     }
@@ -647,35 +680,9 @@ export function DataProvider({ children }: DataProviderProps) {
       console.error(`Sample data loading failed for ${currentSheetInfo.sheet}:`, error);
       
       // Set minimal fallback data
-      setLessonNumbers(['1']);
-      setTeachingUnits(['Welcome', 'Goodbye']);
-      setAllLessonsData({
-        '1': {
-          grouped: {
-            'Welcome': [{
-              activity: 'Sample Activity',
-              description: `This is a sample activity for ${currentSheetInfo.display}.`,
-              time: 5,
-              videoLink: '',
-              musicLink: '',
-              backingLink: '',
-              resourceLink: '',
-              link: '',
-              vocalsLink: '',
-              imageLink: '',
-              teachingUnit: 'Welcome',
-              category: 'Welcome',
-              level: currentSheetInfo.sheet,
-              unitName: '',
-              lessonNumber: '1'
-            }]
-          },
-          categoryOrder: ['Welcome'],
-          totalTime: 5,
-          eyfsStatements: [],
-          title: 'Sample Lesson'
-        }
-      });
+      setLessonNumbers([]);
+      setTeachingUnits([]);
+      setAllLessonsData({});
       setEyfsStatements({});
     }
   };
@@ -877,71 +884,14 @@ export function DataProvider({ children }: DataProviderProps) {
 
     } catch (error) {
       console.error(`Error processing ${currentSheetInfo.sheet} sheet data:`, error);
-      // Set minimal fallback data
-      setLessonNumbers(['1']);
-      setTeachingUnits(['Welcome', 'Goodbye']);
-      setAllLessonsData({
-        '1': {
-          grouped: {
-            'Welcome': [{
-              activity: 'Data Loading Error',
-              description: `Failed to load ${currentSheetInfo.sheet} data. Please refresh the page.`,
-              time: 0,
-              videoLink: '',
-              musicLink: '',
-              backingLink: '',
-              resourceLink: '',
-              link: '',
-              vocalsLink: '',
-              imageLink: '',
-              teachingUnit: 'Welcome',
-              category: 'Welcome',
-              level: currentSheetInfo.sheet,
-              unitName: '',
-              lessonNumber: '1'
-            }]
-          },
-          categoryOrder: ['Welcome'],
-          totalTime: 0,
-          eyfsStatements: [],
-          title: 'Error Loading Lesson'
-        }
-      });
+      // Set empty data instead of minimal fallback data
+      setLessonNumbers([]);
+      setTeachingUnits([]);
+      setAllLessonsData({});
       setEyfsStatements({});
       
-      // Save minimal data to localStorage
-      saveDataToLocalStorage(
-        {
-          '1': {
-            grouped: {
-              'Welcome': [{
-                activity: 'Data Loading Error',
-                description: `Failed to load ${currentSheetInfo.sheet} data. Please refresh the page.`,
-                time: 0,
-                videoLink: '',
-                musicLink: '',
-                backingLink: '',
-                resourceLink: '',
-                link: '',
-                vocalsLink: '',
-                imageLink: '',
-                teachingUnit: 'Welcome',
-                category: 'Welcome',
-                level: currentSheetInfo.sheet,
-                unitName: '',
-                lessonNumber: '1'
-              }]
-            },
-            categoryOrder: ['Welcome'],
-            totalTime: 0,
-            eyfsStatements: [],
-            title: 'Error Loading Lesson'
-          }
-        },
-        ['1'],
-        ['Welcome', 'Goodbye'],
-        {}
-      );
+      // Save empty data to localStorage
+      saveDataToLocalStorage({}, [], [], {});
     }
   };
 
