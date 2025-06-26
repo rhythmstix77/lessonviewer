@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Upload, RefreshCw, CheckCircle, AlertCircle, X, Database, Server } from 'lucide-react';
+import { Settings, Upload, RefreshCw, CheckCircle, AlertCircle, X, Database, Server, Trash2 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../hooks/useAuth';
 import { dataApi } from '../config/api';
@@ -130,6 +130,42 @@ export function DataSourceSettings() {
       setUploadStatus('error');
       setStatusMessage('Failed to migrate data to Supabase.');
       setTimeout(() => setUploadStatus('idle'), 3000);
+    }
+  };
+
+  const handleClearAllLocalData = () => {
+    if (confirm('Are you sure you want to clear ALL local data? This will remove all lessons, activities, units, and settings. This action cannot be undone.')) {
+      // Clear all localStorage items
+      localStorage.removeItem('lesson-data-LKG');
+      localStorage.removeItem('lesson-data-UKG');
+      localStorage.removeItem('lesson-data-Reception');
+      localStorage.removeItem('lesson-plans');
+      localStorage.removeItem('library-activities');
+      localStorage.removeItem('units');
+      localStorage.removeItem('eyfs-standards-LKG');
+      localStorage.removeItem('eyfs-standards-UKG');
+      localStorage.removeItem('eyfs-standards-Reception');
+      localStorage.removeItem('eyfs-statements-flat-LKG');
+      localStorage.removeItem('eyfs-statements-flat-UKG');
+      localStorage.removeItem('eyfs-statements-flat-Reception');
+      localStorage.removeItem('lesson-viewer-settings');
+      localStorage.removeItem('lesson-viewer-categories');
+      localStorage.removeItem('user-created-lesson-plans');
+      localStorage.removeItem('admin-editable-content');
+      localStorage.removeItem('admin-google-sheets-config');
+      localStorage.removeItem('has-visited-before');
+      
+      // Keep the auth token so the user stays logged in
+      // localStorage.removeItem('rhythmstix_auth_token');
+      
+      // Show success message
+      setUploadStatus('success');
+      setStatusMessage('All local data has been cleared. The page will reload.');
+      
+      // Reload the page after a short delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     }
   };
 
@@ -319,6 +355,28 @@ export function DataSourceSettings() {
                 </>
               )}
             </button>
+          </div>
+
+          {/* Clear All Data */}
+          <div className="border border-red-200 bg-red-50 rounded-lg p-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <Trash2 className="h-6 w-6 text-red-600" />
+              <h3 className="text-lg font-semibold text-gray-900">Clear All Local Data</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Clear all locally stored data including lessons, activities, units, and settings. This action cannot be undone.
+            </p>
+            
+            <button
+              onClick={handleClearAllLocalData}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+            >
+              <Trash2 className="h-5 w-5" />
+              <span>Clear All Local Data</span>
+            </button>
+            <p className="text-xs text-red-600 mt-2 text-center">
+              Warning: This will remove all your lessons, activities, units, and settings.
+            </p>
           </div>
 
           {/* Current Configuration */}
