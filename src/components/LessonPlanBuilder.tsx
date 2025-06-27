@@ -40,7 +40,7 @@ const HALF_TERMS = [
 ];
 
 export function LessonPlanBuilder() {
-  const { currentSheetInfo, allLessonsData, addOrUpdateUserLessonPlan, userCreatedLessonPlans } = useData();
+  const { currentSheetInfo, allLessonsData, addOrUpdateUserLessonPlan, userCreatedLessonPlans, allActivities } = useData();
   const { categories } = useSettings();
   
   // Initialize currentLessonPlan with a default value instead of null
@@ -66,38 +66,14 @@ export function LessonPlanBuilder() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
-  const [libraryActivities, setLibraryActivities] = useState<Activity[]>([]);
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lessonNumber, setLessonNumber] = useState<string>('');
 
-  // Load library activities
+  // Generate a lesson number when component mounts
   useEffect(() => {
-    // Load library activities
-    const savedActivities = localStorage.getItem('library-activities');
-    if (savedActivities) {
-      setLibraryActivities(JSON.parse(savedActivities));
-    } else {
-      // Extract activities from all lessons data as initial library
-      const activities: Activity[] = [];
-      Object.values(allLessonsData).forEach(lessonData => {
-        Object.values(lessonData.grouped).forEach(categoryActivities => {
-          activities.push(...categoryActivities);
-        });
-      });
-      
-      // Remove duplicates based on activity name and category
-      const uniqueActivities = activities.filter((activity, index, self) => 
-        index === self.findIndex(a => a.activity === activity.activity && a.category === activity.category)
-      );
-      
-      setLibraryActivities(uniqueActivities);
-      localStorage.setItem('library-activities', JSON.stringify(uniqueActivities));
-    }
-
-    // Generate a lesson number
     generateNextLessonNumber();
   }, [allLessonsData, currentSheetInfo.sheet]);
 
@@ -312,7 +288,7 @@ export function LessonPlanBuilder() {
 
   // Filter and sort activities for the library
   const filteredAndSortedActivities = React.useMemo(() => {
-    let filtered = libraryActivities.filter(activity => {
+    let filtered = allActivities.filter(activity => {
       const matchesSearch = activity.activity.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            activity.description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = selectedCategory === 'all' || activity.category === selectedCategory;
@@ -344,18 +320,7 @@ export function LessonPlanBuilder() {
     });
 
     return filtered;
-  }, [libraryActivities, searchQuery, selectedCategory, selectedLevel, sortBy, sortOrder]);
-
-  // Get unique categories and levels for filters
-  const uniqueCategories = React.useMemo(() => {
-    const cats = new Set(libraryActivities.map(a => a.category));
-    return Array.from(cats).sort();
-  }, [libraryActivities]);
-
-  const uniqueLevels = React.useMemo(() => {
-    const lvls = new Set(libraryActivities.map(a => a.level).filter(Boolean));
-    return Array.from(lvls).sort();
-  }, [libraryActivities]);
+  }, [allActivities, searchQuery, selectedCategory, selectedLevel, sortBy, sortOrder]);
 
   const toggleSort = (field: typeof sortBy) => {
     if (sortBy === field) {
@@ -378,7 +343,7 @@ export function LessonPlanBuilder() {
   // Add selected activities to lesson plan
   const addSelectedActivities = () => {
     // Find all selected activities
-    const activitiesToAdd = libraryActivities.filter(activity => {
+    const activitiesToAdd = allActivities.filter(activity => {
       const activityId = `${activity.activity}-${activity.category}`;
       return selectedActivities.includes(activityId);
     });
@@ -515,7 +480,7 @@ export function LessonPlanBuilder() {
                         
                         return (
                           <div 
-                            key={`${activityId}-${index}`}
+                            key={`${activity._id || activity.id || activityId}-${index}`}
                             className={`relative bg-white rounded-lg border-2 p-3 transition-all duration-200 hover:shadow-md ${
                               isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
                             }`}

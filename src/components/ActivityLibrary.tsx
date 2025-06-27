@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Search, 
   Filter, 
@@ -22,7 +22,6 @@ import { ActivityImporter } from './ActivityImporter';
 import { ActivityCreator } from './ActivityCreator';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { activitiesApi } from '../config/api';
 import type { Activity } from '../contexts/DataContext';
 
 interface ActivityLibraryProps {
@@ -40,7 +39,7 @@ export function ActivityLibrary({
   selectedCategory = 'all',
   onCategoryChange
 }: ActivityLibraryProps) {
-  const { allLessonsData, currentSheetInfo } = useData();
+  const { allActivities, addActivity, updateActivity, deleteActivity, loading: dataLoading } = useData();
   const { getCategoryColor, categories } = useSettings();
   const [searchQuery, setSearchQuery] = useState('');
   const [localSelectedCategory, setLocalSelectedCategory] = useState(selectedCategory);
@@ -53,12 +52,11 @@ export function ActivityLibrary({
   const [initialResource, setInitialResource] = useState<{url: string, title: string, type: string} | null>(null);
   const [showImporter, setShowImporter] = useState(false);
   const [showCreator, setShowCreator] = useState(false);
-  const [libraryActivities, setLibraryActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
   // Sync local category with prop
-  useEffect(() => {
+  React.useEffect(() => {
     setLocalSelectedCategory(selectedCategory);
   }, [selectedCategory]);
 
@@ -70,93 +68,20 @@ export function ActivityLibrary({
     }
   };
 
-  // Load library activities
-  useEffect(() => {
-    // Load library activities
-    const fetchActivities = async () => {
-      setLoading(true);
-      try {
-        // Try to get activities from server
-        let activities = [];
-        try {
-          activities = await activitiesApi.getAll();
-        } catch (serverError) {
-          console.warn('Failed to fetch activities from server:', serverError);
-          
-          // Fallback to localStorage
-          const savedActivities = localStorage.getItem('library-activities');
-          if (savedActivities) {
-            activities = JSON.parse(savedActivities);
-          }
-        }
-        
-        // If we still don't have activities, extract from lessons data
-        if (!activities || activities.length === 0) {
-          const extractedActivities: Activity[] = [];
-          Object.values(allLessonsData).forEach(lessonData => {
-            Object.values(lessonData.grouped).forEach(categoryActivities => {
-              extractedActivities.push(...categoryActivities);
-            });
-          });
-          
-          // Remove duplicates based on activity name and category
-          const uniqueActivities = extractedActivities.filter((activity, index, self) => 
-            index === self.findIndex(a => a.activity === activity.activity && a.category === activity.category)
-          );
-          
-          activities = uniqueActivities;
-          
-          // Save to localStorage
-          localStorage.setItem('library-activities', JSON.stringify(activities));
-          
-          // Try to add each activity to the server
-          try {
-            activities.forEach(async (activity) => {
-              if (!activity._id) {
-                activity._id = `${activity.activity}-${activity.category}-${Date.now()}`;
-              }
-              
-              await activitiesApi.create(activity);
-            });
-          } catch (serverError) {
-            console.warn('Failed to add activities to server:', serverError);
-          }
-        }
-        
-        // Convert any "EYFS U" levels to "UKG"
-        const normalizedActivities = activities.map(activity => {
-          if (activity.level === "EYFS U") {
-            return { ...activity, level: "UKG" };
-          }
-          return activity;
-        });
-        
-        setLibraryActivities(normalizedActivities);
-      } catch (error) {
-        console.error('Failed to load activities:', error);
-        setLibraryActivities([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchActivities();
-  }, [allLessonsData, currentSheetInfo?.sheet]);
-
   // Get unique categories and levels
   const uniqueCategories = useMemo(() => {
-    const cats = new Set(libraryActivities.map(a => a.category));
+    const cats = new Set(allActivities.map(a => a.category));
     return Array.from(cats).sort();
-  }, [libraryActivities]);
+  }, [allActivities]);
 
   const uniqueLevels = useMemo(() => {
-    const lvls = new Set(libraryActivities.map(a => a.level).filter(Boolean));
+    const lvls = new Set(allActivities.map(a => a.level).filter(Boolean));
     return Array.from(lvls).sort();
-  }, [libraryActivities]);
+  }, [allActivities]);
 
   // Filter and sort activities
   const filteredAndSortedActivities = useMemo(() => {
-    let filtered = libraryActivities.filter(activity => {
+    let filtered = allActivities.filter(activity => {
       const matchesSearch = activity.activity.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            activity.description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = localSelectedCategory === 'all' || activity.category === localSelectedCategory;
@@ -193,7 +118,7 @@ export function ActivityLibrary({
     });
 
     return filtered;
-  }, [libraryActivities, searchQuery, localSelectedCategory, selectedLevel, sortBy, sortOrder, categories]);
+  }, [allActivities, searchQuery, localSelectedCategory, selectedLevel, sortBy, sortOrder, categories]);
 
   const toggleSort = (field: 'name' | 'category' | 'time' | 'level') => {
     if (sortBy === field) {
@@ -211,41 +136,7 @@ export function ActivityLibrary({
         updatedActivity.level = "UKG";
       }
       
-      // Try to update on server
-      try {
-        if (updatedActivity._id) {
-          await activitiesApi.update(updatedActivity._id, updatedActivity);
-        } else {
-          const newActivity = await activitiesApi.create(updatedActivity);
-          updatedActivity._id = newActivity._id;
-        }
-      } catch (serverError) {
-        console.warn('Failed to update activity on server:', serverError);
-      }
-      
-      // Update local state
-      setLibraryActivities(prev => 
-        prev.map(activity => 
-          (activity._id === updatedActivity._id || 
-           (activity.activity === updatedActivity.activity && 
-            activity.category === updatedActivity.category)) 
-            ? updatedActivity : activity
-        )
-      );
-      
-      // Also update in localStorage
-      const savedActivities = localStorage.getItem('library-activities');
-      if (savedActivities) {
-        const activities = JSON.parse(savedActivities);
-        const updatedActivities = activities.map((activity: Activity) => 
-          (activity._id === updatedActivity._id || 
-           (activity.activity === updatedActivity.activity && 
-            activity.category === updatedActivity.category)) 
-            ? updatedActivity : activity
-        );
-        localStorage.setItem('library-activities', JSON.stringify(updatedActivities));
-      }
-      
+      await updateActivity(updatedActivity);
       setEditingActivity(null);
       setSelectedActivityDetails(null);
     } catch (error) {
@@ -262,29 +153,13 @@ export function ActivityLibrary({
     if (!showDeleteConfirm) return;
     
     try {
-      const activity = libraryActivities.find(a => a.activity === showDeleteConfirm);
-      
-      // Try to delete from server
-      if (activity && activity._id) {
-        try {
-          await activitiesApi.delete(activity._id);
-        } catch (serverError) {
-          console.warn('Failed to delete activity from server:', serverError);
-        }
-      }
-      
-      // Update local state
-      setLibraryActivities(prev => prev.filter(a => a.activity !== showDeleteConfirm));
-      
-      // Also update in localStorage
-      const savedActivities = localStorage.getItem('library-activities');
-      if (savedActivities) {
-        const activities = JSON.parse(savedActivities);
-        const updatedActivities = activities.filter((a: Activity) => a.activity !== showDeleteConfirm);
-        localStorage.setItem('library-activities', JSON.stringify(updatedActivities));
-      }
-      
+      await deleteActivity(showDeleteConfirm);
       setShowDeleteConfirm(null);
+      
+      // If the deleted activity was being viewed, close the details modal
+      if (selectedActivityDetails && (selectedActivityDetails._id === showDeleteConfirm || selectedActivityDetails.id === showDeleteConfirm)) {
+        setSelectedActivityDetails(null);
+      }
     } catch (error) {
       console.error('Failed to delete activity:', error);
       alert('Failed to delete activity. Please try again.');
@@ -296,6 +171,7 @@ export function ActivityLibrary({
     const duplicatedActivity = {
       ...activity,
       _id: undefined, // Remove ID to create a new one
+      id: undefined,  // Remove ID to create a new one
       activity: `${activity.activity} (Copy)`,
     };
     
@@ -305,29 +181,7 @@ export function ActivityLibrary({
     }
     
     try {
-      // Try to create on server
-      let newActivity = duplicatedActivity;
-      try {
-        newActivity = await activitiesApi.create(duplicatedActivity);
-      } catch (serverError) {
-        console.warn('Failed to create duplicated activity on server:', serverError);
-        // Generate a local ID
-        newActivity = {
-          ...duplicatedActivity,
-          _id: `local-${Date.now()}`
-        };
-      }
-      
-      // Update local state
-      setLibraryActivities(prev => [...prev, newActivity]);
-      
-      // Also update in localStorage
-      const savedActivities = localStorage.getItem('library-activities');
-      if (savedActivities) {
-        const activities = JSON.parse(savedActivities);
-        activities.push(newActivity);
-        localStorage.setItem('library-activities', JSON.stringify(activities));
-      }
+      await addActivity(duplicatedActivity);
     } catch (error) {
       console.error('Failed to duplicate activity:', error);
       alert('Failed to duplicate activity. Please try again.');
@@ -354,7 +208,7 @@ export function ActivityLibrary({
       setInitialResource({url, title, type});
     } else {
       // Find the activity that contains this resource
-      const activity = libraryActivities.find(a => 
+      const activity = allActivities.find(a => 
         a.videoLink === url || 
         a.musicLink === url || 
         a.backingLink === url || 
@@ -393,34 +247,10 @@ export function ActivityLibrary({
         return activity;
       });
       
-      // Try to add each activity to the server
+      // Add each activity using the centralized function
       for (const activity of normalizedActivities) {
-        if (!activity._id) {
-          activity._id = `${activity.activity}-${activity.category}-${Date.now()}`;
-        }
-        
-        try {
-          await activitiesApi.create(activity);
-        } catch (serverError) {
-          console.warn('Failed to add imported activity to server:', serverError);
-        }
+        await addActivity(activity);
       }
-      
-      // Update local state
-      setLibraryActivities(prev => {
-        // Remove duplicates based on activity name and category
-        const existingActivities = new Map(prev.map(a => [`${a.activity}-${a.category}`, a]));
-        
-        // Add new activities, replacing existing ones with the same name and category
-        normalizedActivities.forEach(activity => {
-          existingActivities.set(`${activity.activity}-${activity.category}`, activity);
-        });
-        
-        return Array.from(existingActivities.values());
-      });
-      
-      // Also update in localStorage
-      localStorage.setItem('library-activities', JSON.stringify([...libraryActivities, ...normalizedActivities]));
       
       setShowImporter(false);
     } catch (error) {
@@ -440,32 +270,7 @@ export function ActivityLibrary({
         newActivity.level = "UKG";
       }
       
-      // Try to add the activity to the server
-      let createdActivity = newActivity;
-      try {
-        createdActivity = await activitiesApi.create(newActivity);
-      } catch (serverError) {
-        console.warn('Failed to create activity on server:', serverError);
-        // Generate a local ID
-        createdActivity = {
-          ...newActivity,
-          _id: `local-${Date.now()}`
-        };
-      }
-      
-      // Update local state
-      setLibraryActivities(prev => [...prev, createdActivity]);
-      
-      // Also update in localStorage
-      const savedActivities = localStorage.getItem('library-activities');
-      if (savedActivities) {
-        const activities = JSON.parse(savedActivities);
-        activities.push(createdActivity);
-        localStorage.setItem('library-activities', JSON.stringify(activities));
-      } else {
-        localStorage.setItem('library-activities', JSON.stringify([createdActivity]));
-      }
-      
+      await addActivity(newActivity);
       setShowCreator(false);
     } catch (error) {
       console.error('Failed to create activity:', error);
@@ -485,7 +290,7 @@ export function ActivityLibrary({
             <div>
               <h2 className="text-xl font-bold">Activity Library</h2>
               <p className="text-purple-100 text-sm">
-                {filteredAndSortedActivities.length} of {libraryActivities.length} activities
+                {filteredAndSortedActivities.length} of {allActivities.length} activities
               </p>
             </div>
           </div>
@@ -607,7 +412,7 @@ export function ActivityLibrary({
 
       {/* Activity Grid */}
       <div className="p-6">
-        {loading ? (
+        {loading || dataLoading ? (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Loading activities...</p>
@@ -652,7 +457,7 @@ export function ActivityLibrary({
             }
           `}>
             {filteredAndSortedActivities.map((activity, index) => (
-              <div key={`${activity._id || activity.activity}-${activity.category}-${index}`} className="h-full">
+              <div key={`${activity._id || activity.id || `${activity.activity}-${activity.category}-${index}`}`} className="h-full">
                 <ActivityCard
                   activity={activity}
                   onUpdate={handleActivityUpdate}
@@ -692,7 +497,7 @@ export function ActivityLibrary({
             setSelectedActivityDetails(null);
           }}
           initialResource={initialResource}
-          onDelete={handleActivityDelete}
+          onDelete={deleteActivity}
         />
       )}
 
