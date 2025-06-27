@@ -14,8 +14,7 @@ import {
   MoreVertical,
   Edit3,
   Download,
-  Calendar,
-  Trash2
+  Calendar
 } from 'lucide-react';
 import { LessonLibraryCard } from './LessonLibraryCard';
 import { useData } from '../contexts/DataContext';
@@ -50,7 +49,7 @@ const LESSON_TO_HALF_TERM: Record<string, string> = {
 };
 
 export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }: LessonLibraryProps) {
-  const { lessonNumbers, allLessonsData, currentSheetInfo, deleteLesson } = useData();
+  const { lessonNumbers, allLessonsData, currentSheetInfo } = useData();
   const { getThemeForClass } = useSettings();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedHalfTerm, setSelectedHalfTerm] = useState<string>('all');
@@ -59,7 +58,6 @@ export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
   const [selectedLessonForExport, setSelectedLessonForExport] = useState<string | null>(null);
   const [selectedLessonForDetails, setSelectedLessonForDetails] = useState<string | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
   // Get theme colors for current class
   const theme = getThemeForClass(className);
@@ -140,17 +138,6 @@ export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }
       onLessonSelect(lessonNumber);
     } else {
       setSelectedLessonForDetails(lessonNumber);
-    }
-  };
-
-  const handleDeleteLesson = (lessonNumber: string) => {
-    setShowDeleteConfirm(lessonNumber);
-  };
-
-  const confirmDeleteLesson = () => {
-    if (showDeleteConfirm) {
-      deleteLesson(showDeleteConfirm);
-      setShowDeleteConfirm(null);
     }
   };
 
@@ -302,7 +289,6 @@ export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }
                   theme={theme}
                   onAssignToUnit={onAssignToUnit}
                   halfTerms={HALF_TERMS}
-                  onDelete={handleDeleteLesson}
                 />
               );
             })}
@@ -329,33 +315,6 @@ export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }
           lessonNumber={selectedLessonForExport}
           onClose={() => setSelectedLessonForExport(null)}
         />
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Delete Lesson</h3>
-            <p className="text-gray-700 mb-6">
-              Are you sure you want to delete Lesson {showDeleteConfirm}? This action cannot be undone and will remove the lesson from all units.
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowDeleteConfirm(null)}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDeleteLesson}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center space-x-2"
-              >
-                <Trash2 className="h-4 w-4" />
-                <span>Delete Lesson</span>
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

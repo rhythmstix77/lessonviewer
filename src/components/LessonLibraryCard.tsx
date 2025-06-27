@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Clock, Users, Tag, X, ExternalLink, FileText, Edit3, Save, FolderPlus, ChevronDown, Trash2, Calendar, Hand } from 'lucide-react';
+import { Clock, Users, Tag, X, ExternalLink, FileText, Edit3, Save, FolderPlus, ChevronDown, Calendar, Hand } from 'lucide-react';
 import type { LessonData, Activity } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useData } from '../contexts/DataContext';
@@ -24,7 +24,6 @@ interface LessonLibraryCardProps {
   };
   onAssignToUnit?: (lessonNumber: string, halfTermId: string) => void;
   halfTerms?: HalfTerm[];
-  onDelete?: (lessonNumber: string) => void;
 }
 
 // Map term IDs to readable names
@@ -44,8 +43,7 @@ export function LessonLibraryCard({
   onClick,
   theme,
   onAssignToUnit,
-  halfTerms = [],
-  onDelete
+  halfTerms = []
 }: LessonLibraryCardProps) {
   const { getCategoryColor } = useSettings();
   const { eyfsStatements, updateLessonTitle } = useData();
@@ -271,19 +269,6 @@ export function LessonLibraryCard({
               )}
             </div>
           )}
-          
-          {onDelete && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(lessonNumber);
-              }}
-              className="p-2.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
-              title="Delete Lesson"
-            >
-              <Trash2 className="h-5 w-5" />
-            </button>
-          )}
         </div>
       </div>
     );
@@ -367,19 +352,6 @@ export function LessonLibraryCard({
                 </div>
               )}
             </div>
-          )}
-          
-          {onDelete && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(lessonNumber);
-              }}
-              className="p-2.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
-              title="Delete Lesson"
-            >
-              <Trash2 className="h-5 w-5" />
-            </button>
           )}
         </div>
       </div>
@@ -496,19 +468,6 @@ export function LessonLibraryCard({
                 </div>
               )}
             </div>
-          )}
-          
-          {onDelete && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(lessonNumber);
-              }}
-              className="p-2.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
-              title="Delete Lesson"
-            >
-              <Trash2 className="h-5 w-5" />
-            </button>
           )}
         </div>
       </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Download, Edit3, Save, Check, Tag, Clock, Users, ExternalLink, FileText } from 'lucide-react';
+import { X, Download, Edit3, Save, Check, Tag, Clock, Users, ExternalLink, FileText, Trash2 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { ActivityDetails } from './ActivityDetails';
@@ -25,13 +25,14 @@ export function LessonDetailsModal({
   theme,
   onExport
 }: LessonDetailsModalProps) {
-  const { allLessonsData, updateLessonTitle, eyfsStatements } = useData();
+  const { allLessonsData, updateLessonTitle, eyfsStatements, deleteLesson } = useData();
   const { getCategoryColor } = useSettings();
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [initialResource, setInitialResource] = useState<{url: string, title: string, type: string} | null>(null);
   const [showEyfsSelector, setShowEyfsSelector] = useState(false);
   const [editingLessonTitle, setEditingLessonTitle] = useState(false);
   const [lessonTitleValue, setLessonTitleValue] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const lessonData = allLessonsData[lessonNumber];
 
@@ -94,6 +95,15 @@ export function LessonDetailsModal({
       setSelectedActivity(foundActivity);
       setInitialResource({ url, title, type });
     }
+  };
+
+  const handleDeleteLesson = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    deleteLesson(lessonNumber);
+    onClose();
   };
 
   // Calculate total activities
@@ -168,6 +178,14 @@ export function LessonDetailsModal({
               </p>
             </div>
             <div className="flex items-center space-x-2">
+              <button
+                onClick={handleDeleteLesson}
+                className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 group flex items-center space-x-2"
+                title="Delete Lesson"
+              >
+                <Trash2 className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+                <span className="text-sm font-medium">Delete</span>
+              </button>
               <button
                 onClick={() => setShowEyfsSelector(!showEyfsSelector)}
                 className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 group flex items-center space-x-2"
@@ -455,6 +473,33 @@ export function LessonDetailsModal({
           }}
           initialResource={initialResource}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Delete Lesson</h3>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete Lesson {lessonNumber}? This action cannot be undone and will remove the lesson from all units.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center space-x-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Delete Lesson</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
