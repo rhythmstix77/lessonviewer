@@ -1,4 +1,3 @@
-// API Configuration for Excel/Google Sheets Integration
 import { supabase, TABLES, isSupabaseConfigured } from './supabase';
 import type { Activity, LessonData, LessonPlan } from '../contexts/DataContext';
 
