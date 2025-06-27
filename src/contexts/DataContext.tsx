@@ -5,6 +5,7 @@ import { supabase, TABLES, isSupabaseConfigured } from '../config/supabase';
 
 export interface Activity {
   id?: string;
+  _id?: string;
   activity: string;
   description: string;
   activityText?: string; // New field for activity text
@@ -799,49 +800,6 @@ export function DataProvider({ children }: DataProviderProps) {
         };
 
         activities.push(activity);
-        
-        // Try to add to Supabase if connected
-        if (isSupabaseConfigured()) {
-          try {
-            // Remove id as Supabase will generate its own id
-            const { id, uniqueId, ...activityForSupabase } = activity;
-            
-            // Convert camelCase to snake_case for database
-            const dbActivity = {
-              activity: activityForSupabase.activity,
-              description: activityForSupabase.description,
-              activity_text: activityForSupabase.activityText,
-              time: activityForSupabase.time,
-              video_link: activityForSupabase.videoLink,
-              music_link: activityForSupabase.musicLink,
-              backing_link: activityForSupabase.backingLink,
-              resource_link: activityForSupabase.resourceLink,
-              link: activityForSupabase.link,
-              vocals_link: activityForSupabase.vocalsLink,
-              image_link: activityForSupabase.imageLink,
-              teaching_unit: activityForSupabase.teachingUnit,
-              category: activityForSupabase.category,
-              level: activityForSupabase.level,
-              unit_name: activityForSupabase.unitName,
-              lesson_number: activityForSupabase.lessonNumber,
-              eyfs_standards: activityForSupabase.eyfsStandards
-            };
-            
-            supabase
-              .from(TABLES.ACTIVITIES)
-              .upsert([dbActivity], { 
-                onConflict: 'activity,category,lesson_number',
-                ignoreDuplicates: false
-              })
-              .then(({ error }) => {
-                if (error) {
-                  console.warn('Failed to add activity to Supabase:', error);
-                }
-              });
-          } catch (error) {
-            console.warn('Failed to add activity to Supabase:', error);
-          }
-        }
       }
 
       console.log(`Processed ${currentSheetInfo.sheet} activities:`, activities.length);
@@ -915,6 +873,16 @@ export function DataProvider({ children }: DataProviderProps) {
           await saveDataToSupabase(lessonsData, sortedLessonNumbers, Array.from(categoriesSet), eyfsStatementsMap);
         } catch (error) {
           console.warn(`Failed to save ${currentSheetInfo.sheet} data to Supabase, but data is saved locally:`, error);
+        }
+      }
+
+      // Use activitiesApi.import to add activities to the database
+      if (isSupabaseConfigured() && activities.length > 0) {
+        try {
+          await activitiesApi.import(activities);
+          console.log(`Imported ${activities.length} activities to Supabase`);
+        } catch (error) {
+          console.warn(`Failed to import activities to Supabase:`, error);
         }
       }
 

@@ -110,7 +110,8 @@ export function ActivityDetails({
 
   const confirmDelete = () => {
     if (onDelete) {
-      onDelete(activity.activity);
+      // Use the activity's ID instead of its name for deletion
+      onDelete(activity._id || activity.id || '');
       onClose();
     }
     setShowDeleteConfirm(false);
