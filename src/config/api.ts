@@ -199,7 +199,7 @@ export const activitiesApi = {
       const { data, error } = await supabase
         .from(TABLES.ACTIVITIES)
         .upsert(cleanedActivities, { 
-          onConflict: 'activity_category_lesson_number_key',
+          onConflict: 'activity,category,lesson_number',
           ignoreDuplicates: false
         });
       
@@ -493,7 +493,7 @@ export const dataApi = {
           supabase
             .from(TABLES.ACTIVITIES)
             .upsert(cleanedActivities, { 
-              onConflict: 'activity_category_lesson_number_key',
+              onConflict: 'activity,category,lesson_number',
               ignoreDuplicates: false 
             })
         );
