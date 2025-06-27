@@ -55,32 +55,31 @@ export function LessonLibraryCard({
   const [expandedEyfsAreas, setExpandedEyfsAreas] = useState<string[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
-  // Calculate total activities
-  const totalActivities = React.useMemo(() => {
-    try {
-      if (!lessonData || !lessonData.grouped) return 0;
-      return Object.values(lessonData.grouped).reduce(
-        (sum, activities) => sum + (Array.isArray(activities) ? activities.length : 0),
-        0
-      );
-    } catch (error) {
-      console.error('Error calculating total activities:', error);
-      return 0;
+  // Format date for display
+  const formatDate = (date: Date) => {
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      return 'Unknown date';
     }
-  }, [lessonData]);
+    return date.toLocaleDateString('en-GB', { 
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric' 
+    });
+  };
 
-  // Get first activity description for preview
-  const getFirstActivityDescription = () => {
-    if (!lessonData || !lessonData.categoryOrder.length) return '';
+  // Get term name from term ID
+  const getTermName = (termId?: string) => {
+    if (!termId) return 'Not assigned';
+    return TERM_NAMES[termId] || termId;
+  };
+
+  // Get a brief preview of the description
+  const getDescriptionPreview = () => {
+    if (!lessonData.title) return '';
     
-    const firstCategory = lessonData.categoryOrder[0];
-    const activities = lessonData.grouped[firstCategory];
-    
-    if (!activities || !activities.length) return '';
-    
-    const description = activities[0].description;
     // Remove HTML tags for plain text preview
-    return description.replace(/<[^>]*>/g, '').substring(0, 100) + (description.length > 100 ? '...' : '');
+    const plainText = lessonData.title.replace(/<[^>]*>/g, '');
+    return plainText.length > 100 ? plainText.substring(0, 100) + '...' : plainText;
   };
 
   // Close dropdown when clicking outside
@@ -240,10 +239,12 @@ export function LessonLibraryCard({
                   e.stopPropagation();
                   handleAssignClick(e);
                 }}
-                className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm"
+                className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm flex items-center space-x-1"
                 title="Assign to Unit"
               >
-                <Calendar className="h-5 w-5" />
+                <Calendar className="h-4 w-4" />
+                <span className="text-xs">Assign</span>
+                <ChevronDown className="h-3 w-3" />
               </button>
               
               {showAssignDropdown && (
@@ -308,7 +309,7 @@ export function LessonLibraryCard({
               </div>
               
               <p className="mt-2 text-sm text-gray-600 line-clamp-1" dir="ltr">
-                {getFirstActivityDescription()}
+                {getDescriptionPreview()}
               </p>
             </div>
           </div>
@@ -326,16 +327,17 @@ export function LessonLibraryCard({
                 className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm flex items-center space-x-1"
                 title="Assign to Unit"
               >
-                <FolderPlus className="h-5 w-5" />
+                <FolderPlus className="h-4 w-4" />
                 <span className="text-xs">Assign</span>
+                <ChevronDown className="h-3 w-3 ml-1" />
               </button>
               
               {showAssignDropdown && (
-                <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
+                <div className="absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
                   <div className="p-2 border-b border-gray-200">
-                    <h3 className="text-xs font-medium text-gray-700">Assign to Half-Term</h3>
+                    <h3 className="text-sm font-medium text-gray-700">Assign to Half-Term</h3>
                   </div>
-                  <div className="p-1 max-h-48 overflow-y-auto">
+                  <div className="p-2 max-h-60 overflow-y-auto">
                     {halfTerms.map(halfTerm => (
                       <button
                         key={halfTerm.id}
@@ -343,7 +345,7 @@ export function LessonLibraryCard({
                           e.stopPropagation();
                           handleAssignToHalfTerm(halfTerm.id);
                         }}
-                        className="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
                       >
                         {halfTerm.name} ({halfTerm.months})
                       </button>
@@ -427,7 +429,7 @@ export function LessonLibraryCard({
           
           {/* Description Preview */}
           <p className="mt-2 text-sm text-gray-600 line-clamp-1" dir="ltr">
-            {getFirstActivityDescription()}
+            {getDescriptionPreview()}
           </p>
         </div>
         
@@ -440,10 +442,12 @@ export function LessonLibraryCard({
                   e.stopPropagation();
                   handleAssignClick(e);
                 }}
-                className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm"
+                className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm flex items-center space-x-1"
                 title="Assign to Unit"
               >
-                <FolderPlus className="h-5 w-5" />
+                <FolderPlus className="h-4 w-4" />
+                <span className="text-xs">Assign</span>
+                <ChevronDown className="h-3 w-3 ml-1" />
               </button>
               
               {showAssignDropdown && (
