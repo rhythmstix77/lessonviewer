@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Clock, Video, Music, FileText, Link as LinkIcon, Image, Volume2, Maximize2, Minimize2, ExternalLink, Tag, Plus, Save, Upload, Edit3, Check } from 'lucide-react';
+import { X, Clock, Video, Music, FileText, Link as LinkIcon, Image, Volume2, Maximize2, Minimize2, ExternalLink, Tag, Plus, Save, Upload, Edit3, Check, Trash2 } from 'lucide-react';
 import { EditableText } from './EditableText';
 import { RichTextEditor } from './RichTextEditor';
 import type { Activity } from '../contexts/DataContext';
@@ -12,6 +12,7 @@ interface ActivityDetailsProps {
   isEditing?: boolean;
   onUpdate?: (updatedActivity: Activity) => void;
   initialResource?: {url: string, title: string, type: string} | null;
+  onDelete?: (activityId: string) => void;
 }
 
 export function ActivityDetails({ 
@@ -20,7 +21,8 @@ export function ActivityDetails({
   onAddToLesson,
   isEditing = false,
   onUpdate,
-  initialResource = null
+  initialResource = null,
+  onDelete
 }: ActivityDetailsProps) {
   const { allEyfsStatements, eyfsStatements, addEyfsToLesson, removeEyfsFromLesson } = useData();
   const [selectedLink, setSelectedLink] = useState<{ url: string; title: string; type: string } | null>(null);
@@ -29,6 +31,7 @@ export function ActivityDetails({
   const [selectedEyfs, setSelectedEyfs] = useState<string[]>(activity.eyfsStandards || []);
   const [editedActivity, setEditedActivity] = useState<Activity>({...activity});
   const [isEditMode, setIsEditMode] = useState(isEditing);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
@@ -99,6 +102,18 @@ export function ActivityDetails({
       }));
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleDelete = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    if (onDelete) {
+      onDelete(activity.activity);
+      onClose();
+    }
+    setShowDeleteConfirm(false);
   };
 
   const renderDescription = () => {
@@ -282,6 +297,15 @@ export function ActivityDetails({
               </div>
             </div>
             <div className="flex items-center space-x-2">
+              {!isEditMode && onDelete && (
+                <button
+                  onClick={handleDelete}
+                  className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                  title="Delete Activity"
+                >
+                  <Trash2 className="h-5 w-5" />
+                </button>
+              )}
               {!isEditMode && (
                 <button
                   onClick={() => setIsEditMode(true)}
@@ -633,6 +657,33 @@ export function ActivityDetails({
           type={selectedLink.type}
           onClose={() => setSelectedLink(null)}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Delete Activity</h3>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete "{activity.activity}"? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center space-x-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Delete Activity</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

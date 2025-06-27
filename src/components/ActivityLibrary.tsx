@@ -692,6 +692,7 @@ export function ActivityLibrary({
             setSelectedActivityDetails(null);
           }}
           initialResource={initialResource}
+          onDelete={handleActivityDelete}
         />
       )}
 
