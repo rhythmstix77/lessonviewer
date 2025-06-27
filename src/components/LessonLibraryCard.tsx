@@ -55,6 +55,11 @@ export function LessonLibraryCard({
   const [expandedEyfsAreas, setExpandedEyfsAreas] = useState<string[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
+  // Calculate total activities
+  const totalActivities = React.useMemo(() => {
+    return Object.values(lessonData.grouped).reduce((total, activities) => total + activities.length, 0);
+  }, [lessonData.grouped]);
+  
   // Format date for display
   const formatDate = (date: Date) => {
     if (!(date instanceof Date) || isNaN(date.getTime())) {
