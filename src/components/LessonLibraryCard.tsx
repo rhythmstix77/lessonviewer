@@ -4,6 +4,7 @@ import type { LessonData, Activity } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useData } from '../contexts/DataContext';
 import { RichTextEditor } from './RichTextEditor';
+import { AssignToHalfTermModal } from './AssignToHalfTermModal';
 
 interface HalfTerm {
   id: string;
@@ -53,6 +54,7 @@ export function LessonLibraryCard({
   const [editedTitle, setEditedTitle] = useState<string | null>(null);
   const [showAssignDropdown, setShowAssignDropdown] = useState(false);
   const [expandedEyfsAreas, setExpandedEyfsAreas] = useState<string[]>([]);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   // Calculate total activities
@@ -124,7 +126,7 @@ export function LessonLibraryCard({
 
   const handleAssignClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setShowAssignDropdown(!showAssignDropdown);
+    setShowAssignModal(true);
   };
 
   const handleAssignToHalfTerm = (halfTermId: string) => {
@@ -238,7 +240,7 @@ export function LessonLibraryCard({
         {/* Action buttons - Larger, more accessible hover area */}
         <div className="absolute top-0 right-0 h-full flex items-center pr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           {onAssignToUnit && halfTerms.length > 0 && (
-            <div className="mr-2" ref={dropdownRef}>
+            <div className="mr-2">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -251,31 +253,20 @@ export function LessonLibraryCard({
                 <span className="text-xs">Assign</span>
                 <ChevronDown className="h-3 w-3" />
               </button>
-              
-              {showAssignDropdown && (
-                <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
-                  <div className="p-2 border-b border-gray-200">
-                    <h3 className="text-xs font-medium text-gray-700">Assign to Half-Term</h3>
-                  </div>
-                  <div className="p-1 max-h-48 overflow-y-auto">
-                    {halfTerms.map(halfTerm => (
-                      <button
-                        key={halfTerm.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAssignToHalfTerm(halfTerm.id);
-                        }}
-                        className="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                      >
-                        {halfTerm.name} ({halfTerm.months})
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
+
+        {/* Assign Modal */}
+        {showAssignModal && (
+          <AssignToHalfTermModal
+            isOpen={showAssignModal}
+            onClose={() => setShowAssignModal(false)}
+            onAssign={handleAssignToHalfTerm}
+            lessonNumber={lessonNumber}
+            halfTerms={halfTerms}
+          />
+        )}
       </div>
     );
   }
@@ -323,7 +314,7 @@ export function LessonLibraryCard({
         {/* Action buttons - Positioned with proper spacing */}
         <div className="absolute top-2 right-2 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           {onAssignToUnit && halfTerms.length > 0 && (
-            <div ref={dropdownRef}>
+            <div>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -336,31 +327,20 @@ export function LessonLibraryCard({
                 <span className="text-xs">Assign</span>
                 <ChevronDown className="h-3 w-3 ml-1" />
               </button>
-              
-              {showAssignDropdown && (
-                <div className="absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
-                  <div className="p-2 border-b border-gray-200">
-                    <h3 className="text-sm font-medium text-gray-700">Assign to Half-Term</h3>
-                  </div>
-                  <div className="p-2 max-h-60 overflow-y-auto">
-                    {halfTerms.map(halfTerm => (
-                      <button
-                        key={halfTerm.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAssignToHalfTerm(halfTerm.id);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                      >
-                        {halfTerm.name} ({halfTerm.months})
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
+
+        {/* Assign Modal */}
+        {showAssignModal && (
+          <AssignToHalfTermModal
+            isOpen={showAssignModal}
+            onClose={() => setShowAssignModal(false)}
+            onAssign={handleAssignToHalfTerm}
+            lessonNumber={lessonNumber}
+            halfTerms={halfTerms}
+          />
+        )}
       </div>
     );
   }
@@ -441,7 +421,7 @@ export function LessonLibraryCard({
         {/* Action buttons - Positioned with proper spacing */}
         <div className="absolute top-2 right-2 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           {onAssignToUnit && halfTerms.length > 0 && (
-            <div ref={dropdownRef}>
+            <div>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -454,32 +434,21 @@ export function LessonLibraryCard({
                 <span className="text-xs">Assign</span>
                 <ChevronDown className="h-3 w-3 ml-1" />
               </button>
-              
-              {showAssignDropdown && (
-                <div className="absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-xl z-50 border border-gray-200 dropdown-menu">
-                  <div className="p-2 border-b border-gray-200">
-                    <h3 className="text-sm font-medium text-gray-700">Assign to Half-Term</h3>
-                  </div>
-                  <div className="p-2 max-h-60 overflow-y-auto">
-                    {halfTerms.map(halfTerm => (
-                      <button
-                        key={halfTerm.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAssignToHalfTerm(halfTerm.id);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                      >
-                        {halfTerm.name} ({halfTerm.months})
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
       </div>
+
+      {/* Assign Modal */}
+      {showAssignModal && (
+        <AssignToHalfTermModal
+          isOpen={showAssignModal}
+          onClose={() => setShowAssignModal(false)}
+          onAssign={handleAssignToHalfTerm}
+          lessonNumber={lessonNumber}
+          halfTerms={halfTerms}
+        />
+      )}
     </div>
   );
 }

@@ -33,7 +33,6 @@ export interface LessonData {
   totalTime: number;
   eyfsStatements?: string[];
   title?: string; // Added title field for lessons
-  notes?: string; // Added notes field for lessons
 }
 
 export interface SheetInfo {
@@ -69,7 +68,6 @@ interface DataContextType {
   allLessonsData: Record<string, LessonData>;
   eyfsStatements: Record<string, string[]>;
   allEyfsStatements: string[];
-  allActivities: Activity[]; // New property for all activities
   loading: boolean;
   refreshData: () => Promise<void>;
   uploadExcelFile: (file: File) => Promise<void>;
@@ -81,9 +79,10 @@ interface DataContextType {
   addOrUpdateUserLessonPlan: (plan: LessonPlan) => void; // New function to add/update user lesson plans
   deleteUserLessonPlan: (planId: string) => void; // New function to delete user lesson plans
   deleteLesson: (lessonNumber: string) => void; // New function to delete a lesson
-  addActivity: (activity: Activity) => Promise<Activity>; // New function to add an activity
-  updateActivity: (activity: Activity) => Promise<Activity>; // New function to update an activity
-  deleteActivity: (activityId: string) => Promise<void>; // New function to delete an activity
+  allActivities: Activity[]; // Centralized activities
+  addActivity: (activity: Activity) => Promise<Activity>; // Add a new activity
+  updateActivity: (activity: Activity) => Promise<Activity>; // Update an existing activity
+  deleteActivity: (activityId: string) => Promise<void>; // Delete an activity
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -179,19 +178,6 @@ const generateDefaultLessonTitle = (lessonData: LessonData): string => {
   return `${categories[0]} Lesson`;
 };
 
-// Helper function to generate UUID
-const generateUUID = (): string => {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  // Fallback for environments without crypto.randomUUID
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-};
-
 export function DataProvider({ children }: DataProviderProps) {
   const [currentSheetInfo, setCurrentSheetInfo] = useState<SheetInfo>({
     sheet: 'LKG',
@@ -206,9 +192,10 @@ export function DataProvider({ children }: DataProviderProps) {
   const [allEyfsStatements, setAllEyfsStatements] = useState<string[]>(DEFAULT_EYFS_STATEMENTS);
   const [loading, setLoading] = useState(true);
   const [userCreatedLessonPlans, setUserCreatedLessonPlans] = useState<LessonPlan[]>([]);
-  const [allActivities, setAllActivities] = useState<Activity[]>([]); // New state for all activities
   // Flag to track if data was just cleared
   const [dataWasCleared, setDataWasCleared] = useState(false);
+  // Centralized activities state
+  const [allActivities, setAllActivities] = useState<Activity[]>([]);
 
   useEffect(() => {
     // Check if data was just cleared by looking for a URL parameter
@@ -226,13 +213,15 @@ export function DataProvider({ children }: DataProviderProps) {
     loadEyfsStatements();
     // Load user-created lesson plans
     loadUserCreatedLessonPlans();
-    // Load all activities
-    loadAllActivities();
+    // Load activities
+    loadActivities();
   }, [currentSheetInfo]);
 
-  // Load all activities from Supabase or localStorage
-  const loadAllActivities = async () => {
+  // Load all activities
+  const loadActivities = async () => {
     try {
+      setLoading(true);
+      
       // If data was cleared, set empty state
       if (dataWasCleared) {
         setAllActivities([]);
@@ -243,22 +232,10 @@ export function DataProvider({ children }: DataProviderProps) {
       if (isSupabaseConfigured()) {
         try {
           const activities = await activitiesApi.getAll();
-          
-          // Normalize activities (convert EYFS U to UKG)
-          const normalizedActivities = activities.map(activity => {
-            if (activity.level === "EYFS U") {
-              return { ...activity, level: "UKG" };
-            }
-            return activity;
-          });
-          
-          setAllActivities(normalizedActivities);
-          
-          // Also save to localStorage as backup
-          localStorage.setItem('library-activities', JSON.stringify(normalizedActivities));
-          
-          console.log(`Loaded ${normalizedActivities.length} activities from Supabase`);
-          return;
+          if (activities && activities.length > 0) {
+            setAllActivities(activities);
+            return;
+          }
         } catch (error) {
           console.warn('Failed to load activities from Supabase:', error);
         }
@@ -267,76 +244,57 @@ export function DataProvider({ children }: DataProviderProps) {
       // Fallback to localStorage
       const savedActivities = localStorage.getItem('library-activities');
       if (savedActivities) {
-        try {
-          const activities = JSON.parse(savedActivities);
-          
-          // Normalize activities (convert EYFS U to UKG)
-          const normalizedActivities = activities.map((activity: Activity) => {
-            if (activity.level === "EYFS U") {
-              return { ...activity, level: "UKG" };
-            }
-            return activity;
-          });
-          
-          setAllActivities(normalizedActivities);
-          console.log(`Loaded ${normalizedActivities.length} activities from localStorage`);
-        } catch (error) {
-          console.error('Error parsing saved activities:', error);
-          setAllActivities([]);
-        }
-      } else {
-        // Extract activities from all lessons data as initial library
-        const extractedActivities: Activity[] = [];
-        Object.values(allLessonsData).forEach(lessonData => {
-          Object.values(lessonData.grouped).forEach(categoryActivities => {
-            extractedActivities.push(...categoryActivities);
-          });
+        setAllActivities(JSON.parse(savedActivities));
+        return;
+      }
+      
+      // If no saved activities, extract from lessons data
+      const extractedActivities: Activity[] = [];
+      Object.values(allLessonsData).forEach(lessonData => {
+        Object.values(lessonData.grouped).forEach(categoryActivities => {
+          extractedActivities.push(...categoryActivities);
         });
-        
-        // Remove duplicates based on activity name and category
-        const uniqueActivities = extractedActivities.filter((activity, index, self) => 
-          index === self.findIndex(a => a.activity === activity.activity && a.category === activity.category)
-        );
-        
-        // Normalize activities (convert EYFS U to UKG)
-        const normalizedActivities = uniqueActivities.map(activity => {
-          if (activity.level === "EYFS U") {
-            return { ...activity, level: "UKG" };
+      });
+      
+      // Remove duplicates based on activity name and category
+      const uniqueActivities = extractedActivities.filter((activity, index, self) => 
+        index === self.findIndex(a => a.activity === activity.activity && a.category === activity.category)
+      );
+      
+      setAllActivities(uniqueActivities);
+      
+      // Save to localStorage
+      localStorage.setItem('library-activities', JSON.stringify(uniqueActivities));
+      
+      // Try to add each activity to the server
+      if (isSupabaseConfigured()) {
+        uniqueActivities.forEach(async (activity) => {
+          try {
+            await activitiesApi.create(activity);
+          } catch (error) {
+            console.warn('Failed to add activity to Supabase:', error);
           }
-          return activity;
         });
-        
-        setAllActivities(normalizedActivities);
-        localStorage.setItem('library-activities', JSON.stringify(normalizedActivities));
-        console.log(`Extracted ${normalizedActivities.length} activities from lessons data`);
       }
     } catch (error) {
       console.error('Failed to load activities:', error);
       setAllActivities([]);
+    } finally {
+      setLoading(false);
     }
   };
 
   // Add a new activity
   const addActivity = async (activity: Activity): Promise<Activity> => {
     try {
-      // Normalize level (convert EYFS U to UKG)
-      if (activity.level === "EYFS U") {
-        activity.level = "UKG";
-      }
-      
-      // Ensure activity has an ID
-      if (!activity.id) {
-        activity.id = generateUUID();
-      }
-      
-      // Try to add to Supabase
+      // Try to add to Supabase if connected
       let newActivity = activity;
       if (isSupabaseConfigured()) {
         try {
           newActivity = await activitiesApi.create(activity);
         } catch (error) {
           console.warn('Failed to add activity to Supabase:', error);
-          // Generate a local ID if Supabase fails
+          // Generate a local ID
           newActivity = {
             ...activity,
             _id: `local-${Date.now()}`
@@ -353,7 +311,7 @@ export function DataProvider({ children }: DataProviderProps) {
       // Update local state
       setAllActivities(prev => [...prev, newActivity]);
       
-      // Update localStorage
+      // Save to localStorage
       const savedActivities = localStorage.getItem('library-activities');
       if (savedActivities) {
         const activities = JSON.parse(savedActivities);
@@ -373,16 +331,11 @@ export function DataProvider({ children }: DataProviderProps) {
   // Update an existing activity
   const updateActivity = async (activity: Activity): Promise<Activity> => {
     try {
-      // Normalize level (convert EYFS U to UKG)
-      if (activity.level === "EYFS U") {
-        activity.level = "UKG";
-      }
-      
-      // Try to update in Supabase
+      // Try to update in Supabase if connected
       let updatedActivity = activity;
-      if (isSupabaseConfigured() && activity._id) {
+      if (isSupabaseConfigured() && (activity._id || activity.id)) {
         try {
-          updatedActivity = await activitiesApi.update(activity._id, activity);
+          updatedActivity = await activitiesApi.update(activity._id || activity.id || '', activity);
         } catch (error) {
           console.warn('Failed to update activity in Supabase:', error);
         }
@@ -391,21 +344,19 @@ export function DataProvider({ children }: DataProviderProps) {
       // Update local state
       setAllActivities(prev => 
         prev.map(a => 
-          (a._id === activity._id || 
-           (a.activity === activity.activity && 
-            a.category === activity.category)) 
+          (a._id === activity._id || a.id === activity.id || 
+           (a.activity === activity.activity && a.category === activity.category)) 
             ? updatedActivity : a
         )
       );
       
-      // Update localStorage
+      // Save to localStorage
       const savedActivities = localStorage.getItem('library-activities');
       if (savedActivities) {
         const activities = JSON.parse(savedActivities);
         const updatedActivities = activities.map((a: Activity) => 
-          (a._id === activity._id || 
-           (a.activity === activity.activity && 
-            a.category === activity.category)) 
+          (a._id === activity._id || a.id === activity.id || 
+           (a.activity === activity.activity && a.category === activity.category)) 
             ? updatedActivity : a
         );
         localStorage.setItem('library-activities', JSON.stringify(updatedActivities));
@@ -421,16 +372,10 @@ export function DataProvider({ children }: DataProviderProps) {
   // Delete an activity
   const deleteActivity = async (activityId: string): Promise<void> => {
     try {
-      // Find the activity
-      const activity = allActivities.find(a => a._id === activityId || a.id === activityId);
-      if (!activity) {
-        throw new Error('Activity not found');
-      }
-      
-      // Try to delete from Supabase
-      if (isSupabaseConfigured() && activity._id) {
+      // Try to delete from Supabase if connected
+      if (isSupabaseConfigured()) {
         try {
-          await activitiesApi.delete(activity._id);
+          await activitiesApi.delete(activityId);
         } catch (error) {
           console.warn('Failed to delete activity from Supabase:', error);
         }
@@ -439,7 +384,7 @@ export function DataProvider({ children }: DataProviderProps) {
       // Update local state
       setAllActivities(prev => prev.filter(a => a._id !== activityId && a.id !== activityId));
       
-      // Update localStorage
+      // Save to localStorage
       const savedActivities = localStorage.getItem('library-activities');
       if (savedActivities) {
         const activities = JSON.parse(savedActivities);
@@ -579,14 +524,12 @@ export function DataProvider({ children }: DataProviderProps) {
           updatedAt: new Date()
         };
       } else {
-        // Add new plan - ensure it has a proper UUID
-        const planWithUUID = {
+        // Add new plan
+        updatedPlans = [...prev, {
           ...plan,
-          id: plan.id || generateUUID(), // Generate UUID if not provided
           createdAt: new Date(),
           updatedAt: new Date()
-        };
-        updatedPlans = [...prev, planWithUUID];
+        }];
       }
       
       // Save to localStorage and Supabase
@@ -974,7 +917,7 @@ export function DataProvider({ children }: DataProviderProps) {
         const category = (row[1] || '').toString().trim();
         const activityName = (row[2] || '').toString().trim();
         const description = (row[3] || '').toString().trim();
-        let level = (row[4] || '').toString().trim();
+        const level = (row[4] || '').toString().trim();
         const timeStr = (row[5] || '0').toString().trim();
         const video = (row[6] || '').toString().trim();
         const music = (row[7] || '').toString().trim();
@@ -1004,13 +947,8 @@ export function DataProvider({ children }: DataProviderProps) {
           console.warn('Invalid time value:', timeStr);
         }
 
-        // Convert "EYFS U" to "UKG"
-        if (level === "EYFS U") {
-          level = "UKG";
-        }
-
         const activity: Activity = {
-          id: generateUUID(), // Use UUID for activity ID
+          id: `${currentSheetInfo.sheet}-${activityName}-${category}-${Date.now()}`,
           activity: activityName,
           description: description.replace(/"/g, ''),
           time,
@@ -1030,6 +968,49 @@ export function DataProvider({ children }: DataProviderProps) {
         };
 
         activities.push(activity);
+        
+        // Try to add to Supabase if connected
+        if (isSupabaseConfigured()) {
+          try {
+            // Remove id as Supabase will generate its own id
+            const { id, uniqueId, ...activityForSupabase } = activity;
+            
+            // Convert camelCase to snake_case for database
+            const dbActivity = {
+              activity: activityForSupabase.activity,
+              description: activityForSupabase.description,
+              activity_text: activityForSupabase.activityText,
+              time: activityForSupabase.time,
+              video_link: activityForSupabase.videoLink,
+              music_link: activityForSupabase.musicLink,
+              backing_link: activityForSupabase.backingLink,
+              resource_link: activityForSupabase.resourceLink,
+              link: activityForSupabase.link,
+              vocals_link: activityForSupabase.vocalsLink,
+              image_link: activityForSupabase.imageLink,
+              teaching_unit: activityForSupabase.teachingUnit,
+              category: activityForSupabase.category,
+              level: activityForSupabase.level,
+              unit_name: activityForSupabase.unitName,
+              lesson_number: activityForSupabase.lessonNumber,
+              eyfs_standards: activityForSupabase.eyfsStandards
+            };
+            
+            supabase
+              .from(TABLES.ACTIVITIES)
+              .upsert([dbActivity], { 
+                onConflict: 'activity,category,lesson_number',
+                ignoreDuplicates: false
+              })
+              .then(({ error }) => {
+                if (error) {
+                  console.warn('Failed to add activity to Supabase:', error);
+                }
+              });
+          } catch (error) {
+            console.warn('Failed to add activity to Supabase:', error);
+          }
+        }
       }
 
       console.log(`Processed ${currentSheetInfo.sheet} activities:`, activities.length);
@@ -1106,31 +1087,23 @@ export function DataProvider({ children }: DataProviderProps) {
         }
       }
 
-      // Use activitiesApi.import to add activities to the database
-      if (isSupabaseConfigured() && activities.length > 0) {
-        try {
-          await activitiesApi.import(activities);
-          console.log(`Imported ${activities.length} activities to Supabase`);
-        } catch (error) {
-          console.warn(`Failed to import activities to Supabase:`, error);
-        }
-      }
-
-      // Update allActivities state with the new activities
+      // Update activities state with the new activities
       setAllActivities(prev => {
-        // Create a map of existing activities for quick lookup
-        const existingActivities = new Map(prev.map(a => [`${a.activity}-${a.category}`, a]));
+        // Combine existing activities with new ones, removing duplicates
+        const existingMap = new Map(prev.map(a => [`${a.activity}-${a.category}-${a.lessonNumber}`, a]));
         
-        // Add new activities, replacing existing ones with the same name and category
         activities.forEach(activity => {
-          existingActivities.set(`${activity.activity}-${activity.category}`, activity);
+          const key = `${activity.activity}-${activity.category}-${activity.lessonNumber}`;
+          existingMap.set(key, activity);
         });
         
-        return Array.from(existingActivities.values());
+        const combinedActivities = Array.from(existingMap.values());
+        
+        // Save to localStorage
+        localStorage.setItem('library-activities', JSON.stringify(combinedActivities));
+        
+        return combinedActivities;
       });
-      
-      // Update localStorage with the new activities
-      localStorage.setItem('library-activities', JSON.stringify(allActivities));
 
     } catch (error) {
       console.error(`Error processing ${currentSheetInfo.sheet} sheet data:`, error);
@@ -1247,7 +1220,7 @@ export function DataProvider({ children }: DataProviderProps) {
     await loadData();
     await loadEyfsStatements();
     loadUserCreatedLessonPlans();
-    loadAllActivities();
+    loadActivities();
   };
 
   // Add EYFS statement to a lesson
@@ -1420,7 +1393,6 @@ export function DataProvider({ children }: DataProviderProps) {
     allLessonsData,
     eyfsStatements,
     allEyfsStatements,
-    allActivities, // Expose all activities to components
     loading,
     refreshData,
     uploadExcelFile,
@@ -1432,9 +1404,10 @@ export function DataProvider({ children }: DataProviderProps) {
     addOrUpdateUserLessonPlan,
     deleteUserLessonPlan,
     deleteLesson,
-    addActivity, // Expose add activity function
-    updateActivity, // Expose update activity function
-    deleteActivity // Expose delete activity function
+    allActivities,
+    addActivity,
+    updateActivity,
+    deleteActivity
   };
 
   return (
