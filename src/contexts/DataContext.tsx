@@ -173,6 +173,19 @@ const generateDefaultLessonTitle = (lessonData: LessonData): string => {
   return `${categories[0]} Lesson`;
 };
 
+// Helper function to generate UUID
+const generateUUID = (): string => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback for environments without crypto.randomUUID
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
 export function DataProvider({ children }: DataProviderProps) {
   const [currentSheetInfo, setCurrentSheetInfo] = useState<SheetInfo>({
     sheet: 'LKG',
@@ -335,12 +348,14 @@ export function DataProvider({ children }: DataProviderProps) {
           updatedAt: new Date()
         };
       } else {
-        // Add new plan
-        updatedPlans = [...prev, {
+        // Add new plan - ensure it has a proper UUID
+        const planWithUUID = {
           ...plan,
+          id: plan.id || generateUUID(), // Generate UUID if not provided
           createdAt: new Date(),
           updatedAt: new Date()
-        }];
+        };
+        updatedPlans = [...prev, planWithUUID];
       }
       
       // Save to localStorage and Supabase
@@ -764,7 +779,7 @@ export function DataProvider({ children }: DataProviderProps) {
         }
 
         const activity: Activity = {
-          id: `${currentSheetInfo.sheet}-${activityName}-${category}-${Date.now()}`,
+          id: generateUUID(), // Use UUID for activity ID
           activity: activityName,
           description: description.replace(/"/g, ''),
           time,
