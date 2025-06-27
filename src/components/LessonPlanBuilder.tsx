@@ -72,6 +72,17 @@ export function LessonPlanBuilder() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lessonNumber, setLessonNumber] = useState<string>('');
 
+  // Compute unique levels from all activities
+  const uniqueLevels = React.useMemo(() => {
+    const levels = new Set<string>();
+    allActivities.forEach(activity => {
+      if (activity.level && activity.level.trim()) {
+        levels.add(activity.level);
+      }
+    });
+    return Array.from(levels).sort();
+  }, [allActivities]);
+
   // Generate a lesson number when component mounts
   useEffect(() => {
     generateNextLessonNumber();
