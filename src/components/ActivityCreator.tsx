@@ -52,7 +52,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   // Simplified level options - just the core options without duplicates
-  const simplifiedLevels = ['All', 'EYFS L', 'UKG', 'Reception'];
+  const simplifiedLevels = ['All', 'LKG', 'UKG', 'Reception'];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -199,7 +199,7 @@ export function ActivityCreator({ onClose, onSave, categories, levels }: Activit
                   <option value="LKG">LKG</option>
                   <option value="UKG">UKG</option>
                   <option value="Reception">Reception</option>
-                  {simplifiedLevels.filter(level => !['All', 'LKG', 'UKG', 'Reception', 'EYFS U'].includes(level)).map(level => (
+                  {simplifiedLevels.filter(level => !['All', 'LKG', 'UKG', 'Reception'].includes(level)).map(level => (
                     <option key={level} value={level}>{level}</option>
                   ))}
                 </select>

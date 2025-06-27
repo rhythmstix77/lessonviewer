@@ -728,7 +728,7 @@ export function DataProvider({ children }: DataProviderProps) {
         const category = (row[1] || '').toString().trim();
         const activityName = (row[2] || '').toString().trim();
         const description = (row[3] || '').toString().trim();
-        const level = (row[4] || '').toString().trim();
+        let level = (row[4] || '').toString().trim();
         const timeStr = (row[5] || '0').toString().trim();
         const video = (row[6] || '').toString().trim();
         const music = (row[7] || '').toString().trim();
@@ -756,6 +756,11 @@ export function DataProvider({ children }: DataProviderProps) {
           }
         } catch (e) {
           console.warn('Invalid time value:', timeStr);
+        }
+
+        // Convert "EYFS U" to "UKG"
+        if (level === "EYFS U") {
+          level = "UKG";
         }
 
         const activity: Activity = {

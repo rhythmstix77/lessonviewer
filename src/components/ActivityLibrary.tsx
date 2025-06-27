@@ -121,7 +121,15 @@ export function ActivityLibrary({
           }
         }
         
-        setLibraryActivities(activities);
+        // Convert any "EYFS U" levels to "UKG"
+        const normalizedActivities = activities.map(activity => {
+          if (activity.level === "EYFS U") {
+            return { ...activity, level: "UKG" };
+          }
+          return activity;
+        });
+        
+        setLibraryActivities(normalizedActivities);
       } catch (error) {
         console.error('Failed to load activities:', error);
         setLibraryActivities([]);
@@ -196,6 +204,11 @@ export function ActivityLibrary({
 
   const handleActivityUpdate = async (updatedActivity: Activity) => {
     try {
+      // Convert any "EYFS U" levels to "UKG"
+      if (updatedActivity.level === "EYFS U") {
+        updatedActivity.level = "UKG";
+      }
+      
       // Try to update on server
       try {
         if (updatedActivity._id) {
@@ -277,6 +290,11 @@ export function ActivityLibrary({
       activity: `${activity.activity} (Copy)`,
     };
     
+    // Convert any "EYFS U" levels to "UKG"
+    if (duplicatedActivity.level === "EYFS U") {
+      duplicatedActivity.level = "UKG";
+    }
+    
     try {
       // Try to create on server
       let newActivity = duplicatedActivity;
@@ -308,6 +326,11 @@ export function ActivityLibrary({
   };
 
   const handleViewActivityDetails = (activity: Activity, initialResource?: {url: string, title: string, type: string}) => {
+    // Convert any "EYFS U" levels to "UKG"
+    if (activity.level === "EYFS U") {
+      activity.level = "UKG";
+    }
+    
     setSelectedActivityDetails(activity);
     if (initialResource) {
       setInitialResource(initialResource);
@@ -340,6 +363,11 @@ export function ActivityLibrary({
   };
 
   const handleEditActivity = (activity: Activity) => {
+    // Convert any "EYFS U" levels to "UKG"
+    if (activity.level === "EYFS U") {
+      activity.level = "UKG";
+    }
+    
     setEditingActivity(activity);
     setSelectedActivityDetails(activity);
   };
@@ -348,8 +376,16 @@ export function ActivityLibrary({
     try {
       setLoading(true);
       
+      // Convert any "EYFS U" levels to "UKG"
+      const normalizedActivities = activities.map(activity => {
+        if (activity.level === "EYFS U") {
+          return { ...activity, level: "UKG" };
+        }
+        return activity;
+      });
+      
       // Try to add each activity to the server
-      for (const activity of activities) {
+      for (const activity of normalizedActivities) {
         if (!activity._id) {
           activity._id = `${activity.activity}-${activity.category}-${Date.now()}`;
         }
@@ -367,7 +403,7 @@ export function ActivityLibrary({
         const existingActivities = new Map(prev.map(a => [`${a.activity}-${a.category}`, a]));
         
         // Add new activities, replacing existing ones with the same name and category
-        activities.forEach(activity => {
+        normalizedActivities.forEach(activity => {
           existingActivities.set(`${activity.activity}-${activity.category}`, activity);
         });
         
@@ -375,7 +411,7 @@ export function ActivityLibrary({
       });
       
       // Also update in localStorage
-      localStorage.setItem('library-activities', JSON.stringify([...libraryActivities, ...activities]));
+      localStorage.setItem('library-activities', JSON.stringify([...libraryActivities, ...normalizedActivities]));
       
       setShowImporter(false);
     } catch (error) {
@@ -389,6 +425,11 @@ export function ActivityLibrary({
   const handleCreateActivity = async (newActivity: Activity) => {
     try {
       setLoading(true);
+      
+      // Convert any "EYFS U" levels to "UKG"
+      if (newActivity.level === "EYFS U") {
+        newActivity.level = "UKG";
+      }
       
       // Try to add the activity to the server
       let createdActivity = newActivity;
@@ -498,7 +539,7 @@ export function ActivityLibrary({
             <option value="LKG" className="text-gray-900">LKG</option>
             <option value="UKG" className="text-gray-900">UKG</option>
             <option value="Reception" className="text-gray-900">Reception</option>
-            {uniqueLevels.filter(level => !['All', 'LKG', 'UKG', 'Reception'].includes(level)).map(level => (
+            {uniqueLevels.filter(level => !['All', 'LKG', 'UKG', 'Reception', 'EYFS U'].includes(level)).map(level => (
               <option key={level} value={level} className="text-gray-900">
                 {level}
               </option>
