@@ -1,4 +1,5 @@
-import { supabase, TABLES } from './supabase';
+// API Configuration for Excel/Google Sheets Integration
+import { supabase, TABLES, isSupabaseConfigured } from './supabase';
 import type { Activity, LessonData, LessonPlan } from '../contexts/DataContext';
 
 // API endpoints for activities
@@ -13,7 +14,7 @@ export const activitiesApi = {
       
       // Convert snake_case to camelCase for frontend
       return (data || []).map(item => ({
-        id: item.id,
+        _id: item.id,
         activity: item.activity,
         description: item.description,
         activityText: item.activity_text,
@@ -72,7 +73,7 @@ export const activitiesApi = {
       
       // Convert back to camelCase for frontend
       return {
-        id: data.id,
+        _id: data.id,
         activity: data.activity,
         description: data.description,
         activityText: data.activity_text,
@@ -132,7 +133,7 @@ export const activitiesApi = {
       
       // Convert back to camelCase for frontend
       return {
-        id: data.id,
+        _id: data.id,
         activity: data.activity,
         description: data.description,
         activityText: data.activity_text,
@@ -195,11 +196,11 @@ export const activitiesApi = {
         eyfs_standards: activity.eyfsStandards
       }));
       
-      // Use upsert to handle both inserts and updates
+      // Use upsert with the correct constraint
       const { data, error } = await supabase
         .from(TABLES.ACTIVITIES)
         .upsert(cleanedActivities, { 
-          onConflict: 'activity,category,lesson_number',
+          onConflict: 'activity_category_lesson_number_key',
           ignoreDuplicates: false
         });
       
@@ -492,7 +493,10 @@ export const dataApi = {
         promises.push(
           supabase
             .from(TABLES.ACTIVITIES)
-            .upsert(cleanedActivities, { onConflict: 'id' })
+            .upsert(cleanedActivities, { 
+              onConflict: 'activity_category_lesson_number_key',
+              ignoreDuplicates: false 
+            })
         );
       }
       
