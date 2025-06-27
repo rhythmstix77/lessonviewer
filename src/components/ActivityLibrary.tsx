@@ -13,7 +13,8 @@ import {
   Eye,
   MoreVertical,
   Upload,
-  Download
+  Download,
+  Trash2
 } from 'lucide-react';
 import { ActivityCard } from './ActivityCard';
 import { ActivityDetails } from './ActivityDetails';
@@ -54,6 +55,7 @@ export function ActivityLibrary({
   const [showCreator, setShowCreator] = useState(false);
   const [libraryActivities, setLibraryActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
   // Sync local category with prop
   useEffect(() => {
@@ -253,33 +255,40 @@ export function ActivityLibrary({
   };
 
   const handleActivityDelete = async (activityId: string) => {
-    if (confirm('Are you sure you want to delete this activity?')) {
-      try {
-        const activity = libraryActivities.find(a => a.activity === activityId);
-        
-        // Try to delete from server
-        if (activity && activity._id) {
-          try {
-            await activitiesApi.delete(activity._id);
-          } catch (serverError) {
-            console.warn('Failed to delete activity from server:', serverError);
-          }
+    setShowDeleteConfirm(activityId);
+  };
+
+  const confirmDeleteActivity = async () => {
+    if (!showDeleteConfirm) return;
+    
+    try {
+      const activity = libraryActivities.find(a => a.activity === showDeleteConfirm);
+      
+      // Try to delete from server
+      if (activity && activity._id) {
+        try {
+          await activitiesApi.delete(activity._id);
+        } catch (serverError) {
+          console.warn('Failed to delete activity from server:', serverError);
         }
-        
-        // Update local state
-        setLibraryActivities(prev => prev.filter(a => a.activity !== activityId));
-        
-        // Also update in localStorage
-        const savedActivities = localStorage.getItem('library-activities');
-        if (savedActivities) {
-          const activities = JSON.parse(savedActivities);
-          const updatedActivities = activities.filter((a: Activity) => a.activity !== activityId);
-          localStorage.setItem('library-activities', JSON.stringify(updatedActivities));
-        }
-      } catch (error) {
-        console.error('Failed to delete activity:', error);
-        alert('Failed to delete activity. Please try again.');
       }
+      
+      // Update local state
+      setLibraryActivities(prev => prev.filter(a => a.activity !== showDeleteConfirm));
+      
+      // Also update in localStorage
+      const savedActivities = localStorage.getItem('library-activities');
+      if (savedActivities) {
+        const activities = JSON.parse(savedActivities);
+        const updatedActivities = activities.filter((a: Activity) => a.activity !== showDeleteConfirm);
+        localStorage.setItem('library-activities', JSON.stringify(updatedActivities));
+      }
+      
+      setShowDeleteConfirm(null);
+    } catch (error) {
+      console.error('Failed to delete activity:', error);
+      alert('Failed to delete activity. Please try again.');
+      setShowDeleteConfirm(null);
     }
   };
 
@@ -702,6 +711,33 @@ export function ActivityLibrary({
           onImport={handleImportActivities}
           onClose={() => setShowImporter(false)}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Delete Activity</h3>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete this activity? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteActivity}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center space-x-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Delete Activity</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
