@@ -855,52 +855,65 @@ export function UnitViewer() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {lessonNumbers.map(lessonNum => {
-                        const lessonData = allLessonsData[lessonNum];
-                        if (!lessonData) return null;
-                        
-                        const isSelected = selectedLessons.includes(lessonNum);
-                        
-                        return (
-                          <div 
-                            key={lessonNum}
-                            className={`bg-white rounded-lg border p-4 cursor-pointer transition-all duration-200 relative ${
-                              isSelected 
-                                ? 'border-yellow-500 bg-yellow-50 shadow-md' 
-                                : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                            }`}
-                            onClick={() => handleLessonSelection(lessonNum)}
-                          >
-                            {isSelected && (
-                              <div className="absolute top-2 right-2">
-                                <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-                              </div>
-                            )}
-                            <div className="pr-6">
-                              <h4 className="font-semibold text-gray-900 mb-1">Lesson {lessonNum}</h4>
-                              <p className="text-sm text-gray-600 mb-2">{lessonData.title || `Lesson ${lessonNum}`}</p>
-                              <div className="flex items-center space-x-2 text-xs text-gray-500 mb-2">
-                                <Clock className="h-3 w-3" />
-                                <span>{lessonData.totalTime} mins</span>
-                              </div>
-                              <div className="flex flex-wrap gap-1">
-                                {lessonData.categoryOrder.slice(0, 3).map(category => (
-                                  <span 
-                                    key={category}
-                                    className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full"
-                                  >
-                                    {category}
-                                  </span>
-                                ))}
-                                {lessonData.categoryOrder.length > 3 && (
-                                  <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
-                                    +{lessonData.categoryOrder.length - 3}
-                                  </span>
-                                )}
+                      {/* Filter lessons to only show those assigned to this half-term */}
+                      {lessonNumbers
+                        .filter(lessonNum => {
+                          // Check if this lesson has been assigned to any half-term
+                          const isAssignedToAnyHalfTerm = halfTerms.some(term => 
+                            term.id !== selectedHalfTerm.id && // Not the current half-term
+                            term.lessons && 
+                            term.lessons.includes(lessonNum)
+                          );
+                          
+                          // If it's already assigned to this half-term or not assigned to any other half-term, show it
+                          return selectedLessons.includes(lessonNum) || !isAssignedToAnyHalfTerm;
+                        })
+                        .map(lessonNum => {
+                          const lessonData = allLessonsData[lessonNum];
+                          if (!lessonData) return null;
+                          
+                          const isSelected = selectedLessons.includes(lessonNum);
+                          
+                          return (
+                            <div 
+                              key={lessonNum}
+                              className={`bg-white rounded-lg border p-4 cursor-pointer transition-all duration-200 relative ${
+                                isSelected 
+                                  ? 'border-yellow-500 bg-yellow-50 shadow-md' 
+                                  : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                              }`}
+                              onClick={() => handleLessonSelection(lessonNum)}
+                            >
+                              {isSelected && (
+                                <div className="absolute top-2 right-2">
+                                  <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+                                </div>
+                              )}
+                              <div className="pr-6">
+                                <h4 className="font-semibold text-gray-900 mb-1">Lesson {lessonNum}</h4>
+                                <p className="text-sm text-gray-600 mb-2">{lessonData.title || `Lesson ${lessonNum}`}</p>
+                                <div className="flex items-center space-x-2 text-xs text-gray-500 mb-2">
+                                  <Clock className="h-3 w-3" />
+                                  <span>{lessonData.totalTime} mins</span>
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                  {lessonData.categoryOrder.slice(0, 3).map(category => (
+                                    <span 
+                                      key={category}
+                                      className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full"
+                                    >
+                                      {category}
+                                    </span>
+                                  ))}
+                                  {lessonData.categoryOrder.length > 3 && (
+                                    <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
+                                      +{lessonData.categoryOrder.length - 3}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
+                          );
                       })}
                     </div>
                   </div>

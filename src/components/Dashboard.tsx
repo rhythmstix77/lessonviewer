@@ -43,6 +43,7 @@ export function Dashboard() {
   const [lessonPlans, setLessonPlans] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [units, setUnits] = useState<Unit[]>([]);
+  const [halfTerms, setHalfTerms] = useState<any[]>([]);
   
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
@@ -111,6 +112,33 @@ export function Dashboard() {
       setUnits(sampleUnits);
       localStorage.setItem('units', JSON.stringify(sampleUnits));
     }
+
+    // Load half-terms data
+    const savedHalfTerms = localStorage.getItem('half-terms');
+    if (savedHalfTerms) {
+      try {
+        const parsedHalfTerms = JSON.parse(savedHalfTerms);
+        setHalfTerms(parsedHalfTerms);
+      } catch (error) {
+        console.error('Error parsing saved half-terms:', error);
+        
+        // Initialize with default half-terms
+        const defaultHalfTerms = HALF_TERMS.map(term => ({
+          ...term,
+          lessons: []
+        }));
+        setHalfTerms(defaultHalfTerms);
+        localStorage.setItem('half-terms', JSON.stringify(defaultHalfTerms));
+      }
+    } else {
+      // Initialize with default half-terms
+      const defaultHalfTerms = HALF_TERMS.map(term => ({
+        ...term,
+        lessons: []
+      }));
+      setHalfTerms(defaultHalfTerms);
+      localStorage.setItem('half-terms', JSON.stringify(defaultHalfTerms));
+    }
   }, []);
 
   // Save lesson plans to localStorage
@@ -123,6 +151,12 @@ export function Dashboard() {
   const saveUnits = (updatedUnits: Unit[]) => {
     localStorage.setItem('units', JSON.stringify(updatedUnits));
     setUnits(updatedUnits);
+  };
+
+  // Save half-terms to localStorage
+  const saveHalfTerms = (updatedHalfTerms: any[]) => {
+    localStorage.setItem('half-terms', JSON.stringify(updatedHalfTerms));
+    setHalfTerms(updatedHalfTerms);
   };
 
   const handleDateSelect = (date: Date) => {
@@ -171,42 +205,6 @@ export function Dashboard() {
     console.log('Activity added:', activity);
   };
 
-  const handleAddUnitToCalendar = (unit: Unit, startDate: Date) => {
-    // Create a lesson plan for each lesson in the unit
-    const weekNumber = Math.ceil(
-      (startDate.getTime() - new Date(startDate.getFullYear(), 0, 1).getTime()) / 
-      (7 * 24 * 60 * 60 * 1000)
-    );
-    
-    const newPlans = unit.lessonNumbers.map((lessonNumber, index) => {
-      // Calculate date for this lesson (each lesson is 1 day apart)
-      const lessonDate = new Date(startDate);
-      lessonDate.setDate(lessonDate.getDate() + index);
-      
-      return {
-        id: `plan-${Date.now()}-${index}`,
-        date: lessonDate,
-        week: weekNumber,
-        className: currentSheetInfo.sheet,
-        activities: [], // These would be populated from the lesson data
-        duration: 0,
-        notes: `Part of unit: ${unit.name}`,
-        status: 'planned',
-        unitId: unit.id,
-        unitName: unit.name,
-        lessonNumber,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-    });
-    
-    const updatedPlans = [...lessonPlans, ...newPlans];
-    saveLessonPlans(updatedPlans);
-    
-    // Switch to calendar view
-    setActiveTab('calendar');
-  };
-
   const handleLessonSelect = (lessonNumber: string) => {
     // Navigate to lesson builder with the selected lesson
     setActiveTab('lesson-builder');
@@ -214,81 +212,27 @@ export function Dashboard() {
     // and load that lesson when it mounts
   };
 
-  const handleAssignLessonToUnit = (lessonNumber: string, halfTermId: string) => {
-    // Check if a unit already exists for this half-term
-    let targetUnit = units.find(unit => unit.term === halfTermId);
+  const handleAssignLessonToHalfTerm = (lessonNumber: string, halfTermId: string) => {
+    console.log('Dashboard: Assigning lesson', lessonNumber, 'to half-term', halfTermId);
     
-    // If no unit exists for this half-term, create a new one
-    if (!targetUnit) {
-      // Generate a unique ID for the new unit
-      const unitId = `unit-${Date.now()}`;
-      
-      // Get the half-term name
-      const halfTerm = HALF_TERMS.find(term => term.id === halfTermId);
-      const halfTermName = halfTerm ? halfTerm.name : halfTermId;
-      
-      // Create a new unit
-      const newUnit: Unit = {
-        id: unitId,
-        name: `${halfTermName} Unit`,
-        description: `Lessons for ${halfTermName}`,
-        lessonNumbers: [],
-        color: getRandomColor(),
-        term: halfTermId,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      
-      // Add the new unit to the units array
-      const updatedUnits = [...units, newUnit];
-      targetUnit = newUnit;
-      setUnits(updatedUnits);
-      
-      // Save to localStorage
-      localStorage.setItem('units', JSON.stringify(updatedUnits));
-    }
-    
-    // Add the lesson to the unit if it's not already there
-    if (!targetUnit.lessonNumbers.includes(lessonNumber)) {
-      const updatedUnits = units.map(unit => {
-        if (unit.id === targetUnit!.id) {
-          // Add the lesson number and sort numerically
-          const updatedLessonNumbers = [...unit.lessonNumbers, lessonNumber]
-            .sort((a, b) => parseInt(a) - parseInt(b));
-          
+    // Update the half-terms data
+    const updatedHalfTerms = halfTerms.map(term => {
+      if (term.id === halfTermId) {
+        // Add the lesson if it's not already there
+        if (!term.lessons.includes(lessonNumber)) {
           return {
-            ...unit,
-            lessonNumbers: updatedLessonNumbers,
-            updatedAt: new Date()
+            ...term,
+            lessons: [...term.lessons, lessonNumber]
           };
         }
-        return unit;
-      });
-      
-      // Update state and save to localStorage
-      saveUnits(updatedUnits);
-      
-      // Show a success message
-      alert(`Lesson ${lessonNumber} has been added to the ${targetUnit.name} unit.`);
-    } else {
-      // Lesson is already in the unit
-      alert(`Lesson ${lessonNumber} is already in the ${targetUnit.name} unit.`);
-    }
-  };
-
-  // Helper function to generate a random color
-  const getRandomColor = () => {
-    const colors = [
-      '#3B82F6', // Blue
-      '#F59E0B', // Amber
-      '#10B981', // Emerald
-      '#8B5CF6', // Violet
-      '#EC4899', // Pink
-      '#EF4444', // Red
-      '#F97316', // Orange
-      '#14B8A6', // Teal
-    ];
-    return colors[Math.floor(Math.random() * colors.length)];
+      }
+      return term;
+    });
+    
+    saveHalfTerms(updatedHalfTerms);
+    
+    // Show a success message
+    alert(`Lesson ${lessonNumber} has been added to the ${HALF_TERMS.find(t => t.id === halfTermId)?.name} half-term.`);
   };
 
   return (
@@ -365,7 +309,7 @@ export function Dashboard() {
             <TabsContent value="lesson-library" className="mt-6">
               <LessonLibrary 
                 className={currentSheetInfo.sheet}
-                onAssignToUnit={handleAssignLessonToUnit}
+                onAssignToUnit={handleAssignLessonToHalfTerm}
               />
             </TabsContent>
 
