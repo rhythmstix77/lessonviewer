@@ -3,7 +3,6 @@ import { Download, Printer, X, Check, Tag } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
 
 interface LessonPrintModalProps {
   lessonNumber: string;
@@ -27,7 +26,7 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
   const halfTermLessons = React.useMemo(() => {
     if (!halfTermId) return [];
     
-    const halfTerm = halfTerms.find(term => term.id === halfTermId);
+    const halfTerm = halfTerms?.find(term => term.id === halfTermId);
     if (!halfTerm) return [];
     
     return halfTerm.lessons || [];
@@ -91,7 +90,7 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
 
   const exportSingleLessonToPdf = async () => {
     try {
-      // Create a new PDF document
+      // Create a new PDF document with compression enabled
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -237,7 +236,6 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
               
               // Add clickable link
               const linkText = resource.type;
-              const linkWidth = pdf.getTextWidth(linkText);
               
               pdf.textWithLink(linkText, 35, yPos, {
                 url: resource.url
@@ -280,7 +278,7 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
     }
     
     try {
-      // Create PDF with proper A4 dimensions
+      // Create PDF with proper A4 dimensions and compression
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -295,7 +293,7 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
       pdf.setFontSize(30);
       pdf.text(`Half-Term Plan`, 105, 120, { align: 'center' });
       
-      const currentHalfTerm = halfTerms.find(term => term.id === halfTermId);
+      const currentHalfTerm = halfTerms?.find(term => term.id === halfTermId);
       if (currentHalfTerm) {
         pdf.setFontSize(20);
         pdf.text(`${currentHalfTerm.name} (${currentHalfTerm.months})`, 105, 140, { align: 'center' });
@@ -491,7 +489,7 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
       }
       
       // Save the PDF
-      const halfTerm = halfTerms.find(term => term.id === halfTermId);
+      const halfTerm = halfTerms?.find(term => term.id === halfTermId);
       const halfTermName = halfTerm ? halfTerm.name.replace(/\s+/g, '_') : halfTermId;
       pdf.save(`${currentSheetInfo.sheet}_${halfTermName}_Half_Term_Plan.pdf`);
     } catch (error) {
@@ -735,8 +733,6 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-red-200 transition-colors"
-                                      data-resource-type="Video"
-                                      data-resource-url={activity.videoLink}
                                     >
                                       Video
                                     </a>
@@ -747,8 +743,6 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-green-200 transition-colors"
-                                      data-resource-type="Music"
-                                      data-resource-url={activity.musicLink}
                                     >
                                       Music
                                     </a>
@@ -759,8 +753,6 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-blue-200 transition-colors"
-                                      data-resource-type="Backing"
-                                      data-resource-url={activity.backingLink}
                                     >
                                       Backing
                                     </a>
@@ -771,8 +763,6 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-purple-200 transition-colors"
-                                      data-resource-type="Resource"
-                                      data-resource-url={activity.resourceLink}
                                     >
                                       Resource
                                     </a>
@@ -783,8 +773,6 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-gray-200 transition-colors"
-                                      data-resource-type="Link"
-                                      data-resource-url={activity.link}
                                     >
                                       Link
                                     </a>
@@ -795,8 +783,6 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-orange-200 transition-colors"
-                                      data-resource-type="Vocals"
-                                      data-resource-url={activity.vocalsLink}
                                     >
                                       Vocals
                                     </a>
@@ -807,8 +793,6 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center px-2 py-1 bg-pink-100 text-pink-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-pink-200 transition-colors"
-                                      data-resource-type="Image"
-                                      data-resource-url={activity.imageLink}
                                     >
                                       Image
                                     </a>
