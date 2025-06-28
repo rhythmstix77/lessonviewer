@@ -542,7 +542,7 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
                   onChange={() => setShowEyfs(!showEyfs)}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-                <span>Include EYFS Standards</span>
+                <span>Include Learning Goals</span>
               </label>
               
               {halfTermId && (
