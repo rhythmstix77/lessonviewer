@@ -26,8 +26,17 @@ export function AssignToHalfTermModal({
 
   if (!isOpen) return null;
 
+  console.log('AssignToHalfTermModal rendered', { lessonNumber, halfTerms });
+
+  const handleAssign = () => {
+    console.log('Assigning to half-term:', selectedHalfTerm);
+    if (selectedHalfTerm) {
+      onAssign(selectedHalfTerm);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[100]">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
         {/* Header */}
         <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
@@ -88,12 +97,7 @@ export function AssignToHalfTermModal({
               Cancel
             </button>
             <button
-              onClick={() => {
-                if (selectedHalfTerm) {
-                  onAssign(selectedHalfTerm);
-                  onClose();
-                }
-              }}
+              onClick={handleAssign}
               disabled={!selectedHalfTerm}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
             >

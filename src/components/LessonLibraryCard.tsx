@@ -128,13 +128,16 @@ export function LessonLibraryCard({
   const handleAssignClick = (e: React.MouseEvent) => {
     console.log('Assign button clicked');
     e.stopPropagation(); // Stop the event from bubbling up to the card
+    e.preventDefault(); // Prevent any default behavior
     setShowAssignModal(true);
   };
 
   const handleAssignToHalfTerm = (halfTermId: string) => {
+    console.log('Assigning lesson to half-term:', halfTermId);
     if (onAssignToUnit) {
       onAssignToUnit(lessonNumber, halfTermId);
       setShowAssignDropdown(false);
+      setShowAssignModal(false);
     }
   };
 
@@ -432,7 +435,7 @@ export function LessonLibraryCard({
         </div>
         
         {/* Action buttons - Always visible now */}
-        <div className="absolute top-2 right-2 flex items-center space-x-2">
+        <div className="absolute top-2 right-2 flex items-center space-x-2 z-10">
           {onAssignToUnit && halfTerms.length > 0 && (
             <div>
               <button
