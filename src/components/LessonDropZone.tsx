@@ -393,7 +393,7 @@ export function LessonDropZone({
                 <p className={`font-medium transition-colors duration-200 ${
                   isOver ? 'text-blue-600' : 'text-gray-600'
                 }`}>
-                  {isOver ? 'Drop to add activity' : 'Drag more activities here'}
+                  {isOver ? 'Drop to add activity' : 'Choose the activities you want to add to your lesson.'}
                 </p>
               </div>
             )}
