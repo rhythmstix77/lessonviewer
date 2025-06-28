@@ -5,7 +5,6 @@ import {
   Clock, 
   Users, 
   FileText, 
-  GripVertical, 
   Trash2,
   Save,
   X,
@@ -112,7 +111,7 @@ function ActivityItem({
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onActivityClick && !isEditing) {
+    if (onActivityClick) {
       onActivityClick(activity);
     }
   };
@@ -125,12 +124,6 @@ function ActivityItem({
       onClick={handleClick}
     >
       <div className="flex items-center p-3">
-        {isEditing && isDraggable && (
-          <div className="flex-shrink-0 cursor-move text-gray-400 hover:text-gray-600 mr-2">
-            <GripVertical className="h-5 w-5" />
-          </div>
-        )}
-        
         <div 
           className="w-1 h-full rounded-full flex-shrink-0 mr-2"
           style={{ backgroundColor: categoryColor, height: '24px' }}
