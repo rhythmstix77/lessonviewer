@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { 
   FolderOpen, 
   Search, 
-  Filter, 
+  EyeOff, 
   Grid, 
   List, 
-  MoreVertical, 
   ChevronLeft, 
   Clock, 
   BookOpen, 
@@ -15,9 +16,11 @@ import {
   Download,
   Edit3,
   Eye,
-  EyeOff,
   Plus,
-  Star
+  Check,
+  Printer,
+  Save,
+  CheckCircle
 } from 'lucide-react';
 import { UnitCard } from './UnitCard';
 import { LessonLibraryCard } from './LessonLibraryCard';
@@ -25,6 +28,9 @@ import { ActivityDetails } from './ActivityDetails';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { LessonExporter } from './LessonExporter';
+import { HalfTermCard } from './HalfTermCard';
+import { LessonSelectionModal } from './LessonSelectionModal';
+import { HalfTermView } from './HalfTermView';
 import { LessonDetailsModal } from './LessonDetailsModal';
 import type { Activity } from '../contexts/DataContext';
 
@@ -39,6 +45,16 @@ interface Unit {
   updatedAt: Date;
 }
 
+// Define half-term periods
+const HALF_TERMS = [
+  { id: 'A1', name: 'Autumn 1', months: 'Sep-Oct' },
+  { id: 'A2', name: 'Autumn 2', months: 'Nov-Dec' },
+  { id: 'SP1', name: 'Spring 1', months: 'Jan-Feb' },
+  { id: 'SP2', name: 'Spring 2', months: 'Mar-Apr' },
+  { id: 'SM1', name: 'Summer 1', months: 'Apr-May' },
+  { id: 'SM2', name: 'Summer 2', months: 'Jun-Jul' },
+];
+
 // Map term IDs to readable names
 const TERM_NAMES: Record<string, string> = {
   'A1': 'Autumn 1 (Sep-Oct)',
@@ -49,6 +65,16 @@ const TERM_NAMES: Record<string, string> = {
   'SM2': 'Summer 2 (Jun-Jul)',
 };
 
+// Map term IDs to colors
+const TERM_COLORS: Record<string, string> = {
+  'A1': '#F59E0B', // Amber
+  'A2': '#EA580C', // Orange
+  'SP1': '#10B981', // Emerald
+  'SP2': '#059669', // Green
+  'SM1': '#3B82F6', // Blue
+  'SM2': '#6366F1', // Indigo
+};
+
 export function UnitViewer() {
   const { currentSheetInfo, allLessonsData } = useData();
   const { getThemeForClass } = useSettings();
@@ -56,12 +82,14 @@ export function UnitViewer() {
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTerm, setSelectedTerm] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [selectedLessonForExport, setSelectedLessonForExport] = useState<string | null>(null);
   const [focusedHalfTermId, setFocusedHalfTermId] = useState<string | null>(null);
+  const [halfTerms, setHalfTerms] = useState<any[]>([]);
+  const [selectedHalfTerm, setSelectedHalfTerm] = useState<string | null>(null);
+  const [showLessonSelectionModal, setShowLessonSelectionModal] = useState(false);
   const [selectedLessonForDetails, setSelectedLessonForDetails] = useState<string | null>(null);
-  const [selectedLessons, setSelectedLessons] = useState<string[]>([]);
   
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
@@ -86,26 +114,36 @@ export function UnitViewer() {
       setUnits([]);
       localStorage.setItem('units', JSON.stringify([]));
     }
-  }, []);
 
-  // Filter units based on search, term, and focused half-term
-  const filteredUnits = React.useMemo(() => {
-    let filtered = units.filter(unit => {
-      const matchesSearch = unit.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           unit.description.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      // If we have a focused half-term, only show units from that term
-      if (focusedHalfTermId) {
-        return matchesSearch && unit.term === focusedHalfTermId;
+    // Load half-terms data
+    const savedHalfTerms = localStorage.getItem('half-terms');
+    if (savedHalfTerms) {
+      try {
+        const parsedHalfTerms = JSON.parse(savedHalfTerms);
+        setHalfTerms(parsedHalfTerms);
+      } catch (error) {
+        console.error('Error parsing saved half-terms:', error);
+        
+        // Initialize with default half-terms
+        const defaultHalfTerms = HALF_TERMS.map(term => ({
+          ...term,
+          lessons: [],
+          isComplete: false
+        }));
+        setHalfTerms(defaultHalfTerms);
+        localStorage.setItem('half-terms', JSON.stringify(defaultHalfTerms));
       }
-      
-      // Otherwise use the selected term filter
-      const matchesTerm = selectedTerm === 'all' || unit.term === selectedTerm;
-      return matchesSearch && matchesTerm;
-    });
-    
-    return filtered;
-  }, [units, searchQuery, selectedTerm, focusedHalfTermId]);
+    } else {
+      // Initialize with default half-terms
+      const defaultHalfTerms = HALF_TERMS.map(term => ({
+        ...term,
+        lessons: [],
+        isComplete: false
+      }));
+      setHalfTerms(defaultHalfTerms);
+      localStorage.setItem('half-terms', JSON.stringify(defaultHalfTerms));
+    }
+  }, []);
 
   // Group units by half-term
   const unitsByHalfTerm = React.useMemo(() => {
@@ -138,14 +176,11 @@ export function UnitViewer() {
   // Handle unit selection
   const handleUnitSelect = (unit: Unit) => {
     setSelectedUnit(unit);
-    // Reset selected lessons when a new unit is selected
-    setSelectedLessons(unit.lessonNumbers || []);
   };
 
   // Handle back button click
   const handleBackToUnits = () => {
     setSelectedUnit(null);
-    setSelectedLessons([]);
   };
 
   // Handle activity click
@@ -165,77 +200,65 @@ export function UnitViewer() {
     setSelectedTerm('all');
   };
 
-  // Create a new unit
-  const handleCreateUnit = () => {
-    const newUnit: Unit = {
-      id: `unit-${Date.now()}`,
-      name: 'New Unit',
-      description: 'Add a description for this unit',
-      lessonNumbers: [],
-      color: getRandomColor(),
-      term: 'A1', // Default to Autumn 1
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    const updatedUnits = [...units, newUnit];
-    setUnits(updatedUnits);
-    localStorage.setItem('units', JSON.stringify(updatedUnits));
-    
-    // Select the new unit
-    setSelectedUnit(newUnit);
+  // Handle half-term card click
+  const handleHalfTermClick = (halfTermId: string) => {
+    setSelectedHalfTerm(halfTermId);
+    setShowLessonSelectionModal(true);
   };
 
-  // Generate a random color for new units
-  const getRandomColor = () => {
-    const colors = [
-      '#3B82F6', // Blue
-      '#F59E0B', // Amber
-      '#10B981', // Emerald
-      '#8B5CF6', // Violet
-      '#EC4899', // Pink
-      '#EF4444', // Red
-      '#F97316', // Orange
-      '#14B8A6', // Teal
-    ];
-    return colors[Math.floor(Math.random() * colors.length)];
+  // Get lessons for a half-term
+  const getLessonsForHalfTerm = (halfTermId: string) => {
+    const halfTerm = halfTerms.find(term => term.id === halfTermId);
+    return halfTerm ? halfTerm.lessons || [] : [];
   };
 
-  // Toggle lesson selection
-  const handleToggleLessonSelection = (lessonNumber: string) => {
-    if (!selectedUnit) return;
-    
-    setSelectedLessons(prev => {
-      const isSelected = prev.includes(lessonNumber);
-      const newSelectedLessons = isSelected
-        ? prev.filter(num => num !== lessonNumber)
-        : [...prev, lessonNumber];
-      
-      // Update the unit with the new selected lessons
-      const updatedUnit = {
-        ...selectedUnit,
-        lessonNumbers: newSelectedLessons,
-        updatedAt: new Date()
-      };
-      
-      // Update the units array
-      const updatedUnits = units.map(unit => 
-        unit.id === selectedUnit.id ? updatedUnit : unit
-      );
-      
-      // Save to localStorage
-      localStorage.setItem('units', JSON.stringify(updatedUnits));
-      
-      // Update the selected unit
-      setSelectedUnit(updatedUnit);
-      setUnits(updatedUnits);
-      
-      return newSelectedLessons;
+  // Check if a half-term is marked as complete
+  const isHalfTermComplete = (halfTermId: string) => {
+    const halfTerm = halfTerms.find(term => term.id === halfTermId);
+    return halfTerm ? halfTerm.isComplete || false : false;
+  };
+
+  // Save lessons for a half-term
+  const saveLessonsForHalfTerm = (halfTermId: string, lessons: string[], isComplete?: boolean) => {
+    const updatedHalfTerms = halfTerms.map(term => {
+      if (term.id === halfTermId) {
+        return {
+          ...term,
+          lessons,
+          isComplete: isComplete !== undefined ? isComplete : term.isComplete
+        };
+      }
+      return term;
     });
+    
+    setHalfTerms(updatedHalfTerms);
+    localStorage.setItem('half-terms', JSON.stringify(updatedHalfTerms));
   };
 
-  // Handle lesson click to view details
-  const handleLessonClick = (lessonNumber: string) => {
+  // Handle lesson reordering
+  const handleReorderLessons = (halfTermId: string, dragIndex: number, hoverIndex: number) => {
+    const lessons = getLessonsForHalfTerm(halfTermId);
+    const draggedLesson = lessons[dragIndex];
+    const newLessons = [...lessons];
+    newLessons.splice(dragIndex, 1);
+    newLessons.splice(hoverIndex, 0, draggedLesson);
+    saveLessonsForHalfTerm(halfTermId, newLessons);
+  };
+
+  // Handle lesson removal
+  const handleRemoveLesson = (halfTermId: string, lessonNumber: string) => {
+    const lessons = getLessonsForHalfTerm(halfTermId);
+    const newLessons = lessons.filter(num => num !== lessonNumber);
+    
+    // If all lessons are removed, automatically set isComplete to false
+    const halfTerm = halfTerms.find(term => term.id === halfTermId);
+    const isComplete = newLessons.length > 0 ? halfTerm?.isComplete : false;
+    
+    saveLessonsForHalfTerm(halfTermId, newLessons, isComplete);
+  };
+
+  // Handle view lesson details
+  const handleViewLessonDetails = (lessonNumber: string) => {
     setSelectedLessonForDetails(lessonNumber);
   };
 
@@ -243,7 +266,7 @@ export function UnitViewer() {
   if (selectedUnit) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
-        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Unit Header */}
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-6">
             <div 
@@ -314,11 +337,23 @@ export function UnitViewer() {
                       lessonNumber={lessonNumber}
                       lessonData={lessonData}
                       viewMode="grid"
-                      onClick={() => handleLessonClick(lessonNumber)}
+                      onClick={() => handleViewLessonDetails(lessonNumber)}
                       theme={theme}
-                      isSelected={selectedLessons.includes(lessonNumber)}
-                      onToggleSelection={handleToggleLessonSelection}
                     />
+                    
+                    {/* Overlay buttons that appear on hover */}
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLessonExport(lessonNumber);
+                        }}
+                        className="p-1.5 bg-white bg-opacity-90 hover:bg-opacity-100 rounded-lg shadow-sm text-gray-700 hover:text-gray-900"
+                        title="Export Lesson"
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -369,220 +404,151 @@ export function UnitViewer() {
     );
   }
 
-  // Default view - all units
+  // Default view - half-term cards
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
-      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-6">
-          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <FolderOpen className="h-6 w-6" />
-                <div>
-                  <h2 className="text-xl font-bold">Unit Library</h2>
-                  <p className="text-indigo-100 text-sm">
-                    {filteredUnits.length} of {units.length} units
-                  </p>
+    <DndProvider backend={HTML5Backend}>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header - Updated with search field on the right */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-6">
+            <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <FolderOpen className="h-6 w-6" />
+                  <h2 className="text-xl font-bold">Half-Term Planner</h2>
+                </div>
+                
+                <div className="flex items-center space-x-3">
+                  {/* Search field - moved to the right */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-indigo-300" />
+                    <input
+                      type="text"
+                      placeholder="Search units..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-64 pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-indigo-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
+                      dir="ltr"
+                    />
+                  </div>
+                  
+                  {/* Simplified view options - only keep grid and list */}
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setViewMode('grid')}
+                      className={`p-2 rounded-lg transition-colors duration-200 ${
+                        viewMode === 'grid' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
+                      }`}
+                      title="Grid View"
+                    >
+                      <Grid className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode('list')}
+                      className={`p-2 rounded-lg transition-colors duration-200 ${
+                        viewMode === 'list' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
+                      }`}
+                      title="List View"
+                    >
+                      <List className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
               </div>
-              
+            </div>
+          </div>
+
+          {/* Focused Half-Term Indicator */}
+          {focusedHalfTermId && (
+            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6 flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <button
-                  onClick={handleCreateUnit}
-                  className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Create Unit</span>
-                </button>
-                
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-lg transition-colors duration-200 ${
-                    viewMode === 'grid' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
-                  }`}
-                >
-                  <Grid className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-lg transition-colors duration-200 ${
-                    viewMode === 'list' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
-                  }`}
-                >
-                  <List className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={() => setViewMode('compact')}
-                  className={`p-2 rounded-lg transition-colors duration-200 ${
-                    viewMode === 'compact' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
-                  }`}
-                >
-                  <MoreVertical className="h-5 w-5" />
-                </button>
+                <Eye className="h-5 w-5 text-indigo-600" />
+                <div>
+                  <h3 className="font-medium text-gray-900">Focused on {TERM_NAMES[focusedHalfTermId]}</h3>
+                  <p className="text-sm text-gray-600">Showing only units from this half-term</p>
+                </div>
               </div>
-            </div>
-
-            {/* Search and Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-indigo-300" />
-                <input
-                  type="text"
-                  placeholder="Search units..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-indigo-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
-                  dir="ltr"
-                />
-              </div>
-              
-              <select
-                value={selectedTerm}
-                onChange={(e) => {
-                  setSelectedTerm(e.target.value);
-                  // Clear focused half-term when changing the term filter
-                  setFocusedHalfTermId(null);
-                }}
-                className="px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
-                dir="ltr"
-                disabled={!!focusedHalfTermId}
+              <button
+                onClick={() => setFocusedHalfTermId(null)}
+                className="px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg text-sm font-medium"
               >
-                <option value="all" className="text-gray-900">All Terms</option>
-                {Object.entries(TERM_NAMES).map(([id, name]) => (
-                  <option key={id} value={id} className="text-gray-900">
-                    {name}
-                  </option>
-                ))}
-              </select>
-              
-              <div className="flex items-center justify-end">
-                {focusedHalfTermId ? (
-                  <button
-                    onClick={() => setFocusedHalfTermId(null)}
-                    className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                  >
-                    <EyeOff className="h-4 w-4" />
-                    <span>Show All Half-Terms</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {}}
-                    className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                  >
-                    <Filter className="h-4 w-4" />
-                    <span>More Filters</span>
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Focused Half-Term Indicator */}
-        {focusedHalfTermId && (
-          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6 flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Eye className="h-5 w-5 text-indigo-600" />
-              <div>
-                <h3 className="font-medium text-gray-900">Focused on {TERM_NAMES[focusedHalfTermId]}</h3>
-                <p className="text-sm text-gray-600">Showing only units from this half-term</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setFocusedHalfTermId(null)}
-              className="px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg text-sm font-medium"
-            >
-              Show All Half-Terms
-            </button>
-          </div>
-        )}
-
-        {/* Units Grid */}
-        <div className="mb-6">
-          {filteredUnits.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-xl shadow-md border border-gray-200">
-              <FolderOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No units found</h3>
-              <p className="text-gray-600">
-                {searchQuery || selectedTerm !== 'all' || focusedHalfTermId
-                  ? 'Try adjusting your search or filters'
-                  : 'No units available in the library. Create a new unit to get started.'
-                }
-              </p>
-              {(searchQuery || selectedTerm !== 'all' || focusedHalfTermId) && (
-                <button 
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedTerm('all');
-                    setFocusedHalfTermId(null);
-                  }}
-                  className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm"
-                >
-                  Clear Filters
-                </button>
-              )}
-              {!searchQuery && selectedTerm === 'all' && !focusedHalfTermId && (
-                <button 
-                  onClick={handleCreateUnit}
-                  className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm flex items-center space-x-2 mx-auto"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Create First Unit</span>
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className={`
-              ${viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' :
-                viewMode === 'list' ? 'space-y-4' :
-                'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'
-              }
-            `}>
-              {filteredUnits.map((unit) => (
-                <UnitCard
-                  key={unit.id}
-                  unit={unit}
-                  viewMode={viewMode}
-                  onClick={() => handleUnitSelect(unit)}
-                  theme={theme}
-                  onFocusHalfTerm={handleFocusHalfTerm}
-                  isFocused={focusedHalfTermId === unit.term}
-                />
-              ))}
+                Show All Half-Terms
+              </button>
             </div>
           )}
+
+          {/* Half-Term Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {HALF_TERMS.map(halfTerm => {
+              const lessons = getLessonsForHalfTerm(halfTerm.id);
+              const isComplete = isHalfTermComplete(halfTerm.id);
+              
+              return (
+                <HalfTermCard
+                  key={halfTerm.id}
+                  id={halfTerm.id}
+                  name={halfTerm.name}
+                  months={halfTerm.months}
+                  color={TERM_COLORS[halfTerm.id]}
+                  lessonCount={lessons.length}
+                  onClick={() => handleHalfTermClick(halfTerm.id)}
+                  isComplete={isComplete}
+                />
+              );
+            })}
+          </div>
         </div>
+
+        {/* Activity Details Modal */}
+        {selectedActivity && (
+          <ActivityDetails
+            activity={selectedActivity}
+            onClose={() => setSelectedActivity(null)}
+          />
+        )}
+
+        {/* Lesson Exporter */}
+        {selectedLessonForExport && (
+          <LessonExporter
+            lessonNumber={selectedLessonForExport}
+            onClose={() => setSelectedLessonForExport(null)}
+          />
+        )}
+
+        {/* Lesson Selection Modal */}
+        {showLessonSelectionModal && selectedHalfTerm && (
+          <LessonSelectionModal
+            isOpen={showLessonSelectionModal}
+            onClose={() => {
+              setShowLessonSelectionModal(false);
+              setSelectedHalfTerm(null);
+            }}
+            halfTermId={selectedHalfTerm}
+            halfTermName={HALF_TERMS.find(term => term.id === selectedHalfTerm)?.name || ''}
+            halfTermMonths={HALF_TERMS.find(term => term.id === selectedHalfTerm)?.months || ''}
+            halfTermColor={TERM_COLORS[selectedHalfTerm]}
+            selectedLessons={getLessonsForHalfTerm(selectedHalfTerm)}
+            onSave={(lessons, isComplete) => {
+              saveLessonsForHalfTerm(selectedHalfTerm, lessons, isComplete);
+              setShowLessonSelectionModal(false);
+              setSelectedHalfTerm(null);
+            }}
+          />
+        )}
+
+        {/* Lesson Details Modal */}
+        {selectedLessonForDetails && (
+          <LessonDetailsModal
+            lessonNumber={selectedLessonForDetails}
+            onClose={() => setSelectedLessonForDetails(null)}
+            theme={theme}
+            onExport={() => {
+              setSelectedLessonForExport(selectedLessonForDetails);
+              setSelectedLessonForDetails(null);
+            }}
+          />
+        )}
       </div>
-
-      {/* Activity Details Modal */}
-      {selectedActivity && (
-        <ActivityDetails
-          activity={selectedActivity}
-          onClose={() => setSelectedActivity(null)}
-        />
-      )}
-
-      {/* Lesson Exporter */}
-      {selectedLessonForExport && (
-        <LessonExporter
-          lessonNumber={selectedLessonForExport}
-          onClose={() => setSelectedLessonForExport(null)}
-        />
-      )}
-
-      {/* Lesson Details Modal */}
-      {selectedLessonForDetails && (
-        <LessonDetailsModal
-          lessonNumber={selectedLessonForDetails}
-          onClose={() => setSelectedLessonForDetails(null)}
-          theme={theme}
-          onExport={() => {
-            setSelectedLessonForExport(selectedLessonForDetails);
-            setSelectedLessonForDetails(null);
-          }}
-        />
-      )}
-    </div>
+    </DndProvider>
   );
 }
