@@ -560,24 +560,36 @@ export function LessonPlanBuilder() {
         />
       )}
 
-      {/* Save Status Message */}
+      {/* Save Status Message - Centered and more prominent */}
       {saveStatus !== 'idle' && (
-        <div className="fixed bottom-4 right-4 max-w-md">
-          <div className={`p-4 rounded-lg shadow-lg flex items-center space-x-2 ${
-            saveStatus === 'success' ? 'bg-green-50 text-green-700 border border-green-200' :
-            'bg-red-50 text-red-700 border border-red-200'
+        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+          <div className={`max-w-md w-full mx-auto px-6 py-4 rounded-lg shadow-xl transition-all duration-300 transform ${
+            saveStatus === 'success' ? 'bg-green-50 border border-green-200' :
+            'bg-red-50 border border-red-200'
           }`}>
-            {saveStatus === 'success' ? (
-              <>
-                <Check className="h-5 w-5 text-green-600" />
-                <span>Lesson saved successfully!</span>
-              </>
-            ) : (
-              <>
-                <AlertCircle className="h-5 w-5 text-red-600" />
-                <span>Failed to save lesson. Please ensure you've provided a lesson title.</span>
-              </>
-            )}
+            <div className="flex items-center space-x-3">
+              {saveStatus === 'success' ? (
+                <>
+                  <div className="flex-shrink-0 w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <Check className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-green-800">Lesson saved successfully!</h3>
+                    <p className="text-sm text-green-600">Your lesson plan has been saved.</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <AlertCircle className="h-6 w-6 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-red-800">Failed to save lesson</h3>
+                    <p className="text-sm text-red-600">Please provide a lesson title.</p>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
