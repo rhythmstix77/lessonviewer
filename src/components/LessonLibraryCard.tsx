@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Clock, Users, Tag, X, ExternalLink, FileText, Edit3, Save, FolderPlus, ChevronDown, Calendar, Hand } from 'lucide-react';
+import { Clock, Users, Tag, X, ExternalLink, FileText, Edit3, Save, FolderPlus, ChevronDown, Calendar, Hand, Star } from 'lucide-react';
 import type { LessonData, Activity } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useData } from '../contexts/DataContext';
@@ -178,48 +178,6 @@ export function LessonLibraryCard({
       updateLessonTitle(lessonNumber, editedTitle);
       setEditedTitle(null);
     }
-  };
-
-  // Format description with line breaks
-  const formatDescription = (text: string) => {
-    if (!text) return '';
-    
-    // If already HTML, return as is
-    if (text.includes('<')) {
-      return text;
-    }
-    
-    // Replace newlines with <br> tags
-    return text.replace(/\n/g, '<br>');
-  };
-
-  // Group EYFS statements by area
-  const groupedEyfs = React.useMemo(() => {
-    const lessonEyfsStatements = eyfsStatements[lessonNumber] || [];
-    const grouped: Record<string, string[]> = {};
-    
-    lessonEyfsStatements.forEach(statement => {
-      const parts = statement.split(':');
-      const area = parts[0].trim();
-      const detail = parts.length > 1 ? parts[1].trim() : statement;
-      
-      if (!grouped[area]) {
-        grouped[area] = [];
-      }
-      
-      grouped[area].push(detail);
-    });
-    
-    return grouped;
-  }, [eyfsStatements, lessonNumber]);
-
-  // Toggle EYFS area expansion
-  const toggleEyfsArea = (area: string) => {
-    setExpandedEyfsAreas(prev => 
-      prev.includes(area) 
-        ? prev.filter(a => a !== area)
-        : [...prev, area]
-    );
   };
 
   if (viewMode === 'compact') {

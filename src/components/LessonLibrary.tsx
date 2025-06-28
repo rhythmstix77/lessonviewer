@@ -141,6 +141,13 @@ export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }
     }
   };
 
+  const handleAssignToHalfTerm = (lessonNumber: string, halfTermId: string) => {
+    console.log('LessonLibrary: Assigning lesson', lessonNumber, 'to half-term', halfTermId);
+    if (onAssignToUnit) {
+      onAssignToUnit(lessonNumber, halfTermId);
+    }
+  };
+
   return (
     <div className={`bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden ${className}`}>
       {/* Header */}
@@ -287,7 +294,7 @@ export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }
                   viewMode={viewMode}
                   onClick={() => handleLessonClick(lessonNum)}
                   theme={theme}
-                  onAssignToUnit={onAssignToUnit}
+                  onAssignToUnit={handleAssignToHalfTerm}
                   halfTerms={HALF_TERMS}
                 />
               );
