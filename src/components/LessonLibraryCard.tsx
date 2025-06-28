@@ -104,6 +104,7 @@ export function LessonLibraryCard({
   }, []);
 
   const handleCardClick = (e: React.MouseEvent) => {
+    console.log('Card clicked');
     e.stopPropagation();
     if (isExpanded) {
       // If already expanded, don't do anything (let inner elements handle their own clicks)
@@ -125,6 +126,7 @@ export function LessonLibraryCard({
   };
 
   const handleAssignClick = (e: React.MouseEvent) => {
+    console.log('Assign button clicked');
     e.stopPropagation(); // Stop the event from bubbling up to the card
     setShowAssignModal(true);
   };
@@ -223,7 +225,10 @@ export function LessonLibraryCard({
         <div 
           className="bg-white rounded-lg shadow-sm border-l-4 p-3 transition-all duration-200 hover:shadow-md cursor-pointer h-full"
           style={{ borderLeftColor: theme.primary }}
-          onClick={handleCardClick}
+          onClick={(e) => {
+            console.log('Card clicked (compact)');
+            handleCardClick(e);
+          }}
         >
           <div className="flex items-center justify-between h-full">
             <div className="flex-1 min-w-0">
@@ -237,12 +242,13 @@ export function LessonLibraryCard({
           </div>
         </div>
         
-        {/* Action buttons - Larger, more accessible hover area */}
-        <div className="absolute top-0 right-0 h-full flex items-center pr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        {/* Action buttons - Always visible now */}
+        <div className="absolute top-0 right-0 h-full flex items-center pr-2">
           {onAssignToUnit && halfTerms.length > 0 && (
             <div className="mr-2">
               <button
                 onClick={(e) => {
+                  console.log('Assign button clicked (compact)');
                   e.stopPropagation();
                   handleAssignClick(e);
                 }}
@@ -276,7 +282,10 @@ export function LessonLibraryCard({
       <div className="relative group">
         <div 
           className="bg-white rounded-xl shadow-md border border-gray-200 p-4 transition-all duration-200 hover:shadow-lg cursor-pointer hover:border-blue-300"
-          onClick={handleCardClick}
+          onClick={(e) => {
+            console.log('Card clicked (list)');
+            handleCardClick(e);
+          }}
         >
           <div className="flex items-start">
             <div 
@@ -311,12 +320,13 @@ export function LessonLibraryCard({
           </div>
         </div>
         
-        {/* Action buttons - Positioned with proper spacing */}
-        <div className="absolute top-2 right-2 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        {/* Action buttons - Always visible now */}
+        <div className="absolute top-2 right-2 flex items-center space-x-2">
           {onAssignToUnit && halfTerms.length > 0 && (
             <div>
               <button
                 onClick={(e) => {
+                  console.log('Assign button clicked (list)');
                   e.stopPropagation();
                   handleAssignClick(e);
                 }}
@@ -351,7 +361,10 @@ export function LessonLibraryCard({
       <div 
         className="bg-white rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl cursor-pointer overflow-hidden hover:scale-[1.02] h-full flex flex-col"
         style={{ borderColor: theme.primary, borderWidth: '1px' }}
-        onClick={handleCardClick}
+        onClick={(e) => {
+          console.log('Card clicked (grid)');
+          handleCardClick(e);
+        }}
       >
         {/* Colorful Header */}
         <div 
@@ -418,12 +431,13 @@ export function LessonLibraryCard({
           </p>
         </div>
         
-        {/* Action buttons - Positioned with proper spacing */}
-        <div className="absolute top-2 right-2 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        {/* Action buttons - Always visible now */}
+        <div className="absolute top-2 right-2 flex items-center space-x-2">
           {onAssignToUnit && halfTerms.length > 0 && (
             <div>
               <button
                 onClick={(e) => {
+                  console.log('Assign button clicked (grid)');
                   e.stopPropagation();
                   handleAssignClick(e);
                 }}
