@@ -4,7 +4,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { 
   FolderOpen, 
   Search, 
-  Filter, 
+  EyeOff, 
   Grid, 
   List, 
   MoreVertical, 
@@ -17,7 +17,6 @@ import {
   Download,
   Edit3,
   Eye,
-  EyeOff,
   Plus,
   Check,
   Printer,
@@ -479,70 +478,19 @@ export function UnitViewer() {
                     </p>
                   </div>
                 </div>
-                
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={handleCreateUnit}
-                    className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Create Unit</span>
-                  </button>
-                </div>
               </div>
 
-              {/* Search and Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-indigo-300" />
-                  <input
-                    type="text"
-                    placeholder="Search units..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-indigo-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
-                    dir="ltr"
-                  />
-                </div>
-                
-                <select
-                  value={selectedTerm}
-                  onChange={(e) => {
-                    setSelectedTerm(e.target.value);
-                    // Clear focused half-term when changing the term filter
-                    setFocusedHalfTermId(null);
-                  }}
-                  className="px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-indigo-300" />
+                <input
+                  type="text"
+                  placeholder="Search units..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-indigo-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
                   dir="ltr"
-                  disabled={!!focusedHalfTermId}
-                >
-                  <option value="all" className="text-gray-900">All Terms</option>
-                  {Object.entries(TERM_NAMES).map(([id, name]) => (
-                    <option key={id} value={id} className="text-gray-900">
-                      {name}
-                    </option>
-                  ))}
-                </select>
-                
-                <div className="flex items-center justify-end">
-                  {focusedHalfTermId ? (
-                    <button
-                      onClick={() => setFocusedHalfTermId(null)}
-                      className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                    >
-                      <EyeOff className="h-4 w-4" />
-                      <span>Show All Half-Terms</span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => {}}
-                      className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                    >
-                      <Filter className="h-4 w-4" />
-                      <span>More Filters</span>
-                    </button>
-                  )}
-                </div>
+                />
               </div>
             </div>
           </div>
