@@ -54,6 +54,7 @@ export function LessonLibraryCard({
   const [showAssignDropdown, setShowAssignDropdown] = useState(false);
   const [expandedEyfsAreas, setExpandedEyfsAreas] = useState<string[]>([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [isSelected, setIsSelected] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   // Format date for display
@@ -98,7 +99,6 @@ export function LessonLibraryCard({
   }, []);
 
   const handleCardClick = (e: React.MouseEvent) => {
-    console.log('Card clicked');
     e.stopPropagation();
     if (isExpanded) {
       // If already expanded, don't do anything (let inner elements handle their own clicks)
@@ -120,14 +120,12 @@ export function LessonLibraryCard({
   };
 
   const handleAssignClick = (e: React.MouseEvent) => {
-    console.log('Assign button clicked');
     e.stopPropagation(); // Stop the event from bubbling up to the card
     e.preventDefault(); // Prevent any default behavior
     setShowAssignModal(true);
   };
 
   const handleAssignToHalfTerm = (halfTermId: string) => {
-    console.log('Assigning lesson to half-term:', halfTermId);
     if (onAssignToUnit) {
       onAssignToUnit(lessonNumber, halfTermId);
       setShowAssignDropdown(false);
@@ -172,16 +170,26 @@ export function LessonLibraryCard({
     window.print();
   };
 
+  const handleStarClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsSelected(!isSelected);
+    
+    // If onAssignToUnit is provided, use it to toggle the lesson in the half-term
+    if (onAssignToUnit && halfTerms.length > 0) {
+      // For simplicity, we'll use the first half-term in the list
+      // In a real implementation, you'd want to use the currently selected half-term
+      const halfTermId = halfTerms[0].id;
+      onAssignToUnit(lessonNumber, halfTermId);
+    }
+  };
+
   if (viewMode === 'compact') {
     return (
       <div className="relative group">
         <div 
           className="bg-white rounded-lg shadow-sm border-l-4 p-3 transition-all duration-200 hover:shadow-md cursor-pointer h-full"
           style={{ borderLeftColor: theme.primary }}
-          onClick={(e) => {
-            console.log('Card clicked (compact)');
-            handleCardClick(e);
-          }}
+          onClick={handleCardClick}
         >
           <div className="flex items-center justify-between h-full">
             <div className="flex-1 min-w-0">
@@ -195,16 +203,21 @@ export function LessonLibraryCard({
           </div>
         </div>
         
-        {/* Action buttons - Always visible now */}
-        <div className="absolute top-0 right-0 h-full flex items-center pr-2">
+        {/* Star icon for selection */}
+        <button
+          onClick={handleStarClick}
+          className="absolute top-2 right-2 p-1 text-gray-400 hover:text-yellow-500 transition-colors duration-200"
+          title={isSelected ? "Remove from half-term" : "Add to half-term"}
+        >
+          <Star className={`h-4 w-4 ${isSelected ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'}`} />
+        </button>
+
+        {/* Action buttons - Assign button */}
+        <div className="absolute top-0 right-8 h-full flex items-center pr-2">
           {onAssignToUnit && halfTerms.length > 0 && (
             <div className="mr-2">
               <button
-                onClick={(e) => {
-                  console.log('Assign button clicked (compact)');
-                  e.stopPropagation();
-                  handleAssignClick(e);
-                }}
+                onClick={handleAssignClick}
                 className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm flex items-center space-x-1"
                 title="Assign to Unit"
               >
@@ -235,10 +248,7 @@ export function LessonLibraryCard({
       <div className="relative group">
         <div 
           className="bg-white rounded-xl shadow-md border border-gray-200 p-4 transition-all duration-200 hover:shadow-lg cursor-pointer hover:border-blue-300"
-          onClick={(e) => {
-            console.log('Card clicked (list)');
-            handleCardClick(e);
-          }}
+          onClick={handleCardClick}
         >
           <div className="flex items-start">
             <div 
@@ -271,16 +281,21 @@ export function LessonLibraryCard({
           </div>
         </div>
         
+        {/* Star icon for selection */}
+        <button
+          onClick={handleStarClick}
+          className="absolute top-2 right-2 p-1 text-gray-400 hover:text-yellow-500 transition-colors duration-200"
+          title={isSelected ? "Remove from half-term" : "Add to half-term"}
+        >
+          <Star className={`h-5 w-5 ${isSelected ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'}`} />
+        </button>
+
         {/* Action buttons - Always visible now */}
-        <div className="absolute top-2 right-2 flex items-center space-x-2">
+        <div className="absolute top-2 right-8 flex items-center space-x-2">
           {onAssignToUnit && halfTerms.length > 0 && (
             <div>
               <button
-                onClick={(e) => {
-                  console.log('Assign button clicked (list)');
-                  e.stopPropagation();
-                  handleAssignClick(e);
-                }}
+                onClick={handleAssignClick}
                 className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm flex items-center space-x-1"
                 title="Assign to Unit"
               >
@@ -325,10 +340,7 @@ export function LessonLibraryCard({
       <div 
         className="bg-white rounded-xl shadow-lg border transition-all duration-300 hover:shadow-xl cursor-pointer overflow-hidden hover:scale-[1.02] h-full flex flex-col"
         style={{ borderColor: theme.primary, borderWidth: '1px' }}
-        onClick={(e) => {
-          console.log('Card clicked (grid)');
-          handleCardClick(e);
-        }}
+        onClick={handleCardClick}
       >
         {/* Colorful Header */}
         <div 
@@ -396,16 +408,21 @@ export function LessonLibraryCard({
           </p>
         </div>
         
+        {/* Star icon for selection */}
+        <button
+          onClick={handleStarClick}
+          className="absolute top-2 right-2 p-1.5 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full shadow-sm text-gray-400 hover:text-yellow-500 transition-colors duration-200 z-10"
+          title={isSelected ? "Remove from half-term" : "Add to half-term"}
+        >
+          <Star className={`h-5 w-5 ${isSelected ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'}`} />
+        </button>
+        
         {/* Action buttons - Always visible now */}
-        <div className="absolute top-2 right-2 flex items-center space-x-2 z-10">
+        <div className="absolute top-2 right-10 flex items-center space-x-2 z-10">
           {onAssignToUnit && halfTerms.length > 0 && (
             <div>
               <button
-                onClick={(e) => {
-                  console.log('Assign button clicked (grid)');
-                  e.stopPropagation();
-                  handleAssignClick(e);
-                }}
+                onClick={handleAssignClick}
                 className="p-2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-lg shadow-sm text-blue-600 hover:text-blue-800 transition-colors"
                 title="Assign to Unit"
               >

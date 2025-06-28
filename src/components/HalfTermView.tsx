@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, X, Eye, Printer, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Calendar, Clock, X, Eye, Printer, ArrowLeft, ArrowRight, Star } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 
 interface HalfTermViewProps {
@@ -75,7 +75,12 @@ export function HalfTermView({
                   onReorderLessons(dragIndex, index);
                 }}
               >
-                <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4 h-full flex flex-col">
+                <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4 h-full flex flex-col relative">
+                  {/* Star icon to show it's selected */}
+                  <div className="absolute top-2 right-2">
+                    <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                  </div>
+                  
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-semibold text-gray-900">Lesson {lessonNum}</h4>
                     <div className="flex items-center">

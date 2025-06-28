@@ -366,11 +366,10 @@ export function LessonSelectionModal({
                       }`}
                       onClick={() => handleLessonSelection(lessonNum)}
                     >
-                      {isSelected && (
-                        <div className="absolute top-2 right-2">
-                          <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-                        </div>
-                      )}
+                      {/* Star icon for selection */}
+                      <div className="absolute top-2 right-2">
+                        <Star className={`h-5 w-5 ${isSelected ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} />
+                      </div>
                       <div className="pr-6">
                         <h4 className="font-semibold text-gray-900 mb-1">Lesson {lessonNum}</h4>
                         <p className="text-sm text-gray-600 mb-2">{lessonData.title || `Lesson ${lessonNum}`}</p>

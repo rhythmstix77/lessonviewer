@@ -32,6 +32,7 @@ export function AssignToHalfTermModal({
     console.log('Assigning to half-term:', selectedHalfTerm);
     if (selectedHalfTerm) {
       onAssign(selectedHalfTerm);
+      onClose();
     }
   };
 
