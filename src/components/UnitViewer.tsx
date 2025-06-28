@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { 
   FolderOpen, 
   Search, 
@@ -17,15 +19,9 @@ import {
   Eye,
   EyeOff,
   Plus,
-  Star,
+  Check,
   Printer,
-  ChevronRight,
-  ChevronDown,
-  ChevronUp,
-  ArrowLeft,
-  ArrowRight,
-  Save,
-  Check
+  Save
 } from 'lucide-react';
 import { UnitCard } from './UnitCard';
 import { LessonLibraryCard } from './LessonLibraryCard';
@@ -33,9 +29,10 @@ import { ActivityDetails } from './ActivityDetails';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { LessonExporter } from './LessonExporter';
+import { HalfTermCard } from './HalfTermCard';
+import { LessonSelectionModal } from './LessonSelectionModal';
+import { HalfTermView } from './HalfTermView';
 import { LessonDetailsModal } from './LessonDetailsModal';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import type { Activity } from '../contexts/DataContext';
 
 interface Unit {
@@ -49,13 +46,15 @@ interface Unit {
   updatedAt: Date;
 }
 
-interface HalfTerm {
-  id: string;
-  name: string;
-  months: string;
-  color: string;
-  lessons: string[];
-}
+// Define half-term periods
+const HALF_TERMS = [
+  { id: 'A1', name: 'Autumn 1', months: 'Sep-Oct' },
+  { id: 'A2', name: 'Autumn 2', months: 'Nov-Dec' },
+  { id: 'SP1', name: 'Spring 1', months: 'Jan-Feb' },
+  { id: 'SP2', name: 'Spring 2', months: 'Mar-Apr' },
+  { id: 'SM1', name: 'Summer 1', months: 'Apr-May' },
+  { id: 'SM2', name: 'Summer 2', months: 'Jun-Jul' },
+];
 
 // Map term IDs to readable names
 const TERM_NAMES: Record<string, string> = {
@@ -67,18 +66,18 @@ const TERM_NAMES: Record<string, string> = {
   'SM2': 'Summer 2 (Jun-Jul)',
 };
 
-// Define half-term periods with colors
-const HALF_TERMS: HalfTerm[] = [
-  { id: 'A1', name: 'Autumn 1', months: 'Sep-Oct', color: '#F59E0B', lessons: [] },
-  { id: 'A2', name: 'Autumn 2', months: 'Nov-Dec', color: '#EA580C', lessons: [] },
-  { id: 'SP1', name: 'Spring 1', months: 'Jan-Feb', color: '#10B981', lessons: [] },
-  { id: 'SP2', name: 'Spring 2', months: 'Mar-Apr', color: '#16A34A', lessons: [] },
-  { id: 'SM1', name: 'Summer 1', months: 'Apr-May', color: '#6366F1', lessons: [] },
-  { id: 'SM2', name: 'Summer 2', months: 'Jun-Jul', color: '#8B5CF6', lessons: [] },
-];
+// Map term IDs to colors
+const TERM_COLORS: Record<string, string> = {
+  'A1': '#F59E0B', // Amber
+  'A2': '#EA580C', // Orange
+  'SP1': '#10B981', // Emerald
+  'SP2': '#059669', // Green
+  'SM1': '#3B82F6', // Blue
+  'SM2': '#6366F1', // Indigo
+};
 
 export function UnitViewer() {
-  const { currentSheetInfo, allLessonsData, lessonNumbers } = useData();
+  const { currentSheetInfo, allLessonsData } = useData();
   const { getThemeForClass } = useSettings();
   const [units, setUnits] = useState<Unit[]>([]);
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
@@ -87,22 +86,17 @@ export function UnitViewer() {
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [selectedLessonForExport, setSelectedLessonForExport] = useState<string | null>(null);
-  const [selectedLessonForDetails, setSelectedLessonForDetails] = useState<string | null>(null);
   const [focusedHalfTermId, setFocusedHalfTermId] = useState<string | null>(null);
-  const [halfTerms, setHalfTerms] = useState<HalfTerm[]>(HALF_TERMS);
-  const [selectedHalfTerm, setSelectedHalfTerm] = useState<HalfTerm | null>(null);
+  const [halfTerms, setHalfTerms] = useState<any[]>([]);
+  const [selectedHalfTerm, setSelectedHalfTerm] = useState<string | null>(null);
   const [showLessonSelectionModal, setShowLessonSelectionModal] = useState(false);
-  const [showHalfTermView, setShowHalfTermView] = useState(false);
-  const [selectedLessons, setSelectedLessons] = useState<string[]>([]);
-  const [orderedLessons, setOrderedLessons] = useState<string[]>([]);
-  const [showHalfTermExporter, setShowHalfTermExporter] = useState(false);
+  const [selectedLessonForDetails, setSelectedLessonForDetails] = useState<string | null>(null);
   
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
 
-  // Load units and half-term data from localStorage
+  // Load units from localStorage
   useEffect(() => {
-    // Load units
     const savedUnits = localStorage.getItem('units');
     if (savedUnits) {
       try {
@@ -122,25 +116,31 @@ export function UnitViewer() {
       localStorage.setItem('units', JSON.stringify([]));
     }
 
-    // Load half-term data
+    // Load half-terms data
     const savedHalfTerms = localStorage.getItem('half-terms');
     if (savedHalfTerms) {
       try {
         const parsedHalfTerms = JSON.parse(savedHalfTerms);
-        // Merge with default half-terms to ensure all properties exist
-        const mergedHalfTerms = HALF_TERMS.map(defaultTerm => {
-          const savedTerm = parsedHalfTerms.find((t: HalfTerm) => t.id === defaultTerm.id);
-          return savedTerm ? { ...defaultTerm, ...savedTerm } : defaultTerm;
-        });
-        setHalfTerms(mergedHalfTerms);
+        setHalfTerms(parsedHalfTerms);
       } catch (error) {
         console.error('Error parsing saved half-terms:', error);
-        setHalfTerms(HALF_TERMS);
+        
+        // Initialize with default half-terms
+        const defaultHalfTerms = HALF_TERMS.map(term => ({
+          ...term,
+          lessons: []
+        }));
+        setHalfTerms(defaultHalfTerms);
+        localStorage.setItem('half-terms', JSON.stringify(defaultHalfTerms));
       }
     } else {
       // Initialize with default half-terms
-      setHalfTerms(HALF_TERMS);
-      localStorage.setItem('half-terms', JSON.stringify(HALF_TERMS));
+      const defaultHalfTerms = HALF_TERMS.map(term => ({
+        ...term,
+        lessons: []
+      }));
+      setHalfTerms(defaultHalfTerms);
+      localStorage.setItem('half-terms', JSON.stringify(defaultHalfTerms));
     }
   }, []);
 
@@ -211,12 +211,6 @@ export function UnitViewer() {
     setSelectedLessonForExport(lessonNumber);
   };
 
-  // Handle lesson details
-  const handleLessonClick = (lessonNumber: string) => {
-    // Show the lesson details modal
-    setSelectedLessonForDetails(lessonNumber);
-  };
-
   // Handle focusing on a specific half-term
   const handleFocusHalfTerm = (termId: string) => {
     setFocusedHalfTermId(termId === focusedHalfTermId ? null : termId);
@@ -245,57 +239,6 @@ export function UnitViewer() {
     setSelectedUnit(newUnit);
   };
 
-  // Handle half-term card click
-  const handleHalfTermClick = (halfTerm: HalfTerm) => {
-    setSelectedHalfTerm(halfTerm);
-    setSelectedLessons(halfTerm.lessons || []);
-    setOrderedLessons(halfTerm.lessons || []);
-    setShowLessonSelectionModal(true);
-    setShowHalfTermView(false);
-  };
-
-  // Handle lesson selection in modal
-  const handleLessonSelection = (lessonNumber: string) => {
-    setSelectedLessons(prev => {
-      if (prev.includes(lessonNumber)) {
-        // Remove lesson if already selected
-        return prev.filter(num => num !== lessonNumber);
-      } else {
-        // Add lesson if not selected
-        return [...prev, lessonNumber];
-      }
-    });
-  };
-
-  // Save selected lessons to half-term
-  const handleSaveLessonsToHalfTerm = () => {
-    if (!selectedHalfTerm) return;
-
-    // Update the half-term with selected lessons
-    const updatedHalfTerms = halfTerms.map(term => {
-      if (term.id === selectedHalfTerm.id) {
-        return {
-          ...term,
-          lessons: showHalfTermView ? orderedLessons : selectedLessons
-        };
-      }
-      return term;
-    });
-
-    setHalfTerms(updatedHalfTerms);
-    localStorage.setItem('half-terms', JSON.stringify(updatedHalfTerms));
-    setShowLessonSelectionModal(false);
-  };
-
-  // Handle lesson reordering in half-term view
-  const handleReorderLessons = (dragIndex: number, hoverIndex: number) => {
-    const draggedLesson = orderedLessons[dragIndex];
-    const newOrderedLessons = [...orderedLessons];
-    newOrderedLessons.splice(dragIndex, 1);
-    newOrderedLessons.splice(hoverIndex, 0, draggedLesson);
-    setOrderedLessons(newOrderedLessons);
-  };
-
   // Generate a random color for new units
   const getRandomColor = () => {
     const colors = [
@@ -311,11 +254,54 @@ export function UnitViewer() {
     return colors[Math.floor(Math.random() * colors.length)];
   };
 
-  // Handle exporting half-term lessons
-  const handleExportHalfTerm = () => {
-    if (selectedHalfTerm) {
-      setShowHalfTermExporter(true);
-    }
+  // Handle half-term card click
+  const handleHalfTermClick = (halfTermId: string) => {
+    setSelectedHalfTerm(halfTermId);
+    setShowLessonSelectionModal(true);
+  };
+
+  // Get lessons for a half-term
+  const getLessonsForHalfTerm = (halfTermId: string) => {
+    const halfTerm = halfTerms.find(term => term.id === halfTermId);
+    return halfTerm ? halfTerm.lessons || [] : [];
+  };
+
+  // Save lessons for a half-term
+  const saveLessonsForHalfTerm = (halfTermId: string, lessons: string[]) => {
+    const updatedHalfTerms = halfTerms.map(term => {
+      if (term.id === halfTermId) {
+        return {
+          ...term,
+          lessons
+        };
+      }
+      return term;
+    });
+    
+    setHalfTerms(updatedHalfTerms);
+    localStorage.setItem('half-terms', JSON.stringify(updatedHalfTerms));
+  };
+
+  // Handle lesson reordering
+  const handleReorderLessons = (halfTermId: string, dragIndex: number, hoverIndex: number) => {
+    const lessons = getLessonsForHalfTerm(halfTermId);
+    const draggedLesson = lessons[dragIndex];
+    const newLessons = [...lessons];
+    newLessons.splice(dragIndex, 1);
+    newLessons.splice(hoverIndex, 0, draggedLesson);
+    saveLessonsForHalfTerm(halfTermId, newLessons);
+  };
+
+  // Handle lesson removal
+  const handleRemoveLesson = (halfTermId: string, lessonNumber: string) => {
+    const lessons = getLessonsForHalfTerm(halfTermId);
+    const newLessons = lessons.filter(num => num !== lessonNumber);
+    saveLessonsForHalfTerm(halfTermId, newLessons);
+  };
+
+  // Handle view lesson details
+  const handleViewLessonDetails = (lessonNumber: string) => {
+    setSelectedLessonForDetails(lessonNumber);
   };
 
   // If a unit is selected, show its details
@@ -393,7 +379,7 @@ export function UnitViewer() {
                       lessonNumber={lessonNumber}
                       lessonData={lessonData}
                       viewMode="grid"
-                      onClick={() => handleLessonClick(lessonNumber)}
+                      onClick={() => handleViewLessonDetails(lessonNumber)}
                       theme={theme}
                     />
                     
@@ -470,11 +456,11 @@ export function UnitViewer() {
             <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
-                  <Calendar className="h-6 w-6" />
+                  <FolderOpen className="h-6 w-6" />
                   <div>
-                    <h2 className="text-xl font-bold">Academic Year Planner</h2>
+                    <h2 className="text-xl font-bold">Half-Term Planner</h2>
                     <p className="text-indigo-100 text-sm">
-                      Organize lessons by half-term periods
+                      Organize lessons by academic half-term
                     </p>
                   </div>
                 </div>
@@ -496,7 +482,7 @@ export function UnitViewer() {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-indigo-300" />
                   <input
                     type="text"
-                    placeholder="Search units or lessons..."
+                    placeholder="Search units..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-indigo-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
@@ -546,78 +532,47 @@ export function UnitViewer() {
             </div>
           </div>
 
+          {/* Focused Half-Term Indicator */}
+          {focusedHalfTermId && (
+            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Eye className="h-5 w-5 text-indigo-600" />
+                <div>
+                  <h3 className="font-medium text-gray-900">Focused on {TERM_NAMES[focusedHalfTermId]}</h3>
+                  <p className="text-sm text-gray-600">Showing only units from this half-term</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setFocusedHalfTermId(null)}
+                className="px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg text-sm font-medium"
+              >
+                Show All Half-Terms
+              </button>
+            </div>
+          )}
+
           {/* Half-Term Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {halfTerms.map((halfTerm) => {
-              const hasLessons = halfTerm.lessons && halfTerm.lessons.length > 0;
+            {HALF_TERMS.map(halfTerm => {
+              const lessons = getLessonsForHalfTerm(halfTerm.id);
+              const isComplete = lessons.length > 0;
               
               return (
-                <div 
+                <HalfTermCard
                   key={halfTerm.id}
-                  className={`bg-white rounded-xl shadow-lg border-2 transition-all duration-300 hover:shadow-xl overflow-hidden cursor-pointer ${
-                    hasLessons ? 'border-green-500' : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  onClick={() => handleHalfTermClick(halfTerm)}
-                >
-                  {/* Colorful Header */}
-                  <div 
-                    className="p-6 text-white relative overflow-hidden"
-                    style={{ 
-                      background: `linear-gradient(135deg, ${halfTerm.color} 0%, ${halfTerm.color}99 100%)` 
-                    }}
-                  >
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white bg-opacity-10 rounded-full -translate-y-16 translate-x-16"></div>
-                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-white bg-opacity-10 rounded-full translate-y-12 -translate-x-12"></div>
-                    
-                    <div className="relative z-10">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-2xl font-bold">
-                          {halfTerm.name}
-                        </h3>
-                        <ChevronRight className="h-6 w-6 transition-transform duration-300" />
-                      </div>
-                      
-                      <p className="text-white text-opacity-90 text-sm font-medium">
-                        {halfTerm.months}
-                      </p>
-
-                      <div className="flex items-center space-x-6 text-white text-opacity-90 mt-2">
-                        <div className="flex items-center space-x-2">
-                          <BookOpen className="h-5 w-5" />
-                          <span className="font-medium">
-                            {hasLessons ? `${halfTerm.lessons.length} lessons` : 'No lessons assigned'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Preview of Lessons */}
-                  {hasLessons && (
-                    <div className="p-4 border-t border-gray-200">
-                      <div className="flex flex-wrap gap-2">
-                        {halfTerm.lessons.slice(0, 5).map(lessonNum => (
-                          <span 
-                            key={lessonNum}
-                            className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700"
-                          >
-                            L{lessonNum}
-                          </span>
-                        ))}
-                        {halfTerm.lessons.length > 5 && (
-                          <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
-                            +{halfTerm.lessons.length - 5}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  id={halfTerm.id}
+                  name={halfTerm.name}
+                  months={halfTerm.months}
+                  color={TERM_COLORS[halfTerm.id]}
+                  lessonCount={lessons.length}
+                  onClick={() => handleHalfTermClick(halfTerm.id)}
+                  isComplete={isComplete}
+                />
               );
             })}
           </div>
 
-          {/* Units Section */}
+          {/* Units Grid */}
           <div className="mb-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Units</h2>
             
@@ -671,339 +626,6 @@ export function UnitViewer() {
           </div>
         </div>
 
-        {/* Lesson Selection Modal */}
-        {showLessonSelectionModal && selectedHalfTerm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden">
-              {/* Header */}
-              <div 
-                className="p-6 text-white relative"
-                style={{ 
-                  background: `linear-gradient(135deg, ${selectedHalfTerm.color} 0%, ${selectedHalfTerm.color}99 100%)` 
-                }}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold mb-1">{selectedHalfTerm.name} - {selectedHalfTerm.months}</h2>
-                    <p className="text-white text-opacity-90">
-                      {showHalfTermView 
-                        ? `${orderedLessons.length} lessons in this half-term` 
-                        : 'Select lessons for this half-term'}
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    {/* Export Button - Added here */}
-                    {(showHalfTermView || selectedLessons.length > 0) && (
-                      <button
-                        onClick={() => setShowHalfTermExporter(true)}
-                        className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                      >
-                        <Download className="h-4 w-4" />
-                        <span>Export</span>
-                      </button>
-                    )}
-                    <button
-                      onClick={() => {
-                        if (showHalfTermView) {
-                          setShowHalfTermView(false);
-                        } else {
-                          setShowHalfTermView(true);
-                          setOrderedLessons([...selectedLessons]);
-                        }
-                      }}
-                      className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                    >
-                      {showHalfTermView ? (
-                        <>
-                          <Eye className="h-4 w-4" />
-                          <span>View All Lessons</span>
-                        </>
-                      ) : (
-                        <>
-                          <Calendar className="h-4 w-4" />
-                          <span>Half-Term View</span>
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => setShowLessonSelectionModal(false)}
-                      className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 overflow-y-auto p-6">
-                {showHalfTermView ? (
-                  /* Half-term view - ordered lessons */
-                  <div className="space-y-6">
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Calendar className="h-5 w-5 text-green-600" />
-                          <h3 className="font-medium text-gray-900">Half-Term Complete</h3>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => window.print()}
-                            className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg flex items-center space-x-1"
-                          >
-                            <Printer className="h-4 w-4" />
-                            <span>Print</span>
-                          </button>
-                        </div>
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">
-                        Drag and drop lessons to reorder them for this half-term
-                      </p>
-                    </div>
-
-                    {orderedLessons.length === 0 ? (
-                      <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
-                        <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No lessons selected</h3>
-                        <p className="text-gray-600">
-                          Select lessons from the library to add to this half-term
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="flex overflow-x-auto pb-4 space-x-4">
-                        {orderedLessons.map((lessonNum, index) => {
-                          const lessonData = allLessonsData[lessonNum];
-                          if (!lessonData) return null;
-                          
-                          return (
-                            <div 
-                              key={lessonNum} 
-                              className="flex-shrink-0 w-64"
-                              draggable
-                              onDragStart={(e) => {
-                                e.dataTransfer.setData('text/plain', index.toString());
-                              }}
-                              onDragOver={(e) => e.preventDefault()}
-                              onDrop={(e) => {
-                                e.preventDefault();
-                                const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
-                                handleReorderLessons(dragIndex, index);
-                              }}
-                            >
-                              <div 
-                                className="bg-white rounded-lg shadow-md border border-gray-200 p-4 h-full flex flex-col cursor-pointer hover:border-blue-300 hover:shadow-lg transition-all duration-200"
-                                onClick={() => handleLessonClick(lessonNum)}
-                              >
-                                <div className="flex items-center justify-between mb-2">
-                                  <h4 className="font-semibold text-gray-900">Lesson {lessonNum}</h4>
-                                  <div className="flex items-center">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation(); // Prevent card click
-                                        const newOrderedLessons = [...orderedLessons];
-                                        newOrderedLessons.splice(index, 1);
-                                        setOrderedLessons(newOrderedLessons);
-                                        setSelectedLessons(prev => prev.filter(num => num !== lessonNum));
-                                      }}
-                                      className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full"
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </button>
-                                  </div>
-                                </div>
-                                <p className="text-sm text-gray-600 mb-2">{lessonData.title || `Lesson ${lessonNum}`}</p>
-                                <div className="flex items-center space-x-2 text-xs text-gray-500 mb-2">
-                                  <Clock className="h-3 w-3" />
-                                  <span>{lessonData.totalTime} mins</span>
-                                </div>
-                                <div className="flex flex-wrap gap-1 mt-auto">
-                                  {lessonData.categoryOrder.slice(0, 2).map(category => (
-                                    <span 
-                                      key={category}
-                                      className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full"
-                                    >
-                                      {category}
-                                    </span>
-                                  ))}
-                                  {lessonData.categoryOrder.length > 2 && (
-                                    <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
-                                      +{lessonData.categoryOrder.length - 2}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation(); // Prevent card click
-                                      handleLessonClick(lessonNum);
-                                    }}
-                                    className="text-xs text-blue-600 hover:text-blue-800 flex items-center space-x-1"
-                                  >
-                                    <Eye className="h-3 w-3" />
-                                    <span>View</span>
-                                  </button>
-                                  <div className="flex items-center space-x-1">
-                                    {index > 0 && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation(); // Prevent card click
-                                          handleReorderLessons(index, index - 1);
-                                        }}
-                                        className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full"
-                                      >
-                                        <ArrowLeft className="h-3 w-3" />
-                                      </button>
-                                    )}
-                                    {index < orderedLessons.length - 1 && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation(); // Prevent card click
-                                          handleReorderLessons(index, index + 1);
-                                        }}
-                                        className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full"
-                                      >
-                                        <ArrowRight className="h-3 w-3" />
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  /* Lesson selection view */
-                  <div className="space-y-6">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                      <div className="flex items-center space-x-2">
-                        <Tag className="h-5 w-5 text-blue-600" />
-                        <h3 className="font-medium text-gray-900">Select Lessons for {selectedHalfTerm.name}</h3>
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">
-                        Click on lessons to select them for this half-term. Selected lessons will be marked with a star.
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {/* Filter lessons to only show those assigned to this half-term */}
-                      {lessonNumbers
-                        .filter(lessonNum => {
-                          // Check if this lesson has been assigned to any half-term
-                          const isAssignedToAnyHalfTerm = halfTerms.some(term => 
-                            term.id !== selectedHalfTerm.id && // Not the current half-term
-                            term.lessons && 
-                            term.lessons.includes(lessonNum)
-                          );
-                          
-                          // If it's already assigned to this half-term or not assigned to any other half-term, show it
-                          return selectedLessons.includes(lessonNum) || !isAssignedToAnyHalfTerm;
-                        })
-                        .map(lessonNum => {
-                          const lessonData = allLessonsData[lessonNum];
-                          if (!lessonData) return null;
-                          
-                          const isSelected = selectedLessons.includes(lessonNum);
-                          
-                          return (
-                            <div 
-                              key={lessonNum}
-                              className={`bg-white rounded-lg border p-4 cursor-pointer transition-all duration-200 relative ${
-                                isSelected 
-                                  ? 'border-yellow-500 bg-yellow-50 shadow-md' 
-                                  : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                              }`}
-                              onClick={() => handleLessonSelection(lessonNum)}
-                            >
-                              {isSelected && (
-                                <div className="absolute top-2 right-2">
-                                  <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-                                </div>
-                              )}
-                              <div className="pr-6">
-                                <h4 className="font-semibold text-gray-900 mb-1">Lesson {lessonNum}</h4>
-                                <p className="text-sm text-gray-600 mb-2">{lessonData.title || `Lesson ${lessonNum}`}</p>
-                                <div className="flex items-center space-x-2 text-xs text-gray-500 mb-2">
-                                  <Clock className="h-3 w-3" />
-                                  <span>{lessonData.totalTime} mins</span>
-                                </div>
-                                <div className="flex flex-wrap gap-1">
-                                  {lessonData.categoryOrder.slice(0, 3).map(category => (
-                                    <span 
-                                      key={category}
-                                      className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full"
-                                    >
-                                      {category}
-                                    </span>
-                                  ))}
-                                  {lessonData.categoryOrder.length > 3 && (
-                                    <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
-                                      +{lessonData.categoryOrder.length - 3}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="mt-2 pt-2 border-t border-gray-100">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation(); // Prevent toggling selection
-                                      handleLessonClick(lessonNum);
-                                    }}
-                                    className="text-xs text-blue-600 hover:text-blue-800 flex items-center space-x-1"
-                                  >
-                                    <Eye className="h-3 w-3" />
-                                    <span>View Details</span>
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Footer */}
-              <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
-                <div>
-                  <span className="text-sm text-gray-600">
-                    {showHalfTermView 
-                      ? `${orderedLessons.length} lessons in order` 
-                      : `${selectedLessons.length} lessons selected`}
-                  </span>
-                </div>
-                <div className="flex space-x-3">
-                  <button
-                    onClick={() => setShowLessonSelectionModal(false)}
-                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSaveLessonsToHalfTerm}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    <span>Save {showHalfTermView ? 'Order' : 'Selection'}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Half-Term Exporter */}
-        {showHalfTermExporter && selectedHalfTerm && (
-          <HalfTermExporter
-            halfTerm={selectedHalfTerm}
-            onClose={() => setShowHalfTermExporter(false)}
-            theme={theme}
-            lessonNumbers={showHalfTermView ? orderedLessons : selectedLessons}
-          />
-        )}
-
         {/* Activity Details Modal */}
         {selectedActivity && (
           <ActivityDetails
@@ -1017,6 +639,27 @@ export function UnitViewer() {
           <LessonExporter
             lessonNumber={selectedLessonForExport}
             onClose={() => setSelectedLessonForExport(null)}
+          />
+        )}
+
+        {/* Lesson Selection Modal */}
+        {showLessonSelectionModal && selectedHalfTerm && (
+          <LessonSelectionModal
+            isOpen={showLessonSelectionModal}
+            onClose={() => {
+              setShowLessonSelectionModal(false);
+              setSelectedHalfTerm(null);
+            }}
+            halfTermId={selectedHalfTerm}
+            halfTermName={HALF_TERMS.find(term => term.id === selectedHalfTerm)?.name || ''}
+            halfTermMonths={HALF_TERMS.find(term => term.id === selectedHalfTerm)?.months || ''}
+            halfTermColor={TERM_COLORS[selectedHalfTerm]}
+            selectedLessons={getLessonsForHalfTerm(selectedHalfTerm)}
+            onSave={(lessons) => {
+              saveLessonsForHalfTerm(selectedHalfTerm, lessons);
+              setShowLessonSelectionModal(false);
+              setSelectedHalfTerm(null);
+            }}
           />
         )}
 
@@ -1037,53 +680,79 @@ export function UnitViewer() {
   );
 }
 
-// Half-Term Exporter Component
-interface HalfTermExporterProps {
-  halfTerm: HalfTerm;
+// Half-term exporter component
+function HalfTermExporter({
+  halfTermId,
+  halfTermName,
+  halfTermColor,
+  lessons,
+  onClose
+}: {
+  halfTermId: string;
+  halfTermName: string;
+  halfTermColor: string;
+  lessons: string[];
   onClose: () => void;
-  theme: {
-    primary: string;
-    secondary: string;
-    accent: string;
-    gradient: string;
-  };
-  lessonNumbers: string[];
-}
-
-function HalfTermExporter({ halfTerm, onClose, theme, lessonNumbers }: HalfTermExporterProps) {
-  const { allLessonsData } = useData();
-  const [selectedLessonForExport, setSelectedLessonForExport] = useState<string | null>(null);
-  const [exportFormat, setExportFormat] = useState<'pdf' | 'preview'>('preview');
+}) {
+  const { allLessonsData, currentSheetInfo } = useData();
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
-  const previewRef = React.useRef<HTMLDivElement>(null);
-
-  // Calculate total duration of all lessons
-  const totalDuration = React.useMemo(() => {
-    return lessonNumbers.reduce((total, lessonNum) => {
-      const lessonData = allLessonsData[lessonNum];
-      return total + (lessonData?.totalTime || 0);
-    }, 0);
-  }, [lessonNumbers, allLessonsData]);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const handleExport = async () => {
     setIsExporting(true);
     
     try {
-      if (exportFormat === 'pdf') {
-        // Export to PDF using html2canvas
-        if (previewRef.current) {
-          // This would use html2canvas and jsPDF in a real implementation
-          // For now, we'll just simulate the export
-          await new Promise(resolve => setTimeout(resolve, 1500));
+      // Export to PDF using html2canvas
+      if (previewRef.current) {
+        const canvas = await html2canvas(previewRef.current, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff'
+        });
+        
+        const imgData = canvas.toDataURL('image/png');
+        
+        // Create PDF with proper A4 dimensions
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4'
+        });
+        
+        // A4 dimensions: 210mm x 297mm
+        const imgWidth = 210;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        // Add image to PDF
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+        
+        // If the content is longer than one page, create additional pages
+        if (imgHeight > 297) {
+          let remainingHeight = imgHeight;
+          let currentPosition = 0;
           
-          // In a real implementation, you would:
-          // 1. Use html2canvas to capture the preview div
-          // 2. Convert to PDF using jsPDF
-          // 3. Save the PDF
-          
-          console.log('Exporting half-term to PDF:', halfTerm.name);
+          while (remainingHeight > 0) {
+            currentPosition += 297;
+            remainingHeight -= 297;
+            
+            if (remainingHeight > 0) {
+              pdf.addPage();
+              pdf.addImage(
+                imgData, 
+                'PNG', 
+                0, 
+                -currentPosition, 
+                imgWidth, 
+                imgHeight
+              );
+            }
+          }
         }
+        
+        // Save the PDF
+        pdf.save(`${currentSheetInfo.sheet}_${halfTermName.replace(/\s+/g, '_')}.pdf`);
       }
       
       setExportSuccess(true);
@@ -1104,190 +773,145 @@ function HalfTermExporter({ halfTerm, onClose, theme, lessonNumbers }: HalfTermE
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Export Half-Term Plan</h2>
-            <p className="text-sm text-gray-600">
-              {halfTerm.name} - {halfTerm.months}
-            </p>
-          </div>
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2 bg-gray-100 p-1 rounded-lg">
-              <button
-                onClick={() => setExportFormat('preview')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium ${
-                  exportFormat === 'preview' 
-                    ? 'bg-white shadow-sm text-gray-900' 
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Preview
-              </button>
-              <button
-                onClick={() => setExportFormat('pdf')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium ${
-                  exportFormat === 'pdf' 
-                    ? 'bg-white shadow-sm text-gray-900' 
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                PDF
-              </button>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-            >
-              <X className="h-6 w-6" />
-            </button>
-          </div>
-        </div>
-
-        {/* Options */}
-        <div className="p-4 border-b border-gray-200 bg-gray-50">
+        <div 
+          className="p-4 text-white relative"
+          style={{ 
+            background: `linear-gradient(135deg, ${halfTermColor} 0%, ${halfTermColor}99 100%)` 
+          }}
+        >
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <span className="text-sm font-medium text-gray-700">
-                {lessonNumbers.length} lessons • {totalDuration} minutes total
-              </span>
+            <div>
+              <h2 className="text-xl font-bold mb-1">{halfTermName} - {halfTermMonths}</h2>
+              <p className="text-white text-opacity-90">
+                {lessons.length} lessons in this half-term
+              </p>
             </div>
-            <div className="flex space-x-3">
+            <div className="flex items-center space-x-2">
               <button
                 onClick={handlePrint}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200"
+                title="Print"
               >
-                <Printer className="h-4 w-4" />
-                <span>Print</span>
+                <Printer className="h-5 w-5" />
               </button>
               <button
                 onClick={handleExport}
                 disabled={isExporting}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2 disabled:bg-blue-400"
+                className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200 disabled:opacity-50"
+                title="Export PDF"
               >
                 {isExporting ? (
-                  <>
-                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                    <span>Exporting...</span>
-                  </>
+                  <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
                 ) : exportSuccess ? (
-                  <>
-                    <Check className="h-4 w-4" />
-                    <span>Exported!</span>
-                  </>
+                  <Check className="h-5 w-5" />
                 ) : (
-                  <>
-                    <Download className="h-4 w-4" />
-                    <span>Export {exportFormat.toUpperCase()}</span>
-                  </>
+                  <Download className="h-5 w-5" />
                 )}
+              </button>
+              <button
+                onClick={onClose}
+                className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200"
+              >
+                <X className="h-5 w-5" />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Preview */}
-        <div className="flex-1 overflow-y-auto p-4 bg-gray-100">
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6 bg-gray-100 print:bg-white print:p-0">
           <div 
             ref={previewRef}
-            className="bg-white mx-auto shadow-md max-w-[210mm]"
+            className="bg-white mx-auto shadow-md max-w-[210mm] print:shadow-none print:max-w-none"
             style={{ minHeight: '297mm' }}
           >
-            {/* Half-Term Plan Preview */}
-            <div className="p-8">
+            {/* Half-term Plan Preview */}
+            <div className="p-8 print:p-4">
               {/* Header */}
-              <div className="text-center border-b border-gray-200 pb-6 mb-6 relative">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                  {halfTerm.name} - {halfTerm.months}
+              <div className="text-center border-b border-gray-200 pb-6 mb-6 relative print:pb-4 print:mb-4">
+                <h1 className="text-2xl font-bold text-gray-900 mb-2 print:text-xl">
+                  {currentSheetInfo.display} Half-Term Plan
                 </h1>
-                <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                  Lesson Plan
+                <h2 className="text-xl font-semibold text-gray-800 mb-2 print:text-lg">
+                  {halfTermName} - {halfTermMonths}
                 </h2>
                 <div className="text-gray-600 font-medium">
-                  Total Time: {totalDuration} minutes • {lessonNumbers.length} lessons
+                  {lessons.length} lessons
+                </div>
+                
+                {/* Page number - only visible when printing */}
+                <div className="hidden print:block absolute top-0 right-0 text-xs text-gray-500">
+                  Page <span className="pageNumber"></span>
                 </div>
               </div>
               
               {/* Lessons */}
-              <div className="space-y-8">
-                {lessonNumbers.map((lessonNum, index) => {
-                  const lessonData = allLessonsData[lessonNum];
+              <div className="space-y-8 print:space-y-6">
+                {lessons.map((lessonNumber, index) => {
+                  const lessonData = allLessonsData[lessonNumber];
                   if (!lessonData) return null;
                   
                   return (
-                    <div key={lessonNum} className="mb-8 pb-8 border-b border-gray-200">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-xl font-bold text-gray-900">
-                          Lesson {lessonNum}{lessonData.title ? `: ${lessonData.title}` : ''}
-                        </h3>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm font-medium text-gray-600">
-                            {lessonData.totalTime} minutes
-                          </span>
-                          <button
-                            onClick={() => setSelectedLessonForExport(lessonNum)}
-                            className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg"
-                          >
-                            <Download className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
+                    <div key={lessonNumber} className="mb-8 print:mb-6 page-break-inside-avoid">
+                      <h2 className="text-xl font-semibold text-gray-900 mb-3 print:text-lg print:mb-2 flex items-center justify-between">
+                        <span>Lesson {lessonNumber}: {lessonData.title || `Lesson ${lessonNumber}`}</span>
+                        <span className="text-sm font-normal text-gray-600 print:text-xs">
+                          {lessonData.totalTime} mins
+                        </span>
+                      </h2>
                       
-                      {/* Categories */}
-                      <div className="mb-4">
-                        <div className="flex flex-wrap gap-2">
-                          {lessonData.categoryOrder.map(category => (
-                            <span
-                              key={category}
-                              className="px-2 py-1 rounded-full text-sm font-medium border shadow-sm bg-gray-100 text-gray-800 border-gray-200"
-                            >
-                              {category}
-                            </span>
-                          ))}
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 print:p-3 print:bg-gray-100">
+                        {/* Categories */}
+                        <div className="mb-3 print:mb-2">
+                          <h3 className="text-sm font-medium text-gray-700 mb-1 print:text-xs">Categories:</h3>
+                          <div className="flex flex-wrap gap-1">
+                            {lessonData.categoryOrder.map(category => (
+                              <span 
+                                key={category}
+                                className="px-2 py-1 bg-white text-xs font-medium rounded-full border border-gray-200 print:text-[8px] print:px-1.5 print:py-0.5"
+                              >
+                                {category}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                      
-                      {/* Activities Summary */}
-                      <div className="space-y-4">
-                        {lessonData.categoryOrder.map(category => {
-                          const activities = lessonData.grouped[category] || [];
-                          if (activities.length === 0) return null;
-                          
-                          return (
-                            <div key={category} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                              <h4 className="font-semibold text-gray-900 mb-2">{category}</h4>
-                              <ul className="space-y-2">
-                                {activities.map((activity, actIndex) => (
-                                  <li key={actIndex} className="flex items-start space-x-2">
-                                    <span className="text-gray-500">•</span>
-                                    <div>
-                                      <p className="font-medium text-gray-900">{activity.activity}</p>
-                                      {activity.time > 0 && (
-                                        <span className="text-xs text-gray-500">{activity.time} mins</span>
-                                      )}
-                                    </div>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          );
-                        })}
+                        
+                        {/* Key Activities */}
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-700 mb-1 print:text-xs">Key Activities:</h3>
+                          <ul className="space-y-1 pl-5 list-disc text-sm text-gray-600 print:text-xs">
+                            {lessonData.categoryOrder.slice(0, 3).map(category => {
+                              const activities = lessonData.grouped[category];
+                              if (!activities || activities.length === 0) return null;
+                              
+                              return (
+                                <li key={category}>
+                                  <span className="font-medium">{category}:</span> {activities.map(a => a.activity).join(', ')}
+                                </li>
+                              );
+                            })}
+                            {lessonData.categoryOrder.length > 3 && (
+                              <li className="text-gray-500 italic">
+                                ...and {lessonData.categoryOrder.length - 3} more categories
+                              </li>
+                            )}
+                          </ul>
+                        </div>
                       </div>
                     </div>
                   );
                 })}
               </div>
+              
+              {/* Footer with page number */}
+              <div className="mt-8 pt-4 border-t border-gray-200 text-center text-xs text-gray-500 print:mt-4 print:pt-2">
+                <p>EYFS Lesson Builder - {currentSheetInfo.display} - {halfTermName}</p>
+                <p className="pageNumber hidden print:block">Page 1</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Individual Lesson Exporter */}
-      {selectedLessonForExport && (
-        <LessonExporter
-          lessonNumber={selectedLessonForExport}
-          onClose={() => setSelectedLessonForExport(null)}
-        />
-      )}
     </div>
   );
 }

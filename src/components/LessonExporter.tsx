@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Download, FileText, File, Printer, X, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Download, FileText, File, Printer, X, Check, ChevronDown, ChevronUp, Tag } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { jsPDF } from 'jspdf';
@@ -224,38 +224,46 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
         </div>
 
         {/* Preview */}
-        <div className="flex-1 overflow-y-auto p-4 bg-gray-100">
+        <div className="flex-1 overflow-y-auto p-4 bg-gray-100 print:bg-white print:p-0">
           <div 
             ref={previewRef}
-            className="bg-white mx-auto shadow-md max-w-[210mm]"
+            className="bg-white mx-auto shadow-md max-w-[210mm] print:shadow-none print:max-w-none"
             style={{ minHeight: '297mm' }}
           >
             {/* Lesson Plan Preview */}
-            <div className="p-8">
+            <div className="p-8 print:p-4">
               {/* Header */}
-              <div className="text-center border-b border-gray-200 pb-6 mb-6 relative">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                  {currentSheetInfo.display} Lesson Plans
+              <div className="text-center border-b border-gray-200 pb-6 mb-6 relative print:pb-4 print:mb-4">
+                <h1 className="text-2xl font-bold text-gray-900 mb-2 print:text-xl">
+                  {currentSheetInfo.display} Lesson Plan
                 </h1>
-                <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                  Lesson {lessonNumber}
+                <h2 className="text-xl font-semibold text-gray-800 mb-2 print:text-lg">
+                  {lessonData.title || `Lesson ${lessonNumber}`}
                 </h2>
                 <div className="text-gray-600 font-medium">
                   Total Time: {totalDuration} minutes
+                </div>
+                
+                {/* Page number - only visible when printing */}
+                <div className="hidden print:block absolute top-0 right-0 text-xs text-gray-500">
+                  Page <span className="pageNumber"></span>
                 </div>
               </div>
               
               {/* EYFS Goals */}
               {showEyfs && lessonEyfs.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">🎯 Learning Goals</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="mb-6 print:mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center space-x-2 print:text-base print:mb-2">
+                    <Tag className="h-5 w-5 text-blue-600 print:h-4 print:w-4" />
+                    <span>Learning Goals</span>
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 print:gap-2">
                     {Object.entries(groupedEyfs).map(([area, statements]) => (
-                      <div key={area} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                        <h4 className="font-medium text-gray-800 text-sm mb-2">{area}</h4>
+                      <div key={area} className="bg-gray-50 rounded-lg p-3 border border-gray-200 print:p-2 print:bg-gray-100">
+                        <h4 className="font-medium text-gray-800 text-sm mb-2 print:text-xs print:mb-1">{area}</h4>
                         <ul className="space-y-1">
                           {statements.map((statement, index) => (
-                            <li key={index} className="flex items-start space-x-2 text-sm text-gray-700">
+                            <li key={index} className="flex items-start space-x-2 text-sm text-gray-700 print:text-xs">
                               <span className="text-green-500 font-bold">✓</span>
                               <span>{statement}</span>
                             </li>
@@ -275,68 +283,105 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
                 const categoryColor = getCategoryColor(category);
                 
                 return (
-                  <div key={category} className="mb-8">
+                  <div key={category} className="mb-8 print:mb-6">
                     <h2 
-                      className="text-xl font-semibold mb-4"
-                      style={{ color: category === 'Welcome' ? '#F59E0B' : 
+                      className="text-xl font-semibold mb-4 print:text-lg print:mb-3"
+                      style={{ 
+                        color: category === 'Welcome' ? '#F59E0B' : 
                                category === 'Kodaly Songs' ? '#8B5CF6' : 
-                               category === 'Goodbye' ? '#10B981' : categoryColor }}
+                               category === 'Goodbye' ? '#10B981' : categoryColor 
+                      }}
                     >
                       {category}
                     </h2>
                     
-                    <div className="space-y-4">
+                    <div className="space-y-4 print:space-y-3">
                       {activities.map((activity, index) => (
-                        <div key={`${category}-${index}`}>
-                          <h3 className="font-semibold text-gray-900">
-                            {activity.activity} ({activity.time} mins)
-                          </h3>
+                        <div 
+                          key={`${category}-${index}`} 
+                          className="bg-white rounded-lg border border-gray-200 overflow-hidden print:border print:rounded-lg print:mb-3"
+                          style={{ 
+                            borderLeftWidth: '4px',
+                            borderLeftColor: categoryColor
+                          }}
+                        >
+                          {/* Activity Header */}
+                          <div className="bg-gray-50 p-3 border-b border-gray-200 flex justify-between items-center print:p-2">
+                            <h3 className="font-semibold text-gray-900 print:text-sm">
+                              {activity.activity}
+                            </h3>
+                            {activity.time > 0 && (
+                              <div className="bg-gray-200 text-gray-800 px-2 py-1 rounded-full text-xs font-medium print:text-xs">
+                                {activity.time} min
+                              </div>
+                            )}
+                          </div>
                           
-                          {/* Activity Text (if available) */}
-                          {activity.activityText && (
+                          {/* Activity Content */}
+                          <div className="p-3 print:p-2">
+                            {/* Activity Text (if available) */}
+                            {activity.activityText && (
+                              <div 
+                                className="mb-2 text-sm text-gray-800 print:text-xs"
+                                dangerouslySetInnerHTML={{ __html: activity.activityText }}
+                              />
+                            )}
+                            
+                            {/* Description */}
                             <div 
-                              className="mt-2 text-gray-800"
-                              dangerouslySetInnerHTML={{ __html: activity.activityText }}
+                              className="text-sm text-gray-700 print:text-xs"
+                              dangerouslySetInnerHTML={{ 
+                                __html: activity.description.includes('<') ? 
+                                  activity.description : 
+                                  activity.description.replace(/\n/g, '<br>') 
+                              }}
                             />
-                          )}
-                          
-                          {/* Description */}
-                          <div 
-                            className="mt-2 text-gray-700"
-                            dangerouslySetInnerHTML={{ __html: activity.description }}
-                          />
-                          
-                          {/* Resources */}
-                          {(activity.videoLink || activity.musicLink || activity.backingLink || 
-                            activity.resourceLink || activity.link || activity.vocalsLink || 
-                            activity.imageLink) && (
-                            <div className="mt-2">
-                              <p className="font-medium text-gray-700">Resources:</p>
-                              <ul className="pl-5 text-gray-600 text-sm">
-                                {activity.videoLink && (
-                                  <li>Video: {activity.videoLink}</li>
-                                )}
-                                {activity.musicLink && (
-                                  <li>Music: {activity.musicLink}</li>
-                                )}
-                                {activity.backingLink && (
-                                  <li>Backing: {activity.backingLink}</li>
-                                )}
-                                {activity.resourceLink && (
-                                  <li>Resource: {activity.resourceLink}</li>
-                                )}
-                                {activity.link && (
-                                  <li>Link: {activity.link}</li>
-                                )}
-                                {activity.vocalsLink && (
-                                  <li>Vocals: {activity.vocalsLink}</li>
-                                )}
-                                {activity.imageLink && (
-                                  <li>Image: {activity.imageLink}</li>
-                                )}
-                              </ul>
-                            </div>
-                          )}
+                            
+                            {/* Resources */}
+                            {(activity.videoLink || activity.musicLink || activity.backingLink || 
+                              activity.resourceLink || activity.link || activity.vocalsLink || 
+                              activity.imageLink) && (
+                              <div className="mt-2 pt-2 border-t border-gray-100 print:mt-1 print:pt-1">
+                                <div className="flex flex-wrap gap-1">
+                                  {activity.videoLink && (
+                                    <span className="inline-flex items-center px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5">
+                                      Video
+                                    </span>
+                                  )}
+                                  {activity.musicLink && (
+                                    <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5">
+                                      Music
+                                    </span>
+                                  )}
+                                  {activity.backingLink && (
+                                    <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5">
+                                      Backing
+                                    </span>
+                                  )}
+                                  {activity.resourceLink && (
+                                    <span className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5">
+                                      Resource
+                                    </span>
+                                  )}
+                                  {activity.link && (
+                                    <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5">
+                                      Link
+                                    </span>
+                                  )}
+                                  {activity.vocalsLink && (
+                                    <span className="inline-flex items-center px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5">
+                                      Vocals
+                                    </span>
+                                  )}
+                                  {activity.imageLink && (
+                                    <span className="inline-flex items-center px-2 py-1 bg-pink-100 text-pink-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5">
+                                      Image
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -346,14 +391,20 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
               
               {/* Notes Section */}
               {lessonData.notes && (
-                <div className="mt-8 pt-6 border-t border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Lesson Notes</h3>
+                <div className="mt-8 pt-6 border-t border-gray-200 print:mt-4 print:pt-3">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 print:text-base print:mb-2">Lesson Notes</h3>
                   <div 
-                    className="bg-gray-50 rounded-lg p-4 text-gray-700"
+                    className="bg-gray-50 rounded-lg p-4 text-gray-700 print:p-2 print:text-xs"
                     dangerouslySetInnerHTML={{ __html: lessonData.notes }}
                   />
                 </div>
               )}
+              
+              {/* Footer with page number */}
+              <div className="mt-8 pt-4 border-t border-gray-200 text-center text-xs text-gray-500 print:mt-4 print:pt-2">
+                <p>EYFS Lesson Builder - {currentSheetInfo.display}</p>
+                <p className="pageNumber hidden print:block">Page 1</p>
+              </div>
             </div>
           </div>
         </div>

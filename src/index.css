@@ -127,3 +127,38 @@
   background-color: #eff6ff;
   color: #1e40af;
 }
+
+/* Print styles for lesson plans */
+@media print {
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  .pageNumber:before {
+    content: counter(page);
+  }
+  
+  .page-break-inside-avoid {
+    page-break-inside: avoid;
+  }
+  
+  /* Hide everything except the print content */
+  body > *:not(.print-content) {
+    display: none !important;
+  }
+  
+  /* Ensure proper page breaks */
+  h2, h3 {
+    page-break-after: avoid;
+  }
+  
+  /* Circular activity boxes */
+  .print-activity {
+    border-radius: 1rem;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+  }
+}
