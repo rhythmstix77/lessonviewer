@@ -196,10 +196,10 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
     pdf.setFontSize(30);
     pdf.text(`Half-Term Plan`, 105, 120, { align: 'center' });
     
-    const halfTerm = halfTerms.find(term => term.id === halfTermId);
-    if (halfTerm) {
+    const currentHalfTerm = halfTerms.find(term => term.id === halfTermId);
+    if (currentHalfTerm) {
       pdf.setFontSize(20);
-      pdf.text(`${halfTerm.name} (${halfTerm.months})`, 105, 140, { align: 'center' });
+      pdf.text(`${currentHalfTerm.name} (${currentHalfTerm.months})`, 105, 140, { align: 'center' });
     }
     
     pdf.setFontSize(12);
@@ -364,8 +364,8 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
     }
     
     // Save the PDF
-    const halfTerm = halfTerms.find(term => term.id === halfTermId);
-    const halfTermName = halfTerm ? halfTerm.name.replace(/\s+/g, '_') : halfTermId;
+    const finalHalfTerm = halfTerms.find(term => term.id === halfTermId);
+    const halfTermName = finalHalfTerm ? finalHalfTerm.name.replace(/\s+/g, '_') : halfTermId;
     pdf.save(`${currentSheetInfo.sheet}_${halfTermName}_Half_Term_Plan.pdf`);
   };
 
