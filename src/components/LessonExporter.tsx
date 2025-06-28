@@ -4,7 +4,6 @@ import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
-import html2canvas from 'html2canvas';
 
 interface LessonExporterProps {
   lessonNumber: string;
@@ -14,7 +13,6 @@ interface LessonExporterProps {
 export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
   const { allLessonsData, currentSheetInfo, eyfsStatements } = useData();
   const { getCategoryColor } = useSettings();
-  const [exportFormat, setExportFormat] = useState<'pdf' | 'preview'>('preview');
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
   const [showEyfs, setShowEyfs] = useState(true);
@@ -63,60 +61,188 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
     setIsExporting(true);
     
     try {
-      if (exportFormat === 'pdf') {
-        // Export to PDF using html2canvas to capture the styled preview
-        if (previewRef.current) {
-          const canvas = await html2canvas(previewRef.current, {
-            scale: 2, // Higher scale for better quality
-            useCORS: true, // Allow loading cross-origin images
-            logging: false,
-            backgroundColor: '#ffffff'
+      // Create a new PDF document
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      // Add title and header
+      pdf.setFontSize(18);
+      pdf.text(`${currentSheetInfo.display} Lesson Plan`, 105, 20, { align: 'center' });
+      
+      pdf.setFontSize(16);
+      pdf.text(lessonData.title || `Lesson ${lessonNumber}`, 105, 30, { align: 'center' });
+      
+      pdf.setFontSize(12);
+      pdf.text(`Total Time: ${lessonData.totalTime} minutes`, 105, 40, { align: 'center' });
+      
+      let yPosition = 50;
+      
+      // Add EYFS Goals if enabled
+      if (showEyfs && lessonEyfs.length > 0) {
+        pdf.setFontSize(14);
+        pdf.text("🎯 Learning Goals", 20, yPosition);
+        yPosition += 10;
+        
+        // Add each EYFS area and its statements
+        Object.entries(groupedEyfs).forEach(([area, statements]) => {
+          pdf.setFontSize(12);
+          pdf.text(area, 20, yPosition);
+          yPosition += 6;
+          
+          statements.forEach(statement => {
+            pdf.setFontSize(10);
+            pdf.text(`✓ ${statement}`, 25, yPosition);
+            yPosition += 5;
           });
           
-          const imgData = canvas.toDataURL('image/png');
-          
-          // Create PDF with proper A4 dimensions
-          const pdf = new jsPDF({
-            orientation: 'portrait',
-            unit: 'mm',
-            format: 'a4'
-          });
-          
-          // A4 dimensions: 210mm x 297mm
-          const imgWidth = 210;
-          const imgHeight = (canvas.height * imgWidth) / canvas.width;
-          
-          // Add image to PDF
-          pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-          
-          // If the content is longer than one page, create additional pages
-          if (imgHeight > 297) {
-            let remainingHeight = imgHeight;
-            let currentPosition = 0;
-            
-            while (remainingHeight > 0) {
-              currentPosition += 297;
-              remainingHeight -= 297;
-              
-              if (remainingHeight > 0) {
-                pdf.addPage();
-                pdf.addImage(
-                  imgData, 
-                  'PNG', 
-                  0, 
-                  -currentPosition, 
-                  imgWidth, 
-                  imgHeight
-                );
-              }
-            }
+          yPosition += 5;
+        });
+      }
+      
+      // Add activities by category
+      lessonData.categoryOrder.forEach(category => {
+        const activities = lessonData.grouped[category] || [];
+        if (activities.length === 0) return;
+        
+        // Check if we need a new page
+        if (yPosition > 250) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+        
+        // Add category header
+        pdf.setFontSize(14);
+        const categoryColorHex = getCategoryColor(category).replace('#', '');
+        const r = parseInt(categoryColorHex.substring(0, 2), 16);
+        const g = parseInt(categoryColorHex.substring(2, 4), 16);
+        const b = parseInt(categoryColorHex.substring(4, 6), 16);
+        pdf.setTextColor(r, g, b);
+        pdf.text(category, 20, yPosition);
+        pdf.setTextColor(0, 0, 0);
+        yPosition += 8;
+        
+        // Add activities
+        activities.forEach(activity => {
+          // Check if we need a new page
+          if (yPosition > 250) {
+            pdf.addPage();
+            yPosition = 20;
           }
           
-          // Save the PDF
-          const title = lessonData.title || `Lesson ${lessonNumber}`;
-          pdf.save(`${currentSheetInfo.sheet}_${title.replace(/\s+/g, '_')}.pdf`);
+          // Activity title and time
+          pdf.setFontSize(12);
+          pdf.setFont(undefined, 'bold');
+          pdf.text(`${activity.activity}${activity.time ? ` (${activity.time} mins)` : ''}`, 25, yPosition);
+          yPosition += 6;
+          
+          // Activity description
+          pdf.setFont(undefined, 'normal');
+          pdf.setFontSize(10);
+          
+          // Clean description text (remove HTML tags)
+          const descText = activity.description.replace(/<[^>]*>/g, '');
+          
+          // Split text to fit page width
+          const splitText = pdf.splitTextToSize(descText, 160);
+          splitText.forEach(line => {
+            if (yPosition > 270) {
+              pdf.addPage();
+              yPosition = 20;
+            }
+            
+            pdf.text(line, 30, yPosition);
+            yPosition += 5;
+          });
+          
+          // Add resources with links
+          const resources = [];
+          if (activity.videoLink) resources.push({ text: 'Video', url: activity.videoLink });
+          if (activity.musicLink) resources.push({ text: 'Music', url: activity.musicLink });
+          if (activity.backingLink) resources.push({ text: 'Backing', url: activity.backingLink });
+          if (activity.resourceLink) resources.push({ text: 'Resource', url: activity.resourceLink });
+          if (activity.link) resources.push({ text: 'Link', url: activity.link });
+          if (activity.vocalsLink) resources.push({ text: 'Vocals', url: activity.vocalsLink });
+          if (activity.imageLink) resources.push({ text: 'Image', url: activity.imageLink });
+          
+          if (resources.length > 0) {
+            yPosition += 3;
+            pdf.setFont(undefined, 'italic');
+            pdf.text('Resources:', 30, yPosition);
+            yPosition += 5;
+            
+            resources.forEach(resource => {
+              if (yPosition > 270) {
+                pdf.addPage();
+                yPosition = 20;
+              }
+              
+              // Add text with link
+              const text = `${resource.text}: ${resource.url}`;
+              const textWidth = pdf.getTextWidth(text);
+              
+              pdf.setTextColor(0, 0, 255); // Blue color for links
+              pdf.text(text, 35, yPosition);
+              
+              // Add link annotation
+              pdf.link(35, yPosition - 5, textWidth, 6, { url: resource.url });
+              
+              pdf.setTextColor(0, 0, 0); // Reset text color
+              yPosition += 5;
+            });
+            
+            pdf.setFont(undefined, 'normal');
+          }
+          
+          yPosition += 8;
+        });
+        
+        yPosition += 5;
+      });
+      
+      // Add notes if available
+      if (lessonData.notes) {
+        // Check if we need a new page
+        if (yPosition > 250) {
+          pdf.addPage();
+          yPosition = 20;
         }
+        
+        pdf.setFontSize(14);
+        pdf.text('Lesson Notes', 20, yPosition);
+        yPosition += 8;
+        
+        // Clean notes text (remove HTML tags)
+        const notesText = lessonData.notes.replace(/<[^>]*>/g, '');
+        
+        // Split text to fit page width
+        pdf.setFontSize(10);
+        const splitNotes = pdf.splitTextToSize(notesText, 170);
+        splitNotes.forEach(line => {
+          if (yPosition > 270) {
+            pdf.addPage();
+            yPosition = 20;
+          }
+          
+          pdf.text(line, 25, yPosition);
+          yPosition += 5;
+        });
       }
+      
+      // Add footer with page numbers
+      const pageCount = pdf.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(10);
+        pdf.text(`Page ${i} of ${pageCount}`, 105, 287, { align: 'center' });
+        pdf.text(`Curriculum Designer - ${currentSheetInfo.display}`, 105, 292, { align: 'center' });
+      }
+      
+      // Save the PDF
+      const title = lessonData.title || `Lesson ${lessonNumber}`;
+      pdf.save(`${currentSheetInfo.sheet}_${title.replace(/\s+/g, '_')}.pdf`);
       
       setExportSuccess(true);
       setTimeout(() => setExportSuccess(false), 3000);
@@ -143,36 +269,12 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
               {lessonData.title || `Lesson ${lessonNumber}`} - {currentSheetInfo.display}
             </p>
           </div>
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2 bg-gray-100 p-1 rounded-lg">
-              <button
-                onClick={() => setExportFormat('preview')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium ${
-                  exportFormat === 'preview' 
-                    ? 'bg-white shadow-sm text-gray-900' 
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Preview
-              </button>
-              <button
-                onClick={() => setExportFormat('pdf')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium ${
-                  exportFormat === 'pdf' 
-                    ? 'bg-white shadow-sm text-gray-900' 
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                PDF
-              </button>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-            >
-              <X className="h-6 w-6" />
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+          >
+            <X className="h-6 w-6" />
+          </button>
         </div>
 
         {/* Options */}
