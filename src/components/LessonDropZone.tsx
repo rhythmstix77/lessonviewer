@@ -8,12 +8,14 @@ import {
   GripVertical, 
   Trash2,
   Save,
-  X
+  X,
+  Eye
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { RichTextEditor } from './RichTextEditor';
 import type { Activity, LessonPlan } from '../contexts/DataContext';
 import { EyfsStandardsSelector } from './EyfsStandardsSelector';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface LessonDropZoneProps {
   lessonPlan: LessonPlan;
@@ -37,24 +39,6 @@ interface ActivityItemProps {
   isDraggable?: boolean;
 }
 
-const categoryColors: Record<string, string> = {
-  'Welcome': '#F59E0B',
-  'Kodaly Songs': '#8B5CF6',
-  'Kodaly Action Songs': '#F97316',
-  'Action/Games Songs': '#F97316',
-  'Rhythm Sticks': '#D97706',
-  'Scarf Songs': '#10B981',
-  'General Game': '#3B82F6',
-  'Core Songs': '#84CC16',
-  'Parachute Games': '#EF4444',
-  'Percussion Games': '#06B6D4',
-  'Teaching Units': '#6366F1',
-  'Goodbye': '#14B8A6',
-  'Kodaly Rhythms': '#9333EA',
-  'Kodaly Games': '#F59E0B',
-  'IWB Games': '#FBBF24'
-};
-
 function ActivityItem({ 
   activity, 
   index, 
@@ -65,6 +49,7 @@ function ActivityItem({
   isDraggable = true
 }: ActivityItemProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const { getCategoryColor } = useSettings();
   
   // Only set up drag and drop if draggable is true
   let dragDropProps = {};
@@ -123,20 +108,7 @@ function ActivityItem({
     };
   }
 
-  const categoryColor = categoryColors[activity.category] || '#6B7280';
-
-  // Format description with line breaks
-  const formatDescription = (text: string) => {
-    if (!text) return '';
-    
-    // If already HTML, return as is
-    if (text.includes('<')) {
-      return text;
-    }
-    
-    // Replace newlines with <br> tags
-    return text.replace(/\n/g, '<br>');
-  };
+  const categoryColor = getCategoryColor(activity.category);
 
   const handleClick = () => {
     if (onActivityClick && !isEditing) {
@@ -148,72 +120,45 @@ function ActivityItem({
     <div
       ref={isDraggable ? ref : undefined}
       {...dragDropProps}
-      className="bg-white rounded-lg border-2 border-gray-200 p-4 transition-all duration-200 hover:shadow-md group"
+      className="bg-white rounded-lg border border-gray-200 shadow-sm transition-all duration-200 hover:shadow-md group"
       onClick={handleClick}
     >
-      <div className="flex items-start space-x-3">
+      <div className="flex items-center p-3">
         {isEditing && isDraggable && (
-          <div className="flex flex-col space-y-1 pt-1">
-            <div className="cursor-move text-gray-400 hover:text-gray-600">
-              <GripVertical className="h-5 w-5" />
-            </div>
+          <div className="flex-shrink-0 cursor-move text-gray-400 hover:text-gray-600 mr-2">
+            <GripVertical className="h-5 w-5" />
           </div>
         )}
         
         <div 
-          className="w-1 h-full rounded-full flex-shrink-0"
-          style={{ backgroundColor: categoryColor, minHeight: '60px' }}
+          className="w-1 h-full rounded-full flex-shrink-0 mr-2"
+          style={{ backgroundColor: categoryColor, height: '24px' }}
         />
         
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between mb-2">
-            <div className="flex-1 min-w-0">
-              <h4 className="font-semibold text-gray-900 text-base leading-tight" dir="ltr">
-                {activity.activity}
-              </h4>
-              <div className="flex items-center space-x-3 mt-1">
-                <span className="text-sm text-gray-600" dir="ltr">{activity.category}</span>
-                {activity.level && (
-                  <span 
-                    className="px-2 py-1 text-white text-xs font-medium rounded-full"
-                    style={{ backgroundColor: categoryColor }}
-                  >
-                    {activity.level}
-                  </span>
-                )}
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2 ml-3">
-              {activity.time > 0 && (
-                <div className="flex items-center space-x-1 text-gray-500">
-                  <Clock className="h-4 w-4" />
-                  <span className="text-sm font-medium">{activity.time}m</span>
-                </div>
-              )}
-              
-              {isEditing && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRemove();
-                  }}
-                  className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors duration-200 opacity-0 group-hover:opacity-100"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          </div>
-          
-          {activity.description && (
-            <div 
-              className="text-sm text-gray-600 leading-relaxed prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: formatDescription(activity.description) }}
-              dir="ltr"
-            />
-          )}
+          <h4 className="font-medium text-gray-900 text-sm truncate" dir="ltr">
+            {activity.activity}
+          </h4>
         </div>
+        
+        {activity.time > 0 && (
+          <div className="flex items-center space-x-1 text-gray-500 ml-2">
+            <Clock className="h-3.5 w-3.5" />
+            <span className="text-xs font-medium">{activity.time}m</span>
+          </div>
+        )}
+        
+        {isEditing && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors duration-200 ml-2"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -230,6 +175,8 @@ export function LessonDropZone({
   onSave,
   onSaveAndCreate
 }: LessonDropZoneProps) {
+  const { getCategoryColor } = useSettings();
+  
   // Fix: Use the correct drag type 'activity' to match ActivityCard
   const [{ isOver }, drop] = useDrop(() => ({
     accept: ['activity', 'lesson'],
@@ -246,7 +193,7 @@ export function LessonDropZone({
     }),
   }));
 
-  // Group activities by category for side-by-side display
+  // Group activities by category for organized display
   const groupedActivities: Record<string, Activity[]> = React.useMemo(() => {
     const grouped: Record<string, Activity[]> = {};
     
@@ -396,7 +343,7 @@ export function LessonDropZone({
                 </h3>
                 
                 {/* Grid layout for activities */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {groupedActivities[category].map((activity, index) => {
                     // Find the global index of this activity in the full activities array
                     const globalIndex = lessonPlan.activities.findIndex(
