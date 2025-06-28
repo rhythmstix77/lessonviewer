@@ -308,6 +308,12 @@ export function UnitViewer() {
     return colors[Math.floor(Math.random() * colors.length)];
   };
 
+  // Handle lesson click in the modal
+  const handleLessonClick = (lessonNumber: string) => {
+    // Show the lesson details modal
+    setSelectedLessonForDetails(lessonNumber);
+  };
+
   // If a unit is selected, show its details
   if (selectedUnit) {
     return (
@@ -770,12 +776,16 @@ export function UnitViewer() {
                                 handleReorderLessons(dragIndex, index);
                               }}
                             >
-                              <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4 h-full flex flex-col">
+                              <div 
+                                className="bg-white rounded-lg shadow-md border border-gray-200 p-4 h-full flex flex-col cursor-pointer hover:border-blue-300 hover:shadow-lg transition-all duration-200"
+                                onClick={() => handleLessonClick(lessonNum)}
+                              >
                                 <div className="flex items-center justify-between mb-2">
                                   <h4 className="font-semibold text-gray-900">Lesson {lessonNum}</h4>
                                   <div className="flex items-center">
                                     <button
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation(); // Prevent card click
                                         const newOrderedLessons = [...orderedLessons];
                                         newOrderedLessons.splice(index, 1);
                                         setOrderedLessons(newOrderedLessons);
@@ -809,7 +819,10 @@ export function UnitViewer() {
                                 </div>
                                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
                                   <button
-                                    onClick={() => handleLessonDetails(lessonNum)}
+                                    onClick={(e) => {
+                                      e.stopPropagation(); // Prevent card click
+                                      handleLessonClick(lessonNum);
+                                    }}
                                     className="text-xs text-blue-600 hover:text-blue-800 flex items-center space-x-1"
                                   >
                                     <Eye className="h-3 w-3" />
@@ -818,7 +831,10 @@ export function UnitViewer() {
                                   <div className="flex items-center space-x-1">
                                     {index > 0 && (
                                       <button
-                                        onClick={() => handleReorderLessons(index, index - 1)}
+                                        onClick={(e) => {
+                                          e.stopPropagation(); // Prevent card click
+                                          handleReorderLessons(index, index - 1);
+                                        }}
                                         className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full"
                                       >
                                         <ArrowLeft className="h-3 w-3" />
@@ -826,7 +842,10 @@ export function UnitViewer() {
                                     )}
                                     {index < orderedLessons.length - 1 && (
                                       <button
-                                        onClick={() => handleReorderLessons(index, index + 1)}
+                                        onClick={(e) => {
+                                          e.stopPropagation(); // Prevent card click
+                                          handleReorderLessons(index, index + 1);
+                                        }}
                                         className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full"
                                       >
                                         <ArrowRight className="h-3 w-3" />
@@ -910,6 +929,18 @@ export function UnitViewer() {
                                       +{lessonData.categoryOrder.length - 3}
                                     </span>
                                   )}
+                                </div>
+                                <div className="mt-2 pt-2 border-t border-gray-100">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation(); // Prevent toggling selection
+                                      handleLessonClick(lessonNum);
+                                    }}
+                                    className="text-xs text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+                                  >
+                                    <Eye className="h-3 w-3" />
+                                    <span>View Details</span>
+                                  </button>
                                 </div>
                               </div>
                             </div>
