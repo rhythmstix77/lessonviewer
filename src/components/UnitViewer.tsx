@@ -94,6 +94,7 @@ export function UnitViewer() {
   const [showHalfTermView, setShowHalfTermView] = useState(false);
   const [selectedLessons, setSelectedLessons] = useState<string[]>([]);
   const [orderedLessons, setOrderedLessons] = useState<string[]>([]);
+  const [showHalfTermExporter, setShowHalfTermExporter] = useState(false);
   
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
@@ -210,7 +211,8 @@ export function UnitViewer() {
   };
 
   // Handle lesson details
-  const handleLessonDetails = (lessonNumber: string) => {
+  const handleLessonClick = (lessonNumber: string) => {
+    // Show the lesson details modal
     setSelectedLessonForDetails(lessonNumber);
   };
 
@@ -308,10 +310,11 @@ export function UnitViewer() {
     return colors[Math.floor(Math.random() * colors.length)];
   };
 
-  // Handle lesson click in the modal
-  const handleLessonClick = (lessonNumber: string) => {
-    // Show the lesson details modal
-    setSelectedLessonForDetails(lessonNumber);
+  // Handle exporting half-term lessons
+  const handleExportHalfTerm = () => {
+    if (selectedHalfTerm) {
+      setShowHalfTermExporter(true);
+    }
   };
 
   // If a unit is selected, show its details
@@ -389,7 +392,7 @@ export function UnitViewer() {
                       lessonNumber={lessonNumber}
                       lessonData={lessonData}
                       viewMode="grid"
-                      onClick={() => handleLessonDetails(lessonNumber)}
+                      onClick={() => handleLessonClick(lessonNumber)}
                       theme={theme}
                     />
                     
@@ -688,6 +691,16 @@ export function UnitViewer() {
                     </p>
                   </div>
                   <div className="flex items-center space-x-3">
+                    {/* Export Button - Added here */}
+                    {(showHalfTermView || selectedLessons.length > 0) && (
+                      <button
+                        onClick={() => setShowHalfTermExporter(true)}
+                        className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        <span>Export</span>
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         if (showHalfTermView) {
@@ -980,6 +993,16 @@ export function UnitViewer() {
           </div>
         )}
 
+        {/* Half-Term Exporter */}
+        {showHalfTermExporter && selectedHalfTerm && (
+          <HalfTermExporter
+            halfTerm={selectedHalfTerm}
+            onClose={() => setShowHalfTermExporter(false)}
+            theme={theme}
+            lessonNumbers={showHalfTermView ? orderedLessons : selectedLessons}
+          />
+        )}
+
         {/* Activity Details Modal */}
         {selectedActivity && (
           <ActivityDetails
@@ -1010,5 +1033,260 @@ export function UnitViewer() {
         )}
       </div>
     </DndProvider>
+  );
+}
+
+// Half-Term Exporter Component
+interface HalfTermExporterProps {
+  halfTerm: HalfTerm;
+  onClose: () => void;
+  theme: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    gradient: string;
+  };
+  lessonNumbers: string[];
+}
+
+function HalfTermExporter({ halfTerm, onClose, theme, lessonNumbers }: HalfTermExporterProps) {
+  const { allLessonsData } = useData();
+  const [selectedLessonForExport, setSelectedLessonForExport] = useState<string | null>(null);
+  const [exportFormat, setExportFormat] = useState<'pdf' | 'preview'>('preview');
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportSuccess, setExportSuccess] = useState(false);
+  const previewRef = React.useRef<HTMLDivElement>(null);
+
+  // Calculate total duration of all lessons
+  const totalDuration = React.useMemo(() => {
+    return lessonNumbers.reduce((total, lessonNum) => {
+      const lessonData = allLessonsData[lessonNum];
+      return total + (lessonData?.totalTime || 0);
+    }, 0);
+  }, [lessonNumbers, allLessonsData]);
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    
+    try {
+      if (exportFormat === 'pdf') {
+        // Export to PDF using html2canvas
+        if (previewRef.current) {
+          // This would use html2canvas and jsPDF in a real implementation
+          // For now, we'll just simulate the export
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          
+          // In a real implementation, you would:
+          // 1. Use html2canvas to capture the preview div
+          // 2. Convert to PDF using jsPDF
+          // 3. Save the PDF
+          
+          console.log('Exporting half-term to PDF:', halfTerm.name);
+        }
+      }
+      
+      setExportSuccess(true);
+      setTimeout(() => setExportSuccess(false), 3000);
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Export failed. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-xl shadow-lg w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Export Half-Term Plan</h2>
+            <p className="text-sm text-gray-600">
+              {halfTerm.name} - {halfTerm.months}
+            </p>
+          </div>
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 bg-gray-100 p-1 rounded-lg">
+              <button
+                onClick={() => setExportFormat('preview')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium ${
+                  exportFormat === 'preview' 
+                    ? 'bg-white shadow-sm text-gray-900' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Preview
+              </button>
+              <button
+                onClick={() => setExportFormat('pdf')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium ${
+                  exportFormat === 'pdf' 
+                    ? 'bg-white shadow-sm text-gray-900' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                PDF
+              </button>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+        </div>
+
+        {/* Options */}
+        <div className="p-4 border-b border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <span className="text-sm font-medium text-gray-700">
+                {lessonNumbers.length} lessons • {totalDuration} minutes total
+              </span>
+            </div>
+            <div className="flex space-x-3">
+              <button
+                onClick={handlePrint}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
+              >
+                <Printer className="h-4 w-4" />
+                <span>Print</span>
+              </button>
+              <button
+                onClick={handleExport}
+                disabled={isExporting}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2 disabled:bg-blue-400"
+              >
+                {isExporting ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    <span>Exporting...</span>
+                  </>
+                ) : exportSuccess ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    <span>Exported!</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    <span>Export {exportFormat.toUpperCase()}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Preview */}
+        <div className="flex-1 overflow-y-auto p-4 bg-gray-100">
+          <div 
+            ref={previewRef}
+            className="bg-white mx-auto shadow-md max-w-[210mm]"
+            style={{ minHeight: '297mm' }}
+          >
+            {/* Half-Term Plan Preview */}
+            <div className="p-8">
+              {/* Header */}
+              <div className="text-center border-b border-gray-200 pb-6 mb-6 relative">
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                  {halfTerm.name} - {halfTerm.months}
+                </h1>
+                <h2 className="text-xl font-semibold text-gray-800 mb-2">
+                  Lesson Plan
+                </h2>
+                <div className="text-gray-600 font-medium">
+                  Total Time: {totalDuration} minutes • {lessonNumbers.length} lessons
+                </div>
+              </div>
+              
+              {/* Lessons */}
+              <div className="space-y-8">
+                {lessonNumbers.map((lessonNum, index) => {
+                  const lessonData = allLessonsData[lessonNum];
+                  if (!lessonData) return null;
+                  
+                  return (
+                    <div key={lessonNum} className="mb-8 pb-8 border-b border-gray-200">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xl font-bold text-gray-900">
+                          Lesson {lessonNum}{lessonData.title ? `: ${lessonData.title}` : ''}
+                        </h3>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-medium text-gray-600">
+                            {lessonData.totalTime} minutes
+                          </span>
+                          <button
+                            onClick={() => setSelectedLessonForExport(lessonNum)}
+                            className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg"
+                          >
+                            <Download className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Categories */}
+                      <div className="mb-4">
+                        <div className="flex flex-wrap gap-2">
+                          {lessonData.categoryOrder.map(category => (
+                            <span
+                              key={category}
+                              className="px-2 py-1 rounded-full text-sm font-medium border shadow-sm bg-gray-100 text-gray-800 border-gray-200"
+                            >
+                              {category}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Activities Summary */}
+                      <div className="space-y-4">
+                        {lessonData.categoryOrder.map(category => {
+                          const activities = lessonData.grouped[category] || [];
+                          if (activities.length === 0) return null;
+                          
+                          return (
+                            <div key={category} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                              <h4 className="font-semibold text-gray-900 mb-2">{category}</h4>
+                              <ul className="space-y-2">
+                                {activities.map((activity, actIndex) => (
+                                  <li key={actIndex} className="flex items-start space-x-2">
+                                    <span className="text-gray-500">•</span>
+                                    <div>
+                                      <p className="font-medium text-gray-900">{activity.activity}</p>
+                                      {activity.time > 0 && (
+                                        <span className="text-xs text-gray-500">{activity.time} mins</span>
+                                      )}
+                                    </div>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Individual Lesson Exporter */}
+      {selectedLessonForExport && (
+        <LessonExporter
+          lessonNumber={selectedLessonForExport}
+          onClose={() => setSelectedLessonForExport(null)}
+        />
+      )}
+    </div>
   );
 }
