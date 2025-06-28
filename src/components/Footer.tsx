@@ -6,12 +6,12 @@ export function Footer() {
     <footer className="bg-blue-900 text-white py-3 mt-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row items-center justify-between space-y-1 md:space-y-0">
-          {/* Left side - EYFS branding */}
+          {/* Left side - Curriculum Designer branding */}
           <div className="flex items-center space-x-3">
             <div className="flex-shrink-0">
               <img
                 src="/RLOGO copy copy.png"
-                alt="EYFS Lesson Builder"
+                alt="Curriculum Designer"
                 className="h-6 w-6 object-cover rounded"
                 onError={(e) => {
                   // Fallback to Music icon if image fails to load
@@ -25,8 +25,8 @@ export function Footer() {
               </div>
             </div>
             <div>
-              <h3 className="text-sm font-bold">EYFS Lesson Builder</h3>
-              <p className="text-xs text-gray-300">For Early Years Education</p>
+              <h3 className="text-sm font-bold">Curriculum Designer</h3>
+              <p className="text-xs text-gray-300">For Education</p>
             </div>
           </div>
 
@@ -39,13 +39,13 @@ export function Footer() {
               className="flex items-center space-x-1 text-gray-300 hover:text-blue-300 transition-colors duration-200"
             >
               <Globe className="h-3 w-3" />
-              <span>EYFS Framework</span>
+              <span>Curriculum Framework</span>
             </a>
             
             <span className="text-gray-500">•</span>
             
             <a 
-              href="mailto:contact@eyfslessonbuilder.com"
+              href="mailto:contact@curriculumdesigner.com"
               className="text-gray-300 hover:text-blue-300 transition-colors duration-200"
             >
               Contact
@@ -53,7 +53,7 @@ export function Footer() {
             
             <span className="text-gray-500">•</span>
             
-            <span className="text-gray-300">© 2025 EYFS Lesson Builder</span>
+            <span className="text-gray-300">© 2025 Curriculum Designer</span>
           </div>
         </div>
       </div>

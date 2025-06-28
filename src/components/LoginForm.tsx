@@ -33,12 +33,12 @@ export function LoginForm() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Header with EYFS Branding */}
+        {/* Header with Curriculum Designer Branding */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center mb-4">
             <img
               src="https://images.pexels.com/photos/1407322/pexels-photo-1407322.jpeg?auto=compress&cs=tinysrgb&w=120&h=120&dpr=2"
-              alt="EYFS Lesson Builder"
+              alt="Curriculum Designer"
               className="h-16 w-16 object-cover rounded-xl border-2 border-blue-200 shadow-lg"
               onError={(e) => {
                 // Fallback to BookOpen icon if image fails to load
@@ -51,7 +51,7 @@ export function LoginForm() {
               <BookOpen className="h-8 w-8 text-white" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">EYFS Lesson Builder</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Curriculum Designer</h1>
           <p className="text-gray-600">
             Sign in to access your lesson plans
           </p>
@@ -169,7 +169,7 @@ export function LoginForm() {
         {/* Footer */}
         <div className="mt-8 text-center">
           <p className="text-sm text-gray-500">
-            EYFS Lesson Builder • For Early Years Education
+            Curriculum Designer • For Education
           </p>
         </div>
       </div>

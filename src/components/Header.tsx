@@ -10,64 +10,12 @@ import { HelpGuide } from './HelpGuide';
 export function Header() {
   const { user, logout } = useAuth();
   const { currentSheetInfo, setCurrentSheetInfo, refreshData, loading } = useData();
-  const { settings, getThemeForClass } = useSettings();
+  const { settings, getThemeForClass, customYearGroups } = useSettings();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showWalkthrough, setShowWalkthrough] = useState(false);
   const [showHelpGuide, setShowHelpGuide] = useState(false);
   const [helpGuideSection, setHelpGuideSection] = useState<'activity' | 'lesson' | 'unit' | 'assign' | undefined>(undefined);
-
-  const sheetOptions = [
-    { sheet: 'LKG', display: 'Lower Kindergarten', eyfs: 'LKG Statements' },
-    { sheet: 'UKG', display: 'Upper Kindergarten', eyfs: 'UKG Statements' },
-    { sheet: 'Reception', display: 'Reception', eyfs: 'Reception Statements' }
-  ];
-
-  const handleSheetChange = (sheetInfo: typeof currentSheetInfo) => {
-    setCurrentSheetInfo(sheetInfo);
-    setMobileMenuOpen(false);
-  };
-
-  const handleRefresh = async () => {
-    await refreshData();
-  };
-
-  // Check if this is the first visit
-  useEffect(() => {
-    const hasVisitedBefore = localStorage.getItem('has-visited-before');
-    if (!hasVisitedBefore) {
-      // Show walkthrough for first-time users
-      setShowWalkthrough(true);
-      localStorage.setItem('has-visited-before', 'true');
-    }
-  }, []);
-
-  const handleExportDatabase = () => {
-    // Export all data from localStorage
-    const data = {
-      lessonData: {
-        LKG: localStorage.getItem('lesson-data-LKG'),
-        UKG: localStorage.getItem('lesson-data-UKG'),
-        Reception: localStorage.getItem('lesson-data-Reception')
-      },
-      lessonPlans: localStorage.getItem('lesson-plans'),
-      libraryActivities: localStorage.getItem('library-activities'),
-      settings: localStorage.getItem('lesson-viewer-settings')
-    };
-    
-    // Convert to JSON and create download
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `eyfs-data-export-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
 
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
@@ -88,7 +36,7 @@ export function Header() {
               <div className="flex-shrink-0">
                 <img
                   src="/RLOGO copy copy.png"
-                  alt="EYFS Lesson Builder"
+                  alt="Curriculum Designer"
                   className="h-10 w-10 object-cover rounded-lg border border-blue-200 shadow-sm"
                   onError={(e) => {
                     // Fallback to BookOpen icon if image fails to load
@@ -103,20 +51,26 @@ export function Header() {
               </div>
               <div className="min-w-0">
                 <h1 className="text-xl font-bold text-black leading-tight">
-                  EYFS Lesson Builder
+                  Curriculum Designer
                 </h1>
               </div>
             </div>
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-3 flex-shrink-0">
-              {/* Sheet Selector */}
+              {/* Year Group Selector */}
               <div className="relative min-w-0">
                 <select
                   value={currentSheetInfo.sheet}
                   onChange={(e) => {
-                    const selected = sheetOptions.find(opt => opt.sheet === e.target.value);
-                    if (selected) handleSheetChange(selected);
+                    const selected = customYearGroups.find(group => group.id === e.target.value);
+                    if (selected) {
+                      setCurrentSheetInfo({
+                        sheet: selected.id,
+                        display: selected.name,
+                        eyfs: `${selected.id} Statements`
+                      });
+                    }
                   }}
                   className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:border-2 block w-full p-2.5 pr-8 appearance-none cursor-pointer transition-colors duration-200 hover:bg-gray-100 min-w-[180px]"
                   style={{ 
@@ -124,9 +78,9 @@ export function Header() {
                     focusBorderColor: theme.primary 
                   }}
                 >
-                  {sheetOptions.map((option) => (
-                    <option key={option.sheet} value={option.sheet}>
-                      {option.display}
+                  {customYearGroups.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}
                     </option>
                   ))}
                 </select>
@@ -211,16 +165,22 @@ export function Header() {
           {mobileMenuOpen && (
             <div className="md:hidden py-4 border-t border-gray-200">
               <div className="space-y-4">
-                {/* Sheet Selector Mobile */}
+                {/* Year Group Selector Mobile */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Age Group
+                    Select Year Group
                   </label>
                   <select
                     value={currentSheetInfo.sheet}
                     onChange={(e) => {
-                      const selected = sheetOptions.find(opt => opt.sheet === e.target.value);
-                      if (selected) handleSheetChange(selected);
+                      const selected = customYearGroups.find(group => group.id === e.target.value);
+                      if (selected) {
+                        setCurrentSheetInfo({
+                          sheet: selected.id,
+                          display: selected.name,
+                          eyfs: `${selected.id} Statements`
+                        });
+                      }
                     }}
                     className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:border-2 block p-2.5"
                     style={{ 
@@ -228,9 +188,9 @@ export function Header() {
                       focusBorderColor: theme.primary 
                     }}
                   >
-                    {sheetOptions.map((option) => (
-                      <option key={option.sheet} value={option.sheet}>
-                        {option.display}
+                    {customYearGroups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name}
                       </option>
                     ))}
                   </select>
@@ -317,4 +277,36 @@ export function Header() {
       />
     </>
   );
+
+  // Navigation between lessons
+  function handleRefresh() {
+    refreshData();
+  }
+
+  function handleExportDatabase() {
+    // Export all data from localStorage
+    const data = {
+      lessonData: {
+        LKG: localStorage.getItem('lesson-data-LKG'),
+        UKG: localStorage.getItem('lesson-data-UKG'),
+        Reception: localStorage.getItem('lesson-data-Reception')
+      },
+      lessonPlans: localStorage.getItem('lesson-plans'),
+      libraryActivities: localStorage.getItem('library-activities'),
+      settings: localStorage.getItem('lesson-viewer-settings')
+    };
+    
+    // Convert to JSON and create download
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `curriculum-designer-export-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 }

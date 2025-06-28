@@ -15,13 +15,22 @@ export interface CategorySettings {
   position: number;
 }
 
+export interface YearGroup {
+  id: string;
+  name: string;
+  color?: string;
+}
+
 interface SettingsContextType {
   settings: UserSettings;
   categories: CategorySettings[];
+  customYearGroups: YearGroup[];
   updateSettings: (newSettings: Partial<UserSettings>) => void;
   updateCategories: (newCategories: CategorySettings[]) => void;
+  updateYearGroups: (newYearGroups: YearGroup[]) => void;
   resetToDefaults: () => void;
   resetCategoriesToDefaults: () => void;
+  resetYearGroupsToDefaults: () => void;
   getThemeForClass: (className: string) => {
     primary: string;
     secondary: string;
@@ -68,7 +77,7 @@ const CLASS_THEMES = {
 };
 
 const DEFAULT_SETTINGS: UserSettings = {
-  schoolName: 'Rhythmstix',
+  schoolName: 'Curriculum Designer',
   schoolLogo: '/RLOGO.png',
   primaryColor: '#3B82F6',
   secondaryColor: '#2563EB',
@@ -95,9 +104,17 @@ const DEFAULT_CATEGORIES: CategorySettings[] = [
   { name: 'IWB Games', color: '#FBBF24', position: 14 }
 ];
 
+// Default year groups
+const DEFAULT_YEAR_GROUPS: YearGroup[] = [
+  { id: 'LKG', name: 'Lower Kindergarten', color: '#10B981' },
+  { id: 'UKG', name: 'Upper Kindergarten', color: '#3B82F6' },
+  { id: 'Reception', name: 'Reception', color: '#8B5CF6' }
+];
+
 export function SettingsProvider({ children }: SettingsProviderProps) {
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [categories, setCategories] = useState<CategorySettings[]>(DEFAULT_CATEGORIES);
+  const [customYearGroups, setCustomYearGroups] = useState<YearGroup[]>(DEFAULT_YEAR_GROUPS);
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -112,6 +129,12 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
       if (savedCategories) {
         const parsed = JSON.parse(savedCategories);
         setCategories(parsed);
+      }
+      
+      const savedYearGroups = localStorage.getItem('custom-year-groups');
+      if (savedYearGroups) {
+        const parsed = JSON.parse(savedYearGroups);
+        setCustomYearGroups(parsed);
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -135,6 +158,15 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
       console.error('Failed to save categories:', error);
     }
   }, [categories]);
+  
+  // Save year groups to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('custom-year-groups', JSON.stringify(customYearGroups));
+    } catch (error) {
+      console.error('Failed to save year groups:', error);
+    }
+  }, [customYearGroups]);
 
   const updateSettings = (newSettings: Partial<UserSettings>) => {
     setSettings(prev => ({ ...prev, ...newSettings }));
@@ -142,6 +174,10 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
   
   const updateCategories = (newCategories: CategorySettings[]) => {
     setCategories(newCategories);
+  };
+  
+  const updateYearGroups = (newYearGroups: YearGroup[]) => {
+    setCustomYearGroups(newYearGroups);
   };
 
   const resetToDefaults = () => {
@@ -152,6 +188,11 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
   const resetCategoriesToDefaults = () => {
     setCategories(DEFAULT_CATEGORIES);
     localStorage.removeItem('lesson-viewer-categories');
+  };
+  
+  const resetYearGroupsToDefaults = () => {
+    setCustomYearGroups(DEFAULT_YEAR_GROUPS);
+    localStorage.removeItem('custom-year-groups');
   };
 
   const getThemeForClass = (className: string) => {
@@ -165,6 +206,18 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
       };
     }
 
+    // Find the custom year group
+    const yearGroup = customYearGroups.find(group => group.id === className);
+    if (yearGroup && yearGroup.color) {
+      // If the year group has a custom color, use it
+      return {
+        primary: yearGroup.color,
+        secondary: adjustColor(yearGroup.color, -20),
+        accent: adjustColor(yearGroup.color, 20),
+        gradient: `from-[${yearGroup.color}] to-[${adjustColor(yearGroup.color, -20)}]`
+      };
+    }
+
     // Otherwise, use class-based theme
     return CLASS_THEMES[className as keyof typeof CLASS_THEMES] || CLASS_THEMES.LKG;
   };
@@ -173,14 +226,33 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
     const category = categories.find(cat => cat.name === categoryName);
     return category?.color || '#6B7280'; // Default gray if not found
   };
+  
+  // Helper function to adjust a color's brightness
+  const adjustColor = (color: string, amount: number): string => {
+    // Convert hex to RGB
+    let r = parseInt(color.substring(1, 3), 16);
+    let g = parseInt(color.substring(3, 5), 16);
+    let b = parseInt(color.substring(5, 7), 16);
+    
+    // Adjust RGB values
+    r = Math.max(0, Math.min(255, r + amount));
+    g = Math.max(0, Math.min(255, g + amount));
+    b = Math.max(0, Math.min(255, b + amount));
+    
+    // Convert back to hex
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  };
 
   const value = {
     settings,
     categories,
+    customYearGroups,
     updateSettings,
     updateCategories,
+    updateYearGroups,
     resetToDefaults,
     resetCategoriesToDefaults,
+    resetYearGroupsToDefaults,
     getThemeForClass,
     getCategoryColor
   };

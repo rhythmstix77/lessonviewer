@@ -23,7 +23,7 @@ export function WalkthroughGuide({ isOpen, onClose }: WalkthroughGuideProps) {
   // Define the walkthrough steps
   const steps: WalkthroughStep[] = [
     {
-      title: 'Welcome to EYFS Lesson Builder',
+      title: 'Welcome to Curriculum Designer',
       description: 'This guide will walk you through the key features of the application. Let\'s get started!',
       target: 'body',
       position: 'top',

@@ -18,6 +18,8 @@ export function HelpGuide({ isOpen, onClose, initialSection }: HelpGuideProps) {
   const [activeSection, setActiveSection] = useState<'activity' | 'lesson' | 'unit' | 'assign'>(initialSection || 'activity');
   const [currentStep, setCurrentStep] = useState(0);
   const [highlightedElement, setHighlightedElement] = useState<HTMLElement | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+  const [tooltipArrowPosition, setTooltipArrowPosition] = useState('top');
 
   // Define guide steps for each section
   const activitySteps: GuideStep[] = [
@@ -37,7 +39,7 @@ export function HelpGuide({ isOpen, onClose, initialSection }: HelpGuideProps) {
         <div className="space-y-2">
           <p>Enter a descriptive <strong>Activity Name</strong>.</p>
           <p>Select the appropriate <strong>Category</strong> from the dropdown menu.</p>
-          <p>Choose the <strong>Level</strong> (LKG, UKG, Reception, or All).</p>
+          <p>Choose the <strong>Level</strong> (year group or All).</p>
           <p>Set the <strong>Duration</strong> in minutes.</p>
         </div>
       )
@@ -412,7 +414,7 @@ export function HelpGuide({ isOpen, onClose, initialSection }: HelpGuideProps) {
         <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
           <div className="flex items-center space-x-3">
             <HelpCircle className="h-6 w-6" />
-            <h2 className="text-xl font-bold">EYFS Lesson Builder Guide</h2>
+            <h2 className="text-xl font-bold">Curriculum Designer Guide</h2>
           </div>
           <button
             onClick={onClose}
