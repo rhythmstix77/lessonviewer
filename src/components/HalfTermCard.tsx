@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, BookOpen, ChevronRight } from 'lucide-react';
+import { Calendar, BookOpen, ChevronRight, CheckCircle } from 'lucide-react';
 
 interface HalfTermCardProps {
   id: string;
@@ -65,7 +65,7 @@ export function HalfTermCard({
         <div className="p-4 border-t border-gray-200">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-green-600 flex items-center space-x-1">
-              <Calendar className="h-4 w-4" />
+              <CheckCircle className="h-4 w-4" />
               <span>Half-term complete</span>
             </span>
           </div>

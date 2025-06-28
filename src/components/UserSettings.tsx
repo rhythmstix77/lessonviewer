@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Settings, Upload, Palette, School, RotateCcw, X, Check, Image, Download, Upload as UploadIcon, Plus, Trash2, GripVertical, Edit3, Save, Users, Pencil } from 'lucide-react';
+import { Settings, Upload, Palette, School, RotateCcw, X, Check, Image, Download, Upload as UploadIcon, Plus, Trash2, GripVertical, Edit3, Save, Users } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 import { DataSourceSettings } from './DataSourceSettings';
 import { useAuth } from '../hooks/useAuth';
-import type { YearGroup } from '../contexts/SettingsContext';
 
 interface UserSettingsProps {
   isOpen: boolean;
@@ -12,37 +11,26 @@ interface UserSettingsProps {
 
 export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
   const { user } = useAuth();
-  const { 
-    settings, 
-    categories, 
-    customYearGroups,
-    updateSettings, 
-    updateCategories, 
-    updateYearGroups,
-    resetToDefaults, 
-    resetCategoriesToDefaults,
-    resetYearGroupsToDefaults
-  } = useSettings();
-  
+  const { settings, updateSettings, resetToDefaults, categories, updateCategories, resetCategoriesToDefaults, customYearGroups, updateYearGroups, resetYearGroupsToDefaults } = useSettings();
   const [tempSettings, setTempSettings] = useState(settings);
   const [tempCategories, setTempCategories] = useState(categories);
   const [tempYearGroups, setTempYearGroups] = useState(customYearGroups);
   const [logoUploadStatus, setLogoUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
-  const [activeTab, setActiveTab] = useState<'appearance' | 'data' | 'categories' | 'admin' | 'year-groups'>('appearance');
+  const [activeTab, setActiveTab] = useState<'appearance' | 'data' | 'categories' | 'yeargroups'>('appearance');
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryColor, setNewCategoryColor] = useState('#6B7280');
   const [draggedCategory, setDraggedCategory] = useState<string | null>(null);
-  const [editingYearGroup, setEditingYearGroup] = useState<string | null>(null);
   const [newYearGroupId, setNewYearGroupId] = useState('');
   const [newYearGroupName, setNewYearGroupName] = useState('');
   const [newYearGroupColor, setNewYearGroupColor] = useState('#3B82F6');
+  const [editingYearGroup, setEditingYearGroup] = useState<string | null>(null);
   const [draggedYearGroup, setDraggedYearGroup] = useState<string | null>(null);
+  const [showAdminSettings, setShowAdminSettings] = useState(false);
 
   // Check if user is admin
   const isAdmin = user?.email === 'rob.reichstorer@gmail.com' || 
-                  user?.role === 'administrator' ||
-                  user?.email === 'admin@example.com';
+                  user?.role === 'administrator';
 
   // Update temp settings when settings change
   React.useEffect(() => {
@@ -53,7 +41,7 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
   React.useEffect(() => {
     setTempCategories(categories);
   }, [categories]);
-  
+
   // Update temp year groups when year groups change
   React.useEffect(() => {
     setTempYearGroups(customYearGroups);
@@ -110,63 +98,6 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
       resetToDefaults();
       setTempSettings(settings);
     }
-  };
-
-  const handleExportDatabase = () => {
-    // Export all data from localStorage
-    const data = {
-      lessonData: {
-        LKG: localStorage.getItem('lesson-data-LKG'),
-        UKG: localStorage.getItem('lesson-data-UKG'),
-        Reception: localStorage.getItem('lesson-data-Reception')
-      },
-      lessonPlans: localStorage.getItem('lesson-plans'),
-      libraryActivities: localStorage.getItem('library-activities'),
-      settings: localStorage.getItem('lesson-viewer-settings')
-    };
-    
-    // Convert to JSON and create download
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `curriculum-designer-data-export-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImportDatabase = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const jsonData = JSON.parse(e.target?.result as string);
-        
-        // Import data into localStorage
-        if (jsonData.lessonData) {
-          if (jsonData.lessonData.LKG) localStorage.setItem('lesson-data-LKG', jsonData.lessonData.LKG);
-          if (jsonData.lessonData.UKG) localStorage.setItem('lesson-data-UKG', jsonData.lessonData.UKG);
-          if (jsonData.lessonData.Reception) localStorage.setItem('lesson-data-Reception', jsonData.lessonData.Reception);
-        }
-        
-        if (jsonData.lessonPlans) localStorage.setItem('lesson-plans', jsonData.lessonPlans);
-        if (jsonData.libraryActivities) localStorage.setItem('library-activities', jsonData.libraryActivities);
-        if (jsonData.settings) localStorage.setItem('lesson-viewer-settings', jsonData.settings);
-        
-        alert('Database imported successfully. Please refresh the page to see the changes.');
-      } catch (error) {
-        console.error('Import failed:', error);
-        alert('Failed to import database. Please check the file format.');
-      }
-    };
-    
-    reader.readAsText(file);
   };
 
   const handleAddCategory = () => {
@@ -247,8 +178,8 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
       setTempCategories(categories);
     }
   };
-  
-  // Year Group Management Functions
+
+  // Year Group Management
   const handleAddYearGroup = () => {
     if (!newYearGroupId.trim() || !newYearGroupName.trim()) return;
     
@@ -273,30 +204,25 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
     setNewYearGroupName('');
     setNewYearGroupColor('#3B82F6');
   };
-  
+
   const handleUpdateYearGroup = (index: number, id: string, name: string, color: string) => {
     const updatedYearGroups = [...tempYearGroups];
     updatedYearGroups[index] = { ...updatedYearGroups[index], id, name, color };
     setTempYearGroups(updatedYearGroups);
     setEditingYearGroup(null);
   };
-  
+
   const handleDeleteYearGroup = (index: number) => {
-    if (tempYearGroups.length <= 1) {
-      alert('You must have at least one year group.');
-      return;
-    }
-    
     if (confirm('Are you sure you want to delete this year group? This may affect existing lessons.')) {
       const updatedYearGroups = tempYearGroups.filter((_, i) => i !== index);
       setTempYearGroups(updatedYearGroups);
     }
   };
-  
+
   const handleYearGroupDragStart = (yearGroupId: string) => {
     setDraggedYearGroup(yearGroupId);
   };
-  
+
   const handleYearGroupDragOver = (e: React.DragEvent, targetYearGroupId: string) => {
     e.preventDefault();
     if (!draggedYearGroup || draggedYearGroup === targetYearGroupId) return;
@@ -313,11 +239,11 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
     
     setTempYearGroups(newYearGroups);
   };
-  
+
   const handleYearGroupDragEnd = () => {
     setDraggedYearGroup(null);
   };
-  
+
   const handleResetYearGroups = () => {
     if (confirm('Are you sure you want to reset year groups to defaults? This cannot be undone.')) {
       resetYearGroupsToDefaults();
@@ -364,9 +290,9 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
             Appearance
           </button>
           <button
-            onClick={() => setActiveTab('year-groups')}
+            onClick={() => setActiveTab('yeargroups')}
             className={`px-6 py-3 font-medium text-sm transition-colors duration-200 ${
-              activeTab === 'year-groups' 
+              activeTab === 'yeargroups' 
                 ? 'border-b-2 border-blue-600 text-blue-600' 
                 : 'text-gray-600 hover:text-gray-900'
             }`}
@@ -383,26 +309,16 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
           >
             Activity Categories
           </button>
-          <button
-            onClick={() => setActiveTab('data')}
-            className={`px-6 py-3 font-medium text-sm transition-colors duration-200 ${
-              activeTab === 'data' 
-                ? 'border-b-2 border-blue-600 text-blue-600' 
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Data Management
-          </button>
           {isAdmin && (
             <button
-              onClick={() => setActiveTab('admin')}
+              onClick={() => setActiveTab('data')}
               className={`px-6 py-3 font-medium text-sm transition-colors duration-200 ${
-                activeTab === 'admin' 
+                activeTab === 'data' 
                   ? 'border-b-2 border-blue-600 text-blue-600' 
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              Admin Settings
+              Data Management
             </button>
           )}
         </div>
@@ -657,14 +573,19 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
                         Automatic Year Group Themes:
                       </p>
                       <div className="space-y-3">
-                        {tempYearGroups.map((yearGroup) => (
-                          <div key={yearGroup.id} className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">{yearGroup.name}</span>
+                        {tempYearGroups.map(group => (
+                          <div key={group.id} className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">{group.name}</span>
                             <div className="flex space-x-2">
                               <div 
                                 className="w-6 h-6 rounded" 
-                                style={{ backgroundColor: yearGroup.color || '#3B82F6' }} 
+                                style={{ backgroundColor: group.color || '#6B7280' }}
                                 title="Primary"
+                              ></div>
+                              <div 
+                                className="w-6 h-6 rounded" 
+                                style={{ backgroundColor: adjustColor(group.color || '#6B7280', -20) }}
+                                title="Secondary"
                               ></div>
                             </div>
                           </div>
@@ -696,7 +617,7 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
             </>
           )}
 
-          {activeTab === 'year-groups' && (
+          {activeTab === 'yeargroups' && (
             <>
               {/* Year Group Management */}
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
@@ -719,23 +640,20 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
                   <h4 className="font-medium text-gray-900 mb-3">Add New Year Group</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        ID
+                      <label className="block text-xs font-medium text-gray-500 mb-1">
+                        ID (used in system)
                       </label>
                       <input
                         type="text"
                         value={newYearGroupId}
                         onChange={(e) => setNewYearGroupId(e.target.value)}
                         placeholder="e.g., Year1"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                         dir="ltr"
                       />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Short identifier, no spaces
-                      </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-medium text-gray-500 mb-1">
                         Display Name
                       </label>
                       <input
@@ -743,28 +661,25 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
                         value={newYearGroupName}
                         onChange={(e) => setNewYearGroupName(e.target.value)}
                         placeholder="e.g., Year 1"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                         dir="ltr"
                       />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Full name shown in the interface
-                      </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-xs font-medium text-gray-500 mb-1">
                         Color
                       </label>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex space-x-2">
                         <input
                           type="color"
                           value={newYearGroupColor}
                           onChange={(e) => setNewYearGroupColor(e.target.value)}
-                          className="w-10 h-10 rounded-lg border border-gray-300 cursor-pointer"
+                          className="h-9 w-9 rounded border border-gray-300 cursor-pointer"
                         />
                         <button
                           onClick={handleAddYearGroup}
                           disabled={!newYearGroupId.trim() || !newYearGroupName.trim()}
-                          className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+                          className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-colors duration-200 flex items-center justify-center space-x-1"
                         >
                           <Plus className="h-4 w-4" />
                           <span>Add</span>
@@ -772,6 +687,9 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
                       </div>
                     </div>
                   </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    <strong>Note:</strong> The ID is used internally and should be unique. Changing IDs of existing year groups may affect data.
+                  </p>
                 </div>
 
                 {/* Year Group List */}
@@ -823,16 +741,16 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
                                 className="px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                                 dir="ltr"
                               />
-                              <div className="flex items-center space-x-2">
+                              <div className="flex space-x-2">
                                 <input
                                   type="color"
-                                  value={yearGroup.color || '#3B82F6'}
+                                  value={yearGroup.color}
                                   onChange={(e) => {
                                     const updatedYearGroups = [...tempYearGroups];
                                     updatedYearGroups[index].color = e.target.value;
                                     setTempYearGroups(updatedYearGroups);
                                   }}
-                                  className="w-10 h-10 rounded-lg border border-gray-300 cursor-pointer"
+                                  className="h-9 w-9 rounded border border-gray-300 cursor-pointer"
                                 />
                                 <button
                                   onClick={() => setEditingYearGroup(null)}
@@ -850,16 +768,16 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
                             </div>
                             <div 
                               className="w-4 h-4 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: yearGroup.color || '#3B82F6' }}
+                              style={{ backgroundColor: yearGroup.color || '#6B7280' }}
                             ></div>
                             <div className="flex-1 grid grid-cols-2 gap-2">
                               <div>
                                 <span className="text-xs text-gray-500">ID:</span>
-                                <div className="font-medium text-gray-900" dir="ltr">{yearGroup.id}</div>
+                                <span className="ml-1 font-medium text-gray-900" dir="ltr">{yearGroup.id}</span>
                               </div>
                               <div>
                                 <span className="text-xs text-gray-500">Name:</span>
-                                <div className="font-medium text-gray-900" dir="ltr">{yearGroup.name}</div>
+                                <span className="ml-1 font-medium text-gray-900" dir="ltr">{yearGroup.name}</span>
                               </div>
                             </div>
                             <div className="flex items-center space-x-1">
@@ -872,7 +790,6 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
                               <button
                                 onClick={() => handleDeleteYearGroup(index)}
                                 className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors duration-200"
-                                disabled={tempYearGroups.length <= 1}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -884,25 +801,17 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
                   </div>
                 </div>
               </div>
-              
-              {/* Important Note */}
-              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+
+              {/* Warning about changing IDs */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <div className="flex items-start space-x-3">
-                  <div className="text-yellow-600 mt-0.5">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                  </div>
+                  <div className="text-yellow-600 flex-shrink-0 mt-0.5">⚠️</div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Important Note</h3>
-                    <p className="text-sm text-gray-600 mb-2">
-                      Changing year group IDs may affect existing lessons and activities. It's recommended to:
+                    <h4 className="font-medium text-gray-900 mb-1">Important Note About Year Group IDs</h4>
+                    <p className="text-sm text-gray-600">
+                      Changing the ID of an existing year group may affect lessons, activities, and other data associated with that year group. 
+                      It's recommended to only change the display name and color of existing year groups, not their IDs.
                     </p>
-                    <ul className="list-disc pl-5 text-sm text-gray-600 space-y-1">
-                      <li>Export your data before making significant changes</li>
-                      <li>Add new year groups rather than modifying existing ones</li>
-                      <li>Use consistent naming conventions for your year groups</li>
-                    </ul>
                   </div>
                 </div>
               </div>
@@ -1050,104 +959,8 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
             </>
           )}
 
-          {activeTab === 'data' && (
-            <>
-              {/* Export Database */}
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                <div className="flex items-center space-x-3 mb-4">
-                  <Download className="h-6 w-6 text-blue-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">Export Database</h3>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">
-                  Export all application data to a JSON file for backup or transfer to another device.
-                </p>
-                <button
-                  onClick={handleExportDatabase}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
-                >
-                  <Download className="h-5 w-5" />
-                  <span>Export All Data</span>
-                </button>
-              </div>
-
-              {/* Import Database */}
-              <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-                <div className="flex items-center space-x-3 mb-4">
-                  <UploadIcon className="h-6 w-6 text-green-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">Import Database</h3>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">
-                  Import application data from a previously exported JSON file.
-                </p>
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={handleImportDatabase}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    dir="ltr"
-                  />
-                  <button
-                    className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
-                  >
-                    <UploadIcon className="h-5 w-5" />
-                    <span>Import Data</span>
-                  </button>
-                </div>
-                <p className="text-xs text-gray-600 mt-2">
-                  Note: Importing data will overwrite your current data. Make sure to export your current data first if needed.
-                </p>
-              </div>
-
-              {/* Clear Data */}
-              <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-                <div className="flex items-center space-x-3 mb-4">
-                  <X className="h-6 w-6 text-red-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">Clear Data</h3>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">
-                  Clear all application data from your browser's local storage. This action cannot be undone.
-                </p>
-                <button
-                  onClick={() => {
-                    if (confirm('Are you sure you want to clear all application data? This cannot be undone.')) {
-                      // Clear all application data
-                      localStorage.removeItem('lesson-data-LKG');
-                      localStorage.removeItem('lesson-data-UKG');
-                      localStorage.removeItem('lesson-data-Reception');
-                      localStorage.removeItem('lesson-plans');
-                      localStorage.removeItem('library-activities');
-                      
-                      alert('All data has been cleared. The page will now reload.');
-                      window.location.reload();
-                    }
-                  }}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
-                >
-                  <X className="h-5 w-5" />
-                  <span>Clear All Data</span>
-                </button>
-              </div>
-            </>
-          )}
-
-          {activeTab === 'admin' && isAdmin && (
-            <div className="space-y-6">
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                <div className="flex items-center space-x-3 mb-4">
-                  <Settings className="h-6 w-6 text-blue-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">Admin Settings</h3>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">
-                  Access advanced settings for administrators only.
-                </p>
-                
-                {/* Admin Settings Content */}
-                <div className="bg-white rounded-lg border border-blue-200 p-4">
-                  <DataSourceSettings embedded={true} />
-                </div>
-              </div>
-            </div>
+          {activeTab === 'data' && isAdmin && (
+            <DataSourceSettings embedded={true} />
           )}
         </div>
 
@@ -1170,3 +983,19 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
     </div>
   );
 }
+
+// Helper function to adjust a color's brightness
+const adjustColor = (color: string, amount: number): string => {
+  // Convert hex to RGB
+  let r = parseInt(color.substring(1, 3), 16);
+  let g = parseInt(color.substring(3, 5), 16);
+  let b = parseInt(color.substring(5, 7), 16);
+  
+  // Adjust RGB values
+  r = Math.max(0, Math.min(255, r + amount));
+  g = Math.max(0, Math.min(255, g + amount));
+  b = Math.max(0, Math.min(255, b + amount));
+  
+  // Convert back to hex
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+};

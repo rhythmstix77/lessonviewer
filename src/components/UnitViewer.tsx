@@ -21,7 +21,8 @@ import {
   Plus,
   Check,
   Printer,
-  Save
+  Save,
+  CheckCircle
 } from 'lucide-react';
 import { UnitCard } from './UnitCard';
 import { LessonLibraryCard } from './LessonLibraryCard';
@@ -128,7 +129,8 @@ export function UnitViewer() {
         // Initialize with default half-terms
         const defaultHalfTerms = HALF_TERMS.map(term => ({
           ...term,
-          lessons: []
+          lessons: [],
+          isComplete: false
         }));
         setHalfTerms(defaultHalfTerms);
         localStorage.setItem('half-terms', JSON.stringify(defaultHalfTerms));
@@ -137,7 +139,8 @@ export function UnitViewer() {
       // Initialize with default half-terms
       const defaultHalfTerms = HALF_TERMS.map(term => ({
         ...term,
-        lessons: []
+        lessons: [],
+        isComplete: false
       }));
       setHalfTerms(defaultHalfTerms);
       localStorage.setItem('half-terms', JSON.stringify(defaultHalfTerms));
@@ -266,13 +269,20 @@ export function UnitViewer() {
     return halfTerm ? halfTerm.lessons || [] : [];
   };
 
+  // Check if a half-term is marked as complete
+  const isHalfTermComplete = (halfTermId: string) => {
+    const halfTerm = halfTerms.find(term => term.id === halfTermId);
+    return halfTerm ? halfTerm.isComplete || false : false;
+  };
+
   // Save lessons for a half-term
-  const saveLessonsForHalfTerm = (halfTermId: string, lessons: string[]) => {
+  const saveLessonsForHalfTerm = (halfTermId: string, lessons: string[], isComplete?: boolean) => {
     const updatedHalfTerms = halfTerms.map(term => {
       if (term.id === halfTermId) {
         return {
           ...term,
-          lessons
+          lessons,
+          isComplete: isComplete !== undefined ? isComplete : term.isComplete
         };
       }
       return term;
@@ -296,7 +306,12 @@ export function UnitViewer() {
   const handleRemoveLesson = (halfTermId: string, lessonNumber: string) => {
     const lessons = getLessonsForHalfTerm(halfTermId);
     const newLessons = lessons.filter(num => num !== lessonNumber);
-    saveLessonsForHalfTerm(halfTermId, newLessons);
+    
+    // If all lessons are removed, automatically set isComplete to false
+    const halfTerm = halfTerms.find(term => term.id === halfTermId);
+    const isComplete = newLessons.length > 0 ? halfTerm?.isComplete : false;
+    
+    saveLessonsForHalfTerm(halfTermId, newLessons, isComplete);
   };
 
   // Handle view lesson details
@@ -555,7 +570,7 @@ export function UnitViewer() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {HALF_TERMS.map(halfTerm => {
               const lessons = getLessonsForHalfTerm(halfTerm.id);
-              const isComplete = lessons.length > 0;
+              const isComplete = isHalfTermComplete(halfTerm.id);
               
               return (
                 <HalfTermCard
@@ -655,8 +670,8 @@ export function UnitViewer() {
             halfTermMonths={HALF_TERMS.find(term => term.id === selectedHalfTerm)?.months || ''}
             halfTermColor={TERM_COLORS[selectedHalfTerm]}
             selectedLessons={getLessonsForHalfTerm(selectedHalfTerm)}
-            onSave={(lessons) => {
-              saveLessonsForHalfTerm(selectedHalfTerm, lessons);
+            onSave={(lessons, isComplete) => {
+              saveLessonsForHalfTerm(selectedHalfTerm, lessons, isComplete);
               setShowLessonSelectionModal(false);
               setSelectedHalfTerm(null);
             }}
@@ -677,241 +692,5 @@ export function UnitViewer() {
         )}
       </div>
     </DndProvider>
-  );
-}
-
-// Half-term exporter component
-function HalfTermExporter({
-  halfTermId,
-  halfTermName,
-  halfTermColor,
-  lessons,
-  onClose
-}: {
-  halfTermId: string;
-  halfTermName: string;
-  halfTermColor: string;
-  lessons: string[];
-  onClose: () => void;
-}) {
-  const { allLessonsData, currentSheetInfo } = useData();
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportSuccess, setExportSuccess] = useState(false);
-  const previewRef = useRef<HTMLDivElement>(null);
-
-  const handleExport = async () => {
-    setIsExporting(true);
-    
-    try {
-      // Export to PDF using html2canvas
-      if (previewRef.current) {
-        const canvas = await html2canvas(previewRef.current, {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          backgroundColor: '#ffffff'
-        });
-        
-        const imgData = canvas.toDataURL('image/png');
-        
-        // Create PDF with proper A4 dimensions
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: 'a4'
-        });
-        
-        // A4 dimensions: 210mm x 297mm
-        const imgWidth = 210;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        
-        // Add image to PDF
-        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-        
-        // If the content is longer than one page, create additional pages
-        if (imgHeight > 297) {
-          let remainingHeight = imgHeight;
-          let currentPosition = 0;
-          
-          while (remainingHeight > 0) {
-            currentPosition += 297;
-            remainingHeight -= 297;
-            
-            if (remainingHeight > 0) {
-              pdf.addPage();
-              pdf.addImage(
-                imgData, 
-                'PNG', 
-                0, 
-                -currentPosition, 
-                imgWidth, 
-                imgHeight
-              );
-            }
-          }
-        }
-        
-        // Save the PDF
-        pdf.save(`${currentSheetInfo.sheet}_${halfTermName.replace(/\s+/g, '_')}.pdf`);
-      }
-      
-      setExportSuccess(true);
-      setTimeout(() => setExportSuccess(false), 3000);
-    } catch (error) {
-      console.error('Export failed:', error);
-      alert('Export failed. Please try again.');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const handlePrint = () => {
-    window.print();
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
-        {/* Header */}
-        <div 
-          className="p-4 text-white relative"
-          style={{ 
-            background: `linear-gradient(135deg, ${halfTermColor} 0%, ${halfTermColor}99 100%)` 
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold mb-1">{halfTermName} - {halfTermMonths}</h2>
-              <p className="text-white text-opacity-90">
-                {lessons.length} lessons in this half-term
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={handlePrint}
-                className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200"
-                title="Print"
-              >
-                <Printer className="h-5 w-5" />
-              </button>
-              <button
-                onClick={handleExport}
-                disabled={isExporting}
-                className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200 disabled:opacity-50"
-                title="Export PDF"
-              >
-                {isExporting ? (
-                  <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-                ) : exportSuccess ? (
-                  <Check className="h-5 w-5" />
-                ) : (
-                  <Download className="h-5 w-5" />
-                )}
-              </button>
-              <button
-                onClick={onClose}
-                className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 bg-gray-100 print:bg-white print:p-0">
-          <div 
-            ref={previewRef}
-            className="bg-white mx-auto shadow-md max-w-[210mm] print:shadow-none print:max-w-none"
-            style={{ minHeight: '297mm' }}
-          >
-            {/* Half-term Plan Preview */}
-            <div className="p-8 print:p-4">
-              {/* Header */}
-              <div className="text-center border-b border-gray-200 pb-6 mb-6 relative print:pb-4 print:mb-4">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2 print:text-xl">
-                  {currentSheetInfo.display} Half-Term Plan
-                </h1>
-                <h2 className="text-xl font-semibold text-gray-800 mb-2 print:text-lg">
-                  {halfTermName} - {halfTermMonths}
-                </h2>
-                <div className="text-gray-600 font-medium">
-                  {lessons.length} lessons
-                </div>
-                
-                {/* Page number - only visible when printing */}
-                <div className="hidden print:block absolute top-0 right-0 text-xs text-gray-500">
-                  Page <span className="pageNumber"></span>
-                </div>
-              </div>
-              
-              {/* Lessons */}
-              <div className="space-y-8 print:space-y-6">
-                {lessons.map((lessonNumber, index) => {
-                  const lessonData = allLessonsData[lessonNumber];
-                  if (!lessonData) return null;
-                  
-                  return (
-                    <div key={lessonNumber} className="mb-8 print:mb-6 page-break-inside-avoid">
-                      <h2 className="text-xl font-semibold text-gray-900 mb-3 print:text-lg print:mb-2 flex items-center justify-between">
-                        <span>Lesson {lessonNumber}: {lessonData.title || `Lesson ${lessonNumber}`}</span>
-                        <span className="text-sm font-normal text-gray-600 print:text-xs">
-                          {lessonData.totalTime} mins
-                        </span>
-                      </h2>
-                      
-                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 print:p-3 print:bg-gray-100">
-                        {/* Categories */}
-                        <div className="mb-3 print:mb-2">
-                          <h3 className="text-sm font-medium text-gray-700 mb-1 print:text-xs">Categories:</h3>
-                          <div className="flex flex-wrap gap-1">
-                            {lessonData.categoryOrder.map(category => (
-                              <span 
-                                key={category}
-                                className="px-2 py-1 bg-white text-xs font-medium rounded-full border border-gray-200 print:text-[8px] print:px-1.5 print:py-0.5"
-                              >
-                                {category}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        {/* Key Activities */}
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-700 mb-1 print:text-xs">Key Activities:</h3>
-                          <ul className="space-y-1 pl-5 list-disc text-sm text-gray-600 print:text-xs">
-                            {lessonData.categoryOrder.slice(0, 3).map(category => {
-                              const activities = lessonData.grouped[category];
-                              if (!activities || activities.length === 0) return null;
-                              
-                              return (
-                                <li key={category}>
-                                  <span className="font-medium">{category}:</span> {activities.map(a => a.activity).join(', ')}
-                                </li>
-                              );
-                            })}
-                            {lessonData.categoryOrder.length > 3 && (
-                              <li className="text-gray-500 italic">
-                                ...and {lessonData.categoryOrder.length - 3} more categories
-                              </li>
-                            )}
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              
-              {/* Footer with page number */}
-              <div className="mt-8 pt-4 border-t border-gray-200 text-center text-xs text-gray-500 print:mt-4 print:pt-2">
-                <p>EYFS Lesson Builder - {currentSheetInfo.display} - {halfTermName}</p>
-                <p className="pageNumber hidden print:block">Page 1</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }

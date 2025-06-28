@@ -125,7 +125,8 @@ export function Dashboard() {
         // Initialize with default half-terms
         const defaultHalfTerms = HALF_TERMS.map(term => ({
           ...term,
-          lessons: []
+          lessons: [],
+          isComplete: false
         }));
         setHalfTerms(defaultHalfTerms);
         localStorage.setItem('half-terms', JSON.stringify(defaultHalfTerms));
@@ -134,7 +135,8 @@ export function Dashboard() {
       // Initialize with default half-terms
       const defaultHalfTerms = HALF_TERMS.map(term => ({
         ...term,
-        lessons: []
+        lessons: [],
+        isComplete: false
       }));
       setHalfTerms(defaultHalfTerms);
       localStorage.setItem('half-terms', JSON.stringify(defaultHalfTerms));

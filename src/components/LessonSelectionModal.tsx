@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, Calendar, Eye, Save, Star, Clock, Search, Filter, Printer, Tag, Download } from 'lucide-react';
+import { X, Calendar, Eye, Save, Star, Clock, Search, Filter, Printer, Tag, Download, CheckCircle } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -12,7 +12,7 @@ interface LessonSelectionModalProps {
   halfTermMonths: string;
   halfTermColor: string;
   selectedLessons: string[];
-  onSave: (lessons: string[]) => void;
+  onSave: (lessons: string[], isComplete?: boolean) => void;
 }
 
 export function LessonSelectionModal({
@@ -31,7 +31,24 @@ export function LessonSelectionModal({
   const [showHalfTermView, setShowHalfTermView] = useState(false);
   const [orderedLessons, setOrderedLessons] = useState<string[]>(selectedLessons);
   const [isExporting, setIsExporting] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
   const previewRef = React.useRef<HTMLDivElement>(null);
+
+  // Load completion status from localStorage
+  React.useEffect(() => {
+    const savedHalfTerms = localStorage.getItem('half-terms');
+    if (savedHalfTerms) {
+      try {
+        const parsedHalfTerms = JSON.parse(savedHalfTerms);
+        const halfTerm = parsedHalfTerms.find((term: any) => term.id === halfTermId);
+        if (halfTerm) {
+          setIsComplete(halfTerm.isComplete || false);
+        }
+      } catch (error) {
+        console.error('Error parsing saved half-terms:', error);
+      }
+    }
+  }, [halfTermId]);
 
   if (!isOpen) return null;
 
@@ -73,8 +90,13 @@ export function LessonSelectionModal({
 
   // Handle save
   const handleSave = () => {
-    onSave(showHalfTermView ? orderedLessons : localSelectedLessons);
+    onSave(showHalfTermView ? orderedLessons : localSelectedLessons, isComplete);
     onClose();
+  };
+
+  // Toggle completion status
+  const toggleComplete = () => {
+    setIsComplete(!isComplete);
   };
 
   // Handle lesson reordering
@@ -237,7 +259,22 @@ export function LessonSelectionModal({
               </p>
             </div>
             <div className="flex items-center space-x-3">
-              {/* Print/Export Button - Added here */}
+              {/* Mark Complete Checkbox */}
+              <div className="flex items-center space-x-2 bg-white bg-opacity-20 px-3 py-2 rounded-lg">
+                <span className="text-sm font-medium">Mark Complete</span>
+                <button
+                  onClick={toggleComplete}
+                  className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors ${
+                    isComplete 
+                      ? 'bg-green-500 text-white' 
+                      : 'bg-white bg-opacity-50 text-transparent'
+                  }`}
+                >
+                  {isComplete && <CheckCircle className="h-4 w-4" />}
+                </button>
+              </div>
+              
+              {/* Print/Export Button */}
               {showHalfTermView && orderedLessons.length > 0 && (
                 <div className="flex space-x-2">
                   <button
@@ -317,11 +354,17 @@ export function LessonSelectionModal({
           {showHalfTermView ? (
             /* Half-term view - ordered lessons */
             <div className="space-y-6">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+              <div className={`border rounded-lg p-4 mb-6 ${
+                isComplete 
+                  ? 'bg-green-50 border-green-200' 
+                  : 'bg-blue-50 border-blue-200'
+              }`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <Calendar className="h-5 w-5 text-green-600" />
-                    <h3 className="font-medium text-gray-900">Half-Term Complete</h3>
+                    <Calendar className={`h-5 w-5 ${isComplete ? 'text-green-600' : 'text-blue-600'}`} />
+                    <h3 className="font-medium text-gray-900">
+                      {isComplete ? 'Half-Term Complete' : 'Half-Term In Progress'}
+                    </h3>
                   </div>
                 </div>
                 <p className="text-sm text-gray-600 mt-1">
@@ -423,7 +466,7 @@ export function LessonSelectionModal({
                     
                     {/* Print-only footer */}
                     <div className="hidden print:block mt-8 pt-4 border-t border-gray-200 text-center text-xs text-gray-500">
-                      <p>EYFS Lesson Builder - {currentSheetInfo.display} - {halfTermName}</p>
+                      <p>Curriculum Designer - {currentSheetInfo.display} - {halfTermName}</p>
                       <p className="pageNumber">Page 1</p>
                     </div>
                   </>
