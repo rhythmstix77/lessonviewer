@@ -146,25 +146,6 @@ export function UnitViewer() {
     }
   }, []);
 
-  // Filter units based on search, term, and focused half-term
-  const filteredUnits = React.useMemo(() => {
-    let filtered = units.filter(unit => {
-      const matchesSearch = unit.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           unit.description.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      // If we have a focused half-term, only show units from that term
-      if (focusedHalfTermId) {
-        return matchesSearch && unit.term === focusedHalfTermId;
-      }
-      
-      // Otherwise use the selected term filter
-      const matchesTerm = selectedTerm === 'all' || unit.term === selectedTerm;
-      return matchesSearch && matchesTerm;
-    });
-    
-    return filtered;
-  }, [units, searchQuery, selectedTerm, focusedHalfTermId]);
-
   // Group units by half-term
   const unitsByHalfTerm = React.useMemo(() => {
     const grouped: Record<string, Unit[]> = {};
@@ -218,42 +199,6 @@ export function UnitViewer() {
     setFocusedHalfTermId(termId === focusedHalfTermId ? null : termId);
     // Reset the term filter when focusing on a specific half-term
     setSelectedTerm('all');
-  };
-
-  // Create a new unit
-  const handleCreateUnit = () => {
-    const newUnit: Unit = {
-      id: `unit-${Date.now()}`,
-      name: 'New Unit',
-      description: 'Add a description for this unit',
-      lessonNumbers: [],
-      color: getRandomColor(),
-      term: 'A1', // Default to Autumn 1
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    const updatedUnits = [...units, newUnit];
-    setUnits(updatedUnits);
-    localStorage.setItem('units', JSON.stringify(updatedUnits));
-    
-    // Select the new unit
-    setSelectedUnit(newUnit);
-  };
-
-  // Generate a random color for new units
-  const getRandomColor = () => {
-    const colors = [
-      '#3B82F6', // Blue
-      '#F59E0B', // Amber
-      '#10B981', // Emerald
-      '#8B5CF6', // Violet
-      '#EC4899', // Pink
-      '#EF4444', // Red
-      '#F97316', // Orange
-      '#14B8A6', // Teal
-    ];
-    return colors[Math.floor(Math.random() * colors.length)];
   };
 
   // Handle half-term card click
@@ -533,59 +478,6 @@ export function UnitViewer() {
                 />
               );
             })}
-          </div>
-
-          {/* Units Grid */}
-          <div className="mb-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Units</h2>
-            
-            {filteredUnits.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-xl shadow-md border border-gray-200">
-                <FolderOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No units found</h3>
-                <p className="text-gray-600">
-                  {searchQuery || selectedTerm !== 'all' || focusedHalfTermId
-                    ? 'Try adjusting your search or filters'
-                    : 'No units available in the library. Create a new unit to get started.'
-                  }
-                </p>
-                {(searchQuery || selectedTerm !== 'all' || focusedHalfTermId) && (
-                  <button 
-                    onClick={() => {
-                      setSearchQuery('');
-                      setSelectedTerm('all');
-                      setFocusedHalfTermId(null);
-                    }}
-                    className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm"
-                  >
-                    Clear Filters
-                  </button>
-                )}
-                {!searchQuery && selectedTerm === 'all' && !focusedHalfTermId && (
-                  <button 
-                    onClick={handleCreateUnit}
-                    className="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm flex items-center space-x-2 mx-auto"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Create First Unit</span>
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredUnits.map((unit) => (
-                  <UnitCard
-                    key={unit.id}
-                    unit={unit}
-                    viewMode="grid"
-                    onClick={() => handleUnitSelect(unit)}
-                    theme={theme}
-                    onFocusHalfTerm={handleFocusHalfTerm}
-                    isFocused={focusedHalfTermId === unit.term}
-                  />
-                ))}
-              </div>
-            )}
           </div>
         </div>
 
