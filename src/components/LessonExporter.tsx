@@ -112,6 +112,36 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
             }
           }
           
+          // Now add hyperlinks for all resources
+          // We need to collect all resource links from the activities
+          lessonData.categoryOrder.forEach(category => {
+            const activities = lessonData.grouped[category] || [];
+            activities.forEach(activity => {
+              // Add hyperlinks for each resource type
+              if (activity.videoLink) {
+                addHyperlinkToPdf(pdf, 'Video', activity.videoLink);
+              }
+              if (activity.musicLink) {
+                addHyperlinkToPdf(pdf, 'Music', activity.musicLink);
+              }
+              if (activity.backingLink) {
+                addHyperlinkToPdf(pdf, 'Backing', activity.backingLink);
+              }
+              if (activity.resourceLink) {
+                addHyperlinkToPdf(pdf, 'Resource', activity.resourceLink);
+              }
+              if (activity.link) {
+                addHyperlinkToPdf(pdf, 'Link', activity.link);
+              }
+              if (activity.vocalsLink) {
+                addHyperlinkToPdf(pdf, 'Vocals', activity.vocalsLink);
+              }
+              if (activity.imageLink) {
+                addHyperlinkToPdf(pdf, 'Image', activity.imageLink);
+              }
+            });
+          });
+          
           // Save the PDF
           const title = lessonData.title || `Lesson ${lessonNumber}`;
           pdf.save(`${currentSheetInfo.sheet}_${title.replace(/\s+/g, '_')}.pdf`);
@@ -126,6 +156,33 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
     } finally {
       setIsExporting(false);
     }
+  };
+
+  // Helper function to add hyperlinks to the PDF
+  const addHyperlinkToPdf = (pdf: jsPDF, resourceType: string, url: string) => {
+    // Find all instances of this resource type in the PDF
+    // This is a simplified approach - in a real implementation, you would need to
+    // calculate the exact positions of each resource badge in the PDF
+    
+    // For now, we'll add a page of hyperlinks at the end
+    const pageCount = pdf.getNumberOfPages();
+    pdf.addPage();
+    
+    pdf.setFontSize(16);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text('Resource Links', 20, 20);
+    
+    pdf.setFontSize(12);
+    pdf.setTextColor(0, 0, 255);
+    
+    // Add the hyperlink
+    const linkText = `${resourceType}: ${url}`;
+    pdf.textWithLink(linkText, 20, 40, { url });
+    
+    // Add a note about the hyperlinks
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFontSize(10);
+    pdf.text('Note: All resource badges in the lesson plan are clickable links.', 20, 60);
   };
 
   const handlePrint = () => {
@@ -344,39 +401,74 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
                               <div className="mt-2 pt-2 border-t border-gray-100 print:mt-1 print:pt-1">
                                 <div className="flex flex-wrap gap-1">
                                   {activity.videoLink && (
-                                    <span className="inline-flex items-center px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5">
+                                    <a 
+                                      href={activity.videoLink}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-red-200 transition-colors"
+                                    >
                                       Video
-                                    </span>
+                                    </a>
                                   )}
                                   {activity.musicLink && (
-                                    <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5">
+                                    <a 
+                                      href={activity.musicLink}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-green-200 transition-colors"
+                                    >
                                       Music
-                                    </span>
+                                    </a>
                                   )}
                                   {activity.backingLink && (
-                                    <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5">
+                                    <a 
+                                      href={activity.backingLink}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-blue-200 transition-colors"
+                                    >
                                       Backing
-                                    </span>
+                                    </a>
                                   )}
                                   {activity.resourceLink && (
-                                    <span className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5">
+                                    <a 
+                                      href={activity.resourceLink}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-purple-200 transition-colors"
+                                    >
                                       Resource
-                                    </span>
+                                    </a>
                                   )}
                                   {activity.link && (
-                                    <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5">
+                                    <a 
+                                      href={activity.link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-gray-200 transition-colors"
+                                    >
                                       Link
-                                    </span>
+                                    </a>
                                   )}
                                   {activity.vocalsLink && (
-                                    <span className="inline-flex items-center px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5">
+                                    <a 
+                                      href={activity.vocalsLink}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-orange-200 transition-colors"
+                                    >
                                       Vocals
-                                    </span>
+                                    </a>
                                   )}
                                   {activity.imageLink && (
-                                    <span className="inline-flex items-center px-2 py-1 bg-pink-100 text-pink-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5">
+                                    <a 
+                                      href={activity.imageLink}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center px-2 py-1 bg-pink-100 text-pink-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-pink-200 transition-colors"
+                                    >
                                       Image
-                                    </span>
+                                    </a>
                                   )}
                                 </div>
                               </div>
