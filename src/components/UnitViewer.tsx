@@ -410,32 +410,54 @@ export function UnitViewer() {
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
+          {/* Header - UPDATED: Made more compact with search field aligned with title */}
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-6">
-            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-3">
+            <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
                   <FolderOpen className="h-6 w-6" />
-                  <div>
-                    <h2 className="text-xl font-bold">Half-Term Planner</h2>
-                    <p className="text-indigo-100 text-sm">
-                      Choose your units for each term
-                    </p>
+                  <h2 className="text-xl font-bold">Half-Term Planner</h2>
+                  
+                  {/* Search field - now smaller and positioned next to the title */}
+                  <div className="relative w-64">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-indigo-300" />
+                    <input
+                      type="text"
+                      placeholder="Search units..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-indigo-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
+                      dir="ltr"
+                    />
                   </div>
                 </div>
-              </div>
-
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-indigo-300" />
-                <input
-                  type="text"
-                  placeholder="Search units..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-indigo-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
-                  dir="ltr"
-                />
+                
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-2 rounded-lg transition-colors duration-200 ${
+                      viewMode === 'grid' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
+                    }`}
+                  >
+                    <Grid className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`p-2 rounded-lg transition-colors duration-200 ${
+                      viewMode === 'list' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
+                    }`}
+                  >
+                    <List className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('compact')}
+                    className={`p-2 rounded-lg transition-colors duration-200 ${
+                      viewMode === 'compact' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
+                    }`}
+                  >
+                    <MoreVertical className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
