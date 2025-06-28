@@ -110,7 +110,8 @@ function ActivityItem({
 
   const categoryColor = getCategoryColor(activity.category);
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (onActivityClick && !isEditing) {
       onActivityClick(activity);
     }
@@ -120,7 +121,7 @@ function ActivityItem({
     <div
       ref={isDraggable ? ref : undefined}
       {...dragDropProps}
-      className="bg-white rounded-lg border border-gray-200 shadow-sm transition-all duration-200 hover:shadow-md group"
+      className="bg-white rounded-lg border border-gray-200 shadow-sm transition-all duration-200 hover:shadow-md group cursor-pointer"
       onClick={handleClick}
     >
       <div className="flex items-center p-3">
@@ -157,6 +158,21 @@ function ActivityItem({
             className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors duration-200 ml-2"
           >
             <Trash2 className="h-4 w-4" />
+          </button>
+        )}
+        
+        {!isEditing && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onActivityClick) {
+                onActivityClick(activity);
+              }
+            }}
+            className="p-1 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors duration-200 ml-2"
+            title="View details"
+          >
+            <Eye className="h-4 w-4" />
           </button>
         )}
       </div>
