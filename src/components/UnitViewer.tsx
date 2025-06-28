@@ -24,7 +24,8 @@ import {
   ChevronUp,
   ArrowLeft,
   ArrowRight,
-  Save
+  Save,
+  Check
 } from 'lucide-react';
 import { UnitCard } from './UnitCard';
 import { LessonLibraryCard } from './LessonLibraryCard';
