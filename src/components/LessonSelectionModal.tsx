@@ -3,6 +3,8 @@ import { X, Calendar, Eye, Save, Star, Clock, Search, Filter, Printer, Tag, Down
 import { useData } from '../contexts/DataContext';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
+import { LessonDetailsModal } from './LessonDetailsModal';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface LessonSelectionModalProps {
   isOpen: boolean;
@@ -26,13 +28,18 @@ export function LessonSelectionModal({
   onSave
 }: LessonSelectionModalProps) {
   const { lessonNumbers, allLessonsData, currentSheetInfo } = useData();
+  const { getThemeForClass } = useSettings();
   const [localSelectedLessons, setLocalSelectedLessons] = useState<string[]>(selectedLessons);
   const [searchQuery, setSearchQuery] = useState('');
   const [showHalfTermView, setShowHalfTermView] = useState(false);
   const [orderedLessons, setOrderedLessons] = useState<string[]>(selectedLessons);
   const [isExporting, setIsExporting] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [selectedLessonForDetails, setSelectedLessonForDetails] = useState<string | null>(null);
   const previewRef = React.useRef<HTMLDivElement>(null);
+  
+  // Get theme colors for current class
+  const theme = getThemeForClass(currentSheetInfo.sheet);
 
   // Load completion status from localStorage
   React.useEffect(() => {
@@ -115,6 +122,11 @@ export function LessonSelectionModal({
     
     // Then print
     window.print();
+  };
+
+  // Handle view lesson details
+  const handleViewLessonDetails = (lessonNumber: string) => {
+    setSelectedLessonForDetails(lessonNumber);
   };
 
   return (
@@ -322,6 +334,18 @@ export function LessonSelectionModal({
                                 </span>
                               )}
                             </div>
+                            <div className="mt-2 pt-2 border-t border-gray-100 print:hidden">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewLessonDetails(lessonNum);
+                                }}
+                                className="text-xs text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+                              >
+                                <Eye className="h-3 w-3" />
+                                <span>View Details</span>
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
@@ -392,6 +416,18 @@ export function LessonSelectionModal({
                             </span>
                           )}
                         </div>
+                        <div className="mt-2 pt-2 border-t border-gray-100">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewLessonDetails(lessonNum);
+                            }}
+                            className="text-xs text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+                          >
+                            <Eye className="h-3 w-3" />
+                            <span>View Details</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -427,6 +463,15 @@ export function LessonSelectionModal({
           </div>
         </div>
       </div>
+
+      {/* Lesson Details Modal */}
+      {selectedLessonForDetails && (
+        <LessonDetailsModal
+          lessonNumber={selectedLessonForDetails}
+          onClose={() => setSelectedLessonForDetails(null)}
+          theme={theme}
+        />
+      )}
     </div>
   );
 }

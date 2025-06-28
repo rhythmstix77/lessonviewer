@@ -3,6 +3,7 @@ import { Clock, Users, Tag, X, ExternalLink, FileText, Edit3, Save, FolderPlus, 
 import type { LessonData, Activity } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useData } from '../contexts/DataContext';
+import { RichTextEditor } from './RichTextEditor';
 import { AssignToHalfTermModal } from './AssignToHalfTermModal';
 
 interface HalfTerm {
@@ -99,11 +100,11 @@ export function LessonLibraryCard({
   }, []);
 
   const handleCardClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isExpanded) {
-      // If already expanded, don't do anything (let inner elements handle their own clicks)
+    // Don't trigger card click if clicking on a button or star icon
+    if ((e.target as HTMLElement).closest('button')) {
       return;
     }
+    
     onClick();
   };
 
