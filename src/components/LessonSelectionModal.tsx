@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { X, Calendar, Eye, Save, Star, Clock, Search, Filter, Printer, Tag } from 'lucide-react';
+import { X, Calendar, Eye, Save, Star, Clock, Search, Filter, Printer, Tag, Download } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface LessonSelectionModalProps {
   isOpen: boolean;
@@ -23,11 +25,13 @@ export function LessonSelectionModal({
   selectedLessons,
   onSave
 }: LessonSelectionModalProps) {
-  const { lessonNumbers, allLessonsData } = useData();
+  const { lessonNumbers, allLessonsData, currentSheetInfo } = useData();
   const [localSelectedLessons, setLocalSelectedLessons] = useState<string[]>(selectedLessons);
   const [searchQuery, setSearchQuery] = useState('');
   const [showHalfTermView, setShowHalfTermView] = useState(false);
   const [orderedLessons, setOrderedLessons] = useState<string[]>(selectedLessons);
+  const [isExporting, setIsExporting] = useState(false);
+  const previewRef = React.useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
 
@@ -82,6 +86,75 @@ export function LessonSelectionModal({
     setOrderedLessons(newOrderedLessons);
   };
 
+  // Handle print or export
+  const handlePrintOrExport = async (type: 'print' | 'export') => {
+    if (type === 'print') {
+      window.print();
+      return;
+    }
+    
+    // Export to PDF
+    setIsExporting(true);
+    
+    try {
+      if (previewRef.current) {
+        const canvas = await html2canvas(previewRef.current, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff'
+        });
+        
+        const imgData = canvas.toDataURL('image/png');
+        
+        // Create PDF with proper A4 dimensions
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4'
+        });
+        
+        // A4 dimensions: 210mm x 297mm
+        const imgWidth = 210;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        // Add image to PDF
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+        
+        // If the content is longer than one page, create additional pages
+        if (imgHeight > 297) {
+          let remainingHeight = imgHeight;
+          let currentPosition = 0;
+          
+          while (remainingHeight > 0) {
+            currentPosition += 297;
+            remainingHeight -= 297;
+            
+            if (remainingHeight > 0) {
+              pdf.addPage();
+              pdf.addImage(
+                imgData, 
+                'PNG', 
+                0, 
+                -currentPosition, 
+                imgWidth, 
+                imgHeight
+              );
+            }
+          }
+        }
+        
+        // Save the PDF
+        pdf.save(`${currentSheetInfo.sheet}_${halfTermName.replace(/\s+/g, '_')}.pdf`);
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Export failed. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden">
@@ -102,6 +175,33 @@ export function LessonSelectionModal({
               </p>
             </div>
             <div className="flex items-center space-x-3">
+              {/* Print/Export Button - Added here */}
+              {showHalfTermView && orderedLessons.length > 0 && (
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => handlePrintOrExport('print')}
+                    className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                    title="Print Half-Term Plan"
+                  >
+                    <Printer className="h-4 w-4" />
+                    <span>Print</span>
+                  </button>
+                  <button
+                    onClick={() => handlePrintOrExport('export')}
+                    className="px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                    title="Export Half-Term Plan as PDF"
+                    disabled={isExporting}
+                  >
+                    {isExporting ? (
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                    <span>Export PDF</span>
+                  </button>
+                </div>
+              )}
+              
               <button
                 onClick={() => {
                   if (showHalfTermView) {
@@ -161,91 +261,112 @@ export function LessonSelectionModal({
                     <Calendar className="h-5 w-5 text-green-600" />
                     <h3 className="font-medium text-gray-900">Half-Term Complete</h3>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => window.print()}
-                      className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg flex items-center space-x-1"
-                    >
-                      <Printer className="h-4 w-4" />
-                      <span>Print</span>
-                    </button>
-                  </div>
                 </div>
                 <p className="text-sm text-gray-600 mt-1">
                   Drag and drop lessons to reorder them for this half-term
                 </p>
               </div>
 
-              {orderedLessons.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
-                  <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No lessons selected</h3>
-                  <p className="text-gray-600">
-                    Select lessons from the library to add to this half-term
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {orderedLessons.map((lessonNum, index) => {
-                    const lessonData = allLessonsData[lessonNum];
-                    if (!lessonData) return null;
-                    
-                    return (
-                      <div 
-                        key={lessonNum} 
-                        className="bg-white rounded-lg shadow-md border border-gray-200 p-4"
-                        draggable
-                        onDragStart={(e) => {
-                          e.dataTransfer.setData('text/plain', index.toString());
-                        }}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
-                          handleReorderLessons(dragIndex, index);
-                        }}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-semibold text-gray-900">Lesson {lessonNum}</h4>
-                          <div className="flex items-center">
-                            <button
-                              onClick={() => {
-                                const newOrderedLessons = [...orderedLessons];
-                                newOrderedLessons.splice(index, 1);
-                                setOrderedLessons(newOrderedLessons);
-                                setLocalSelectedLessons(prev => prev.filter(num => num !== lessonNum));
-                              }}
-                              className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-2">{lessonData.title || `Lesson ${lessonNum}`}</p>
-                        <div className="flex items-center space-x-2 text-xs text-gray-500 mb-2">
-                          <Clock className="h-3 w-3" />
-                          <span>{lessonData.totalTime} mins</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {lessonData.categoryOrder.slice(0, 2).map(category => (
-                            <span 
-                              key={category}
-                              className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full"
-                            >
-                              {category}
-                            </span>
-                          ))}
-                          {lessonData.categoryOrder.length > 2 && (
-                            <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
-                              +{lessonData.categoryOrder.length - 2}
-                            </span>
-                          )}
-                        </div>
+              {/* Printable content */}
+              <div ref={previewRef} className="print-content">
+                {orderedLessons.length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+                    <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No lessons selected</h3>
+                    <p className="text-gray-600">
+                      Select lessons from the library to add to this half-term
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Print-only header */}
+                    <div className="hidden print:block text-center border-b border-gray-200 pb-4 mb-6">
+                      <h1 className="text-2xl font-bold text-gray-900 mb-2">
+                        {currentSheetInfo.display} Half-Term Plan
+                      </h1>
+                      <h2 className="text-xl font-semibold text-gray-800 mb-2">
+                        {halfTermName} - {halfTermMonths}
+                      </h2>
+                      <div className="text-gray-600 font-medium">
+                        {orderedLessons.length} lessons
                       </div>
-                    );
-                  })}
-                </div>
-              )}
+                      
+                      {/* Page number */}
+                      <div className="absolute top-0 right-0 text-xs text-gray-500">
+                        Page <span className="pageNumber"></span>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 print:gap-2">
+                      {orderedLessons.map((lessonNum, index) => {
+                        const lessonData = allLessonsData[lessonNum];
+                        if (!lessonData) return null;
+                        
+                        return (
+                          <div 
+                            key={lessonNum} 
+                            className="bg-white rounded-lg shadow-md border border-gray-200 p-4 print-activity"
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData('text/plain', index.toString());
+                            }}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                              handleReorderLessons(dragIndex, index);
+                            }}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-semibold text-gray-900">Lesson {lessonNum}</h4>
+                              <div className="flex items-center print:hidden">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const newOrderedLessons = [...orderedLessons];
+                                    newOrderedLessons.splice(index, 1);
+                                    setOrderedLessons(newOrderedLessons);
+                                    setLocalSelectedLessons(prev => prev.filter(num => num !== lessonNum));
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-2">{lessonData.title || `Lesson ${lessonNum}`}</p>
+                            <div className="flex items-center space-x-2 text-xs text-gray-500 mb-2">
+                              <Clock className="h-3 w-3" />
+                              <span>{lessonData.totalTime} mins</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {lessonData.categoryOrder.slice(0, 2).map(category => (
+                                <span 
+                                  key={category}
+                                  className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full"
+                                >
+                                  {category}
+                                </span>
+                              ))}
+                              {lessonData.categoryOrder.length > 2 && (
+                                <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
+                                  +{lessonData.categoryOrder.length - 2}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    
+                    {/* Print-only footer */}
+                    <div className="hidden print:block mt-8 pt-4 border-t border-gray-200 text-center text-xs text-gray-500">
+                      <p>EYFS Lesson Builder - {currentSheetInfo.display} - {halfTermName}</p>
+                      <p className="pageNumber">Page 1</p>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           ) : (
             /* Lesson selection view */

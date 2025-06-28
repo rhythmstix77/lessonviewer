@@ -6,6 +6,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { UserSettings } from './UserSettings';
 import { WalkthroughGuide } from './WalkthroughGuide';
 import { HelpGuide } from './HelpGuide';
+import { DataSourceSettings } from './DataSourceSettings';
 
 export function Header() {
   const { user, logout } = useAuth();
@@ -257,18 +258,6 @@ export function Header() {
                   </div>
                   <div className="flex space-x-2 flex-shrink-0">
                     <button
-                      onClick={() => openHelpGuide()}
-                      className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                    >
-                      <HelpCircle className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={handleExportDatabase}
-                      className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                    >
-                      <Download className="h-5 w-5" />
-                    </button>
-                    <button
                       onClick={() => {
                         setSettingsOpen(true);
                         setMobileMenuOpen(false);
@@ -316,6 +305,9 @@ export function Header() {
         onClose={() => setShowHelpGuide(false)}
         initialSection={helpGuideSection}
       />
-    </>
+
+      {/* Data Source Settings (Admin) */}
+      <DataSourceSettings />
+    </div>
   );
 }
