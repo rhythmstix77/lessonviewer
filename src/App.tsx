@@ -6,7 +6,6 @@ import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
 import { LoginForm } from './components/LoginForm';
 import { LoadingSpinner } from './components/LoadingSpinner';
-import { DataSourceSettings } from './components/DataSourceSettings';
 import { Footer } from './components/Footer';
 import { useAuth } from './hooks/useAuth';
 import { HelpButton } from './components/HelpButton';
@@ -41,7 +40,6 @@ function AppContent() {
         <Dashboard />
       </main>
       <Footer />
-      <DataSourceSettings />
       <HelpButton onOpenGuide={handleOpenGuide} />
       <HelpGuide 
         isOpen={showHelpGuide} 
