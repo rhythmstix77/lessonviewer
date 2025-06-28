@@ -24,7 +24,7 @@ export interface Activity {
   unitName: string;
   lessonNumber: string;
   eyfsStandards?: string[];
-  uniqueId?: string; // Added for drag and drop uniqueness
+  _uniqueId?: string; // Added for drag and drop uniqueness
 }
 
 export interface LessonData {
@@ -33,6 +33,7 @@ export interface LessonData {
   totalTime: number;
   eyfsStatements?: string[];
   title?: string; // Added title field for lessons
+  notes?: string; // Added notes field for lessons
 }
 
 export interface SheetInfo {
@@ -83,6 +84,8 @@ interface DataContextType {
   addActivity: (activity: Activity) => Promise<Activity>; // Add a new activity
   updateActivity: (activity: Activity) => Promise<Activity>; // Update an existing activity
   deleteActivity: (activityId: string) => Promise<void>; // Delete an activity
+  halfTerms: any[]; // Half-term data
+  updateHalfTerm: (halfTermId: string, lessons: string[], isComplete?: boolean) => void; // Update half-term data
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -149,6 +152,16 @@ const DEFAULT_EYFS_STATEMENTS = [
   "Expressive Arts and Design: 🎨 Develops storylines in pretend play"
 ];
 
+// Define half-term periods
+const DEFAULT_HALF_TERMS = [
+  { id: 'A1', name: 'Autumn 1', months: 'Sep-Oct', lessons: [], isComplete: false },
+  { id: 'A2', name: 'Autumn 2', months: 'Nov-Dec', lessons: [], isComplete: false },
+  { id: 'SP1', name: 'Spring 1', months: 'Jan-Feb', lessons: [], isComplete: false },
+  { id: 'SP2', name: 'Spring 2', months: 'Mar-Apr', lessons: [], isComplete: false },
+  { id: 'SM1', name: 'Summer 1', months: 'Apr-May', lessons: [], isComplete: false },
+  { id: 'SM2', name: 'Summer 2', months: 'Jun-Jul', lessons: [], isComplete: false },
+];
+
 // Default lesson titles based on categories
 const generateDefaultLessonTitle = (lessonData: LessonData): string => {
   // Get the main categories in this lesson
@@ -196,6 +209,8 @@ export function DataProvider({ children }: DataProviderProps) {
   const [dataWasCleared, setDataWasCleared] = useState(false);
   // Centralized activities state
   const [allActivities, setAllActivities] = useState<Activity[]>([]);
+  // Half-term data
+  const [halfTerms, setHalfTerms] = useState<any[]>(DEFAULT_HALF_TERMS);
 
   useEffect(() => {
     // Check if data was just cleared by looking for a URL parameter
@@ -215,7 +230,59 @@ export function DataProvider({ children }: DataProviderProps) {
     loadUserCreatedLessonPlans();
     // Load activities
     loadActivities();
+    // Load half-terms
+    loadHalfTerms();
   }, [currentSheetInfo]);
+
+  // Load half-terms data
+  const loadHalfTerms = () => {
+    try {
+      // If data was cleared, set default half-terms
+      if (dataWasCleared) {
+        setHalfTerms(DEFAULT_HALF_TERMS);
+        localStorage.setItem('half-terms', JSON.stringify(DEFAULT_HALF_TERMS));
+        return;
+      }
+      
+      // Load from localStorage
+      const savedHalfTerms = localStorage.getItem('half-terms');
+      if (savedHalfTerms) {
+        try {
+          const parsedHalfTerms = JSON.parse(savedHalfTerms);
+          setHalfTerms(parsedHalfTerms);
+        } catch (error) {
+          console.error('Error parsing saved half-terms:', error);
+          setHalfTerms(DEFAULT_HALF_TERMS);
+          localStorage.setItem('half-terms', JSON.stringify(DEFAULT_HALF_TERMS));
+        }
+      } else {
+        // Initialize with default half-terms
+        setHalfTerms(DEFAULT_HALF_TERMS);
+        localStorage.setItem('half-terms', JSON.stringify(DEFAULT_HALF_TERMS));
+      }
+    } catch (error) {
+      console.error('Error loading half-terms:', error);
+      setHalfTerms(DEFAULT_HALF_TERMS);
+      localStorage.setItem('half-terms', JSON.stringify(DEFAULT_HALF_TERMS));
+    }
+  };
+
+  // Update half-term data
+  const updateHalfTerm = (halfTermId: string, lessons: string[], isComplete?: boolean) => {
+    const updatedHalfTerms = halfTerms.map(term => {
+      if (term.id === halfTermId) {
+        return {
+          ...term,
+          lessons,
+          isComplete: isComplete !== undefined ? isComplete : term.isComplete
+        };
+      }
+      return term;
+    });
+    
+    setHalfTerms(updatedHalfTerms);
+    localStorage.setItem('half-terms', JSON.stringify(updatedHalfTerms));
+  };
 
   // Load all activities
   const loadActivities = async () => {
@@ -645,6 +712,24 @@ export function DataProvider({ children }: DataProviderProps) {
     } catch (error) {
       console.error('Failed to update units after deleting lesson:', error);
     }
+
+    // Also update any half-terms that contain this lesson
+    try {
+      const updatedHalfTerms = halfTerms.map(term => {
+        if (term.lessons.includes(lessonNumber)) {
+          return {
+            ...term,
+            lessons: term.lessons.filter((num: string) => num !== lessonNumber)
+          };
+        }
+        return term;
+      });
+      
+      setHalfTerms(updatedHalfTerms);
+      localStorage.setItem('half-terms', JSON.stringify(updatedHalfTerms));
+    } catch (error) {
+      console.error('Failed to update half-terms after deleting lesson:', error);
+    }
   };
 
   // Update allLessonsData with a user-created lesson plan
@@ -677,6 +762,7 @@ export function DataProvider({ children }: DataProviderProps) {
       categoryOrder,
       totalTime,
       title: plan.title,
+      notes: plan.notes,
       eyfsStatements: []
     };
     
@@ -1221,6 +1307,7 @@ export function DataProvider({ children }: DataProviderProps) {
     await loadEyfsStatements();
     loadUserCreatedLessonPlans();
     loadActivities();
+    loadHalfTerms();
   };
 
   // Add EYFS statement to a lesson
@@ -1407,7 +1494,9 @@ export function DataProvider({ children }: DataProviderProps) {
     allActivities,
     addActivity,
     updateActivity,
-    deleteActivity
+    deleteActivity,
+    halfTerms,
+    updateHalfTerm
   };
 
   return (

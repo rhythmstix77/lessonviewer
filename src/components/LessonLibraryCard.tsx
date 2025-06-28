@@ -5,6 +5,7 @@ import { useSettings } from '../contexts/SettingsContext';
 import { useData } from '../contexts/DataContext';
 import { RichTextEditor } from './RichTextEditor';
 import { AssignToHalfTermModal } from './AssignToHalfTermModal';
+import { LessonPrintModal } from './LessonPrintModal';
 
 interface HalfTerm {
   id: string;
@@ -56,6 +57,7 @@ export function LessonLibraryCard({
   const [expandedEyfsAreas, setExpandedEyfsAreas] = useState<string[]>([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [isSelected, setIsSelected] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   // Format date for display
@@ -167,8 +169,7 @@ export function LessonLibraryCard({
   };
 
   const handleSaveAndPrint = () => {
-    // Use the browser's print functionality
-    window.print();
+    setShowPrintModal(true);
   };
 
   const handleStarClick = (e: React.MouseEvent) => {
@@ -238,6 +239,14 @@ export function LessonLibraryCard({
             onAssign={handleAssignToHalfTerm}
             lessonNumber={lessonNumber}
             halfTerms={halfTerms}
+          />
+        )}
+
+        {/* Print Modal */}
+        {showPrintModal && (
+          <LessonPrintModal
+            lessonNumber={lessonNumber}
+            onClose={() => setShowPrintModal(false)}
           />
         )}
       </div>
@@ -311,7 +320,7 @@ export function LessonLibraryCard({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              handleSaveAndPrint();
+              setShowPrintModal(true);
             }}
             className="p-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm flex items-center space-x-1"
             title="Save/Print Lesson"
@@ -329,6 +338,14 @@ export function LessonLibraryCard({
             onAssign={handleAssignToHalfTerm}
             lessonNumber={lessonNumber}
             halfTerms={halfTerms}
+          />
+        )}
+
+        {/* Print Modal */}
+        {showPrintModal && (
+          <LessonPrintModal
+            lessonNumber={lessonNumber}
+            onClose={() => setShowPrintModal(false)}
           />
         )}
       </div>
@@ -436,7 +453,7 @@ export function LessonLibraryCard({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              handleSaveAndPrint();
+              setShowPrintModal(true);
             }}
             className="p-2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-lg shadow-sm text-green-600 hover:text-green-800 transition-colors"
             title="Save/Print Lesson"
@@ -454,6 +471,14 @@ export function LessonLibraryCard({
           onAssign={handleAssignToHalfTerm}
           lessonNumber={lessonNumber}
           halfTerms={halfTerms}
+        />
+      )}
+
+      {/* Print Modal */}
+      {showPrintModal && (
+        <LessonPrintModal
+          lessonNumber={lessonNumber}
+          onClose={() => setShowPrintModal(false)}
         />
       )}
     </div>
