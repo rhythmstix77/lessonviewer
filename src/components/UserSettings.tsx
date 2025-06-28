@@ -1,34 +1,8 @@
-import React, { useState, useRef } from 'react';
-import { 
-  Settings, 
-  Upload, 
-  Palette, 
-  School, 
-  RotateCcw, 
-  X, 
-  Check, 
-  Image, 
-  Download, 
-  Upload as UploadIcon, 
-  Plus, 
-  Trash2, 
-  GripVertical, 
-  Edit3, 
-  Save, 
-  Database,
-  Server,
-  RefreshCw,
-  AlertCircle,
-  ShieldCheck,
-  Users,
-  Key,
-  FileText
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { Settings, Upload, Palette, School, RotateCcw, X, Check, Image, Download, Upload as UploadIcon, Plus, Trash2, GripVertical, Edit3, Save } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
+import { DataSourceSettings } from './DataSourceSettings';
 import { useAuth } from '../hooks/useAuth';
-import { useData } from '../contexts/DataContext';
-import { dataApi } from '../config/api';
-import { isSupabaseConfigured } from '../config/supabase';
 
 interface UserSettingsProps {
   isOpen: boolean;
@@ -37,7 +11,6 @@ interface UserSettingsProps {
 
 export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
   const { user } = useAuth();
-  const { refreshData, uploadExcelFile, loading } = useData();
   const { settings, updateSettings, resetToDefaults, categories, updateCategories, resetCategoriesToDefaults } = useSettings();
   const [tempSettings, setTempSettings] = useState(settings);
   const [tempCategories, setTempCategories] = useState(categories);
@@ -47,17 +20,12 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryColor, setNewCategoryColor] = useState('#6B7280');
   const [draggedCategory, setDraggedCategory] = useState<string | null>(null);
-  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
-  const [statusMessage, setStatusMessage] = useState('');
-  const [serverStatus, setServerStatus] = useState<'checking' | 'online' | 'offline'>('checking');
-  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [showAdminSettings, setShowAdminSettings] = useState(false);
 
   // Check if user is admin
   const isAdmin = user?.email === 'rob.reichstorer@gmail.com' || 
-                  user?.email === 'admin@rhythmstix.co.uk' || 
-                  user?.email === 'admin@example.com' || 
                   user?.role === 'administrator' ||
-                  user?.role === 'admin';
+                  user?.email === 'admin@example.com';
 
   // Update temp settings when settings change
   React.useEffect(() => {
@@ -68,36 +36,6 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
   React.useEffect(() => {
     setTempCategories(categories);
   }, [categories]);
-
-  // Check server status when opening the panel
-  React.useEffect(() => {
-    if (isOpen && activeTab === 'admin') {
-      checkServerStatus();
-    }
-  }, [isOpen, activeTab]);
-
-  const checkServerStatus = async () => {
-    try {
-      setServerStatus('checking');
-      
-      // Check if Supabase is configured
-      if (isSupabaseConfigured()) {
-        try {
-          // Try to fetch from Supabase
-          await dataApi.exportAll();
-          setServerStatus('online');
-        } catch (error) {
-          console.warn('Supabase connection failed:', error);
-          setServerStatus('offline');
-        }
-      } else {
-        setServerStatus('offline');
-      }
-    } catch (error) {
-      console.error('Server status check failed:', error);
-      setServerStatus('offline');
-    }
-  };
 
   const handleSave = () => {
     updateSettings(tempSettings);
@@ -170,7 +108,7 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
     
     const a = document.createElement('a');
     a.href = url;
-    a.download = `eyfs-data-export-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `rhythmstix-data-export-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -286,130 +224,6 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
     }
   };
 
-  // Admin functions
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setUploadStatus('uploading');
-      await uploadExcelFile(file);
-      setUploadStatus('success');
-      setStatusMessage('Data updated successfully!');
-      setTimeout(() => setUploadStatus('idle'), 3000);
-    } catch (error) {
-      setUploadStatus('error');
-      setStatusMessage('Update failed. Please try again.');
-      setTimeout(() => setUploadStatus('idle'), 3000);
-    }
-  };
-
-  const handleRefreshData = async () => {
-    try {
-      setUploadStatus('uploading');
-      await refreshData();
-      setUploadStatus('success');
-      setStatusMessage('Data refreshed successfully!');
-      setTimeout(() => setUploadStatus('idle'), 3000);
-    } catch (error) {
-      setUploadStatus('error');
-      setStatusMessage('Refresh failed. Please try again.');
-      setTimeout(() => setUploadStatus('idle'), 3000);
-    }
-  };
-
-  const handleMigrateToServer = async () => {
-    try {
-      setUploadStatus('uploading');
-      setStatusMessage('Migrating data to Supabase...');
-      
-      // Get all data from localStorage
-      const data = {
-        activities: [],
-        lessons: {},
-        lessonPlans: [],
-        eyfs: {}
-      };
-      
-      // Extract activities from localStorage
-      const libraryActivities = localStorage.getItem('library-activities');
-      if (libraryActivities) {
-        data.activities = JSON.parse(libraryActivities);
-      }
-      
-      // Extract lessons from localStorage
-      ['LKG', 'UKG', 'Reception'].forEach(sheet => {
-        const lessonData = localStorage.getItem(`lesson-data-${sheet}`);
-        if (lessonData) {
-          data.lessons[sheet] = JSON.parse(lessonData);
-        }
-      });
-      
-      // Extract lesson plans from localStorage
-      const lessonPlans = localStorage.getItem('lesson-plans');
-      if (lessonPlans) {
-        data.lessonPlans = JSON.parse(lessonPlans);
-      }
-      
-      // Extract EYFS standards from localStorage
-      ['LKG', 'UKG', 'Reception'].forEach(sheet => {
-        const eyfsData = localStorage.getItem(`eyfs-standards-${sheet}`);
-        if (eyfsData) {
-          data.eyfs[sheet] = JSON.parse(eyfsData);
-        }
-      });
-      
-      // Send all data to server
-      await dataApi.importAll(data);
-      
-      setUploadStatus('success');
-      setStatusMessage('Data successfully migrated to Supabase.');
-      setTimeout(() => setUploadStatus('idle'), 3000);
-    } catch (error) {
-      console.error('Migration failed:', error);
-      setUploadStatus('error');
-      setStatusMessage('Failed to migrate data to Supabase.');
-      setTimeout(() => setUploadStatus('idle'), 3000);
-    }
-  };
-
-  const handleClearAllLocalData = () => {
-    if (confirm('Are you sure you want to clear ALL local data? This will remove all lessons, activities, units, and settings. This action cannot be undone.')) {
-      // Clear all localStorage items
-      localStorage.removeItem('lesson-data-LKG');
-      localStorage.removeItem('lesson-data-UKG');
-      localStorage.removeItem('lesson-data-Reception');
-      localStorage.removeItem('lesson-plans');
-      localStorage.removeItem('library-activities');
-      localStorage.removeItem('units');
-      localStorage.removeItem('eyfs-standards-LKG');
-      localStorage.removeItem('eyfs-standards-UKG');
-      localStorage.removeItem('eyfs-standards-Reception');
-      localStorage.removeItem('eyfs-statements-flat-LKG');
-      localStorage.removeItem('eyfs-statements-flat-UKG');
-      localStorage.removeItem('eyfs-statements-flat-Reception');
-      localStorage.removeItem('lesson-viewer-settings');
-      localStorage.removeItem('lesson-viewer-categories');
-      localStorage.removeItem('user-created-lesson-plans');
-      localStorage.removeItem('admin-editable-content');
-      localStorage.removeItem('admin-google-sheets-config');
-      localStorage.removeItem('has-visited-before');
-      localStorage.removeItem('half-terms');
-      
-      // Keep the auth token so the user stays logged in
-      // localStorage.removeItem('rhythmstix_auth_token');
-      
-      // Show success message
-      setUploadStatus('success');
-      setStatusMessage('All local data has been cleared. The page will reload.');
-      
-      // Reload the page after a short delay with a parameter to indicate data was cleared
-      setTimeout(() => {
-        window.location.href = window.location.pathname + '?cleared=true' + window.location.hash;
-      }, 1500);
-    }
-  };
-
   const presetLogos = [
     'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&dpr=2',
     'https://images.pexels.com/photos/164821/pexels-photo-164821.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&dpr=2',
@@ -477,7 +291,7 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              Admin
+              Admin Settings
             </button>
           )}
         </div>
@@ -1003,269 +817,22 @@ export function UserSettings({ isOpen, onClose }: UserSettingsProps) {
           )}
 
           {activeTab === 'admin' && isAdmin && (
-            <>
-              {/* Admin Welcome */}
+            <div className="space-y-6">
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
                 <div className="flex items-center space-x-3 mb-4">
-                  <ShieldCheck className="h-6 w-6 text-blue-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">Welcome, {user?.name}!</h3>
+                  <Settings className="h-6 w-6 text-blue-600" />
+                  <h3 className="text-lg font-semibold text-gray-900">Admin Settings</h3>
                 </div>
                 <p className="text-sm text-gray-600 mb-4">
-                  You have full administrative access to manage the EYFS Lesson Builder system. 
-                  Use the options below to configure data sources and manage content.
-                </p>
-                <div className="bg-white rounded-lg p-4 border border-blue-200">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600 font-medium">Admin Email:</span>
-                      <span className="font-semibold text-blue-600">{user?.email}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600 font-medium">Access Level:</span>
-                      <span className="font-semibold text-green-600">Full Administrator</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Server Status */}
-              <div className="border border-gray-200 rounded-lg p-6">
-                <div className="flex items-center space-x-3 mb-4">
-                  <Server className="h-6 w-6 text-blue-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">Supabase Status</h3>
-                </div>
-                <div className="bg-white rounded-lg p-4 border border-gray-200 mb-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-700 font-medium">Supabase Connection:</span>
-                    {serverStatus === 'checking' ? (
-                      <div className="flex items-center space-x-2">
-                        <RefreshCw className="h-4 w-4 text-blue-600 animate-spin" />
-                        <span className="text-blue-600 font-medium">Checking...</span>
-                      </div>
-                    ) : serverStatus === 'online' ? (
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <span className="text-green-600 font-medium">Connected</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                        <span className="text-red-600 font-medium">Disconnected</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                {serverStatus === 'offline' && (
-                  <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 mb-4">
-                    <div className="flex items-start space-x-2">
-                      <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm text-yellow-700 font-medium mb-1">Supabase is disconnected</p>
-                        <p className="text-sm text-yellow-600">
-                          The application is currently using local storage for data. Connect to Supabase to enable cloud storage and synchronization.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                {serverStatus === 'online' && (
-                  <button
-                    onClick={handleMigrateToServer}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
-                  >
-                    <Database className="h-5 w-5" />
-                    <span>Migrate Local Data to Supabase</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Excel File Upload */}
-              <div className="border border-gray-200 rounded-lg p-6">
-                <div className="flex items-center space-x-3 mb-4">
-                  <Upload className="h-6 w-6 text-blue-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">Excel File Upload</h3>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">
-                  Upload an Excel file (.xlsx, .xls, .csv) to update your lesson data.
+                  Access advanced settings for administrators only.
                 </p>
                 
-                <div className="space-y-4">
-                  <input
-                    type="file"
-                    accept=".xlsx,.xls,.csv"
-                    onChange={handleFileUpload}
-                    disabled={uploadStatus === 'uploading'}
-                    className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors duration-200"
-                  />
-                  
-                  {uploadStatus === 'uploading' && (
-                    <div className="flex items-center space-x-2 text-blue-600 p-3 bg-blue-50 rounded-lg">
-                      <RefreshCw className="h-5 w-5 animate-spin" />
-                      <span className="text-sm font-medium">
-                        {statusMessage || "Uploading and processing..."}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {uploadStatus === 'success' && (
-                    <div className="flex items-center space-x-2 text-green-600 p-3 bg-green-50 rounded-lg">
-                      <Check className="h-5 w-5" />
-                      <span className="text-sm font-medium">
-                        {statusMessage || "Data updated successfully!"}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {uploadStatus === 'error' && (
-                    <div className="flex items-center space-x-2 text-red-600 p-3 bg-red-50 rounded-lg">
-                      <AlertCircle className="h-5 w-5" />
-                      <span className="text-sm font-medium">
-                        {statusMessage || "Update failed. Please try again."}
-                      </span>
-                    </div>
-                  )}
+                {/* Admin Settings Content */}
+                <div className="bg-white rounded-lg border border-blue-200 p-4">
+                  <DataSourceSettings embedded={true} />
                 </div>
               </div>
-
-              {/* Refresh Data */}
-              <div className="border border-blue-200 bg-blue-50 rounded-lg p-6">
-                <div className="flex items-center space-x-3 mb-4">
-                  <RefreshCw className="h-6 w-6 text-blue-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">Refresh Data</h3>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">
-                  Refresh the application data to ensure you're viewing the latest content.
-                </p>
-                
-                <button
-                  onClick={handleRefreshData}
-                  disabled={loading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
-                >
-                  {loading ? (
-                    <>
-                      <RefreshCw className="h-5 w-5 animate-spin" />
-                      <span>Refreshing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="h-5 w-5" />
-                      <span>Refresh Data</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* User Management */}
-              <div className="border border-indigo-200 bg-indigo-50 rounded-lg p-6">
-                <div className="flex items-center space-x-3 mb-4">
-                  <Users className="h-6 w-6 text-indigo-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">User Management</h3>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">
-                  Manage user access and permissions for the application.
-                </p>
-                
-                <div className="bg-white rounded-lg p-4 border border-indigo-200 mb-4">
-                  <h4 className="font-medium text-gray-900 mb-2">Current Users</h4>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        <tr>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user?.name}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user?.email}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Administrator</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                
-                <div className="bg-white rounded-lg p-4 border border-indigo-200">
-                  <h4 className="font-medium text-gray-900 mb-2">Access Control</h4>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Configure who can access different parts of the application.
-                  </p>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-2 hover:bg-indigo-50 rounded-lg">
-                      <div className="flex items-center space-x-2">
-                        <Key className="h-4 w-4 text-indigo-600" />
-                        <span className="text-sm text-gray-700">Admin Access</span>
-                      </div>
-                      <div className="text-sm text-green-600 font-medium">Enabled</div>
-                    </div>
-                    <div className="flex items-center justify-between p-2 hover:bg-indigo-50 rounded-lg">
-                      <div className="flex items-center space-x-2">
-                        <FileText className="h-4 w-4 text-indigo-600" />
-                        <span className="text-sm text-gray-700">Content Editing</span>
-                      </div>
-                      <div className="text-sm text-green-600 font-medium">Enabled</div>
-                    </div>
-                    <div className="flex items-center justify-between p-2 hover:bg-indigo-50 rounded-lg">
-                      <div className="flex items-center space-x-2">
-                        <Database className="h-4 w-4 text-indigo-600" />
-                        <span className="text-sm text-gray-700">Data Management</span>
-                      </div>
-                      <div className="text-sm text-green-600 font-medium">Enabled</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Clear All Data */}
-              <div className="border border-red-200 bg-red-50 rounded-lg p-6">
-                <div className="flex items-center space-x-3 mb-4">
-                  <Trash2 className="h-6 w-6 text-red-600" />
-                  <h3 className="text-lg font-semibold text-gray-900">Clear All Local Data</h3>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">
-                  Clear all locally stored data including lessons, activities, units, and settings. This action cannot be undone.
-                </p>
-                
-                <button
-                  onClick={handleClearAllLocalData}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
-                >
-                  <Trash2 className="h-5 w-5" />
-                  <span>Clear All Local Data</span>
-                </button>
-                <p className="text-xs text-red-600 mt-2 text-center">
-                  Warning: This will remove all your lessons, activities, units, and settings.
-                </p>
-              </div>
-
-              {/* Current Configuration */}
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Configuration</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200">
-                    <span className="text-gray-600 font-medium">Primary Data Source:</span>
-                    <span className="font-semibold text-green-600">
-                      {serverStatus === 'online' ? 'Supabase' : 'Local Storage (Fallback)'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200">
-                    <span className="text-gray-600 font-medium">Authentication:</span>
-                    <span className="font-semibold text-blue-600">EYFS Admin</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200 md:col-span-2">
-                    <span className="text-gray-600 font-medium">Last Updated:</span>
-                    <span className="font-semibold text-gray-900">
-                      {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </>
+            </div>
           )}
         </div>
 

@@ -6,7 +6,6 @@ import { useSettings } from '../contexts/SettingsContext';
 import { UserSettings } from './UserSettings';
 import { WalkthroughGuide } from './WalkthroughGuide';
 import { HelpGuide } from './HelpGuide';
-import { DataSourceSettings } from './DataSourceSettings';
 
 export function Header() {
   const { user, logout } = useAuth();
@@ -77,11 +76,10 @@ export function Header() {
   const openHelpGuide = (section?: 'activity' | 'lesson' | 'unit' | 'assign') => {
     setHelpGuideSection(section);
     setShowHelpGuide(true);
-    setShowWalkthrough(false);
   };
 
   return (
-    <div>
+    <>
       <header className="bg-white shadow-sm border-b border-gray-200 fixed top-0 left-0 right-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -133,6 +131,25 @@ export function Header() {
                   ))}
                 </select>
               </div>
+
+              {/* Help Button */}
+              <button
+                onClick={() => openHelpGuide()}
+                className="p-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200 flex-shrink-0"
+                title="Help Guide"
+                data-help-button
+              >
+                <HelpCircle className="h-5 w-5" />
+              </button>
+
+              {/* Export Database Button */}
+              <button
+                onClick={handleExportDatabase}
+                className="p-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200 flex-shrink-0"
+                title="Export Database"
+              >
+                <Download className="h-5 w-5" />
+              </button>
 
               {/* Settings Button */}
               <button
@@ -239,6 +256,18 @@ export function Header() {
                   </div>
                   <div className="flex space-x-2 flex-shrink-0">
                     <button
+                      onClick={() => openHelpGuide()}
+                      className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                    >
+                      <HelpCircle className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={handleExportDatabase}
+                      className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                    >
+                      <Download className="h-5 w-5" />
+                    </button>
+                    <button
                       onClick={() => {
                         setSettingsOpen(true);
                         setMobileMenuOpen(false);
@@ -286,9 +315,6 @@ export function Header() {
         onClose={() => setShowHelpGuide(false)}
         initialSection={helpGuideSection}
       />
-
-      {/* Data Source Settings (Admin) */}
-      <DataSourceSettings />
-    </div>
+    </>
   );
 }

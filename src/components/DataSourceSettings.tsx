@@ -5,7 +5,11 @@ import { useAuth } from '../hooks/useAuth';
 import { dataApi } from '../config/api';
 import { isSupabaseConfigured } from '../config/supabase';
 
-export function DataSourceSettings() {
+interface DataSourceSettingsProps {
+  embedded?: boolean;
+}
+
+export function DataSourceSettings({ embedded = false }: DataSourceSettingsProps) {
   const { user } = useAuth();
   const { refreshData, uploadExcelFile, loading } = useData();
   const [isOpen, setIsOpen] = useState(false);
@@ -17,9 +21,116 @@ export function DataSourceSettings() {
   const isAdmin = user?.email === 'rob.reichstorer@gmail.com' || 
                   user?.role === 'administrator';
 
-  // Don't render the settings button if user is not admin
+  // Don't render the settings button if user is not admin or if embedded
   if (!isAdmin) {
     return null;
+  }
+
+  // If embedded in another component, don't show the floating button
+  if (embedded && !isOpen) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <CheckCircle className="h-6 w-6 text-blue-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Welcome, {user?.name}!</h3>
+          </div>
+          <p className="text-sm text-gray-600 mb-4">
+            You have full administrative access to manage the EYFS Lesson Builder system. 
+            Use the options below to configure data sources and manage content.
+          </p>
+          <div className="bg-white rounded-lg p-4 border border-blue-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 font-medium">Admin Email:</span>
+                <span className="font-semibold text-blue-600">{user?.email}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 font-medium">Access Level:</span>
+                <span className="font-semibold text-green-600">Full Administrator</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Excel File Upload */}
+        <div className="border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <Upload className="h-6 w-6 text-blue-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Excel File Upload</h3>
+          </div>
+          <p className="text-sm text-gray-600 mb-4">
+            Upload an Excel file (.xlsx, .xls, .csv) to update your lesson data.
+          </p>
+          
+          <div className="space-y-4">
+            <input
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              onChange={handleFileUpload}
+              disabled={uploadStatus === 'uploading'}
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors duration-200"
+            />
+            
+            {uploadStatus === 'uploading' && (
+              <div className="flex items-center space-x-2 text-blue-600 p-3 bg-blue-50 rounded-lg">
+                <RefreshCw className="h-5 w-5 animate-spin" />
+                <span className="text-sm font-medium">
+                  {statusMessage || "Uploading and processing..."}
+                </span>
+              </div>
+            )}
+            
+            {uploadStatus === 'success' && (
+              <div className="flex items-center space-x-2 text-green-600 p-3 bg-green-50 rounded-lg">
+                <CheckCircle className="h-5 w-5" />
+                <span className="text-sm font-medium">
+                  {statusMessage || "Data updated successfully!"}
+                </span>
+              </div>
+            )}
+            
+            {uploadStatus === 'error' && (
+              <div className="flex items-center space-x-2 text-red-600 p-3 bg-red-50 rounded-lg">
+                <AlertCircle className="h-5 w-5" />
+                <span className="text-sm font-medium">
+                  {statusMessage || "Update failed. Please try again."}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Refresh Data */}
+        <div className="border border-blue-200 bg-blue-50 rounded-lg p-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <RefreshCw className="h-6 w-6 text-blue-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Refresh Data</h3>
+          </div>
+          <p className="text-sm text-gray-600 mb-4">
+            Refresh the application data to ensure you're viewing the latest content.
+          </p>
+          
+          <button
+            onClick={handleRefreshData}
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+          >
+            {loading ? (
+              <>
+                <RefreshCw className="h-5 w-5 animate-spin" />
+                <span>Refreshing...</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-5 w-5" />
+                <span>Refresh Data</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   // Check server status when opening the panel
@@ -169,15 +280,83 @@ export function DataSourceSettings() {
     }
   };
 
-  if (!isOpen) {
+  if (!isOpen && !embedded) {
+    return null;
+  }
+
+  if (embedded) {
     return (
-      <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg transition-all duration-200 z-50 hover:scale-105"
-        title="Admin Settings - Data Source Management"
-      >
-        <Settings className="h-6 w-6" />
-      </button>
+      <div className="space-y-6">
+        {/* Excel File Upload */}
+        <div className="border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <Upload className="h-6 w-6 text-blue-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Excel File Upload</h3>
+          </div>
+          <p className="text-sm text-gray-600 mb-4">
+            Upload an Excel file (.xlsx, .xls, .csv) to update your lesson data.
+          </p>
+          
+          <div className="space-y-4">
+            <input
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              onChange={handleFileUpload}
+              disabled={uploadStatus === 'uploading'}
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors duration-200"
+            />
+            
+            {uploadStatus === 'uploading' && (
+              <div className="flex items-center space-x-2 text-blue-600 p-3 bg-blue-50 rounded-lg">
+                <RefreshCw className="h-5 w-5 animate-spin" />
+                <span className="text-sm font-medium">
+                  {statusMessage || "Uploading and processing..."}
+                </span>
+              </div>
+            )}
+            
+            {uploadStatus === 'success' && (
+              <div className="flex items-center space-x-2 text-green-600 p-3 bg-green-50 rounded-lg">
+                <CheckCircle className="h-5 w-5" />
+                <span className="text-sm font-medium">
+                  {statusMessage || "Data updated successfully!"}
+                </span>
+              </div>
+            )}
+            
+            {uploadStatus === 'error' && (
+              <div className="flex items-center space-x-2 text-red-600 p-3 bg-red-50 rounded-lg">
+                <AlertCircle className="h-5 w-5" />
+                <span className="text-sm font-medium">
+                  {statusMessage || "Update failed. Please try again."}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Clear All Data */}
+        <div className="border border-red-200 bg-red-50 rounded-lg p-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <Trash2 className="h-6 w-6 text-red-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Clear All Local Data</h3>
+          </div>
+          <p className="text-sm text-gray-600 mb-4">
+            Clear all locally stored data including lessons, activities, units, and settings. This action cannot be undone.
+          </p>
+          
+          <button
+            onClick={handleClearAllLocalData}
+            className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+          >
+            <Trash2 className="h-5 w-5" />
+            <span>Clear All Local Data</span>
+          </button>
+          <p className="text-xs text-red-600 mt-2 text-center">
+            Warning: This will remove all your lessons, activities, units, and settings.
+          </p>
+        </div>
+      </div>
     );
   }
 
@@ -280,7 +459,7 @@ export function DataSourceSettings() {
             )}
           </div>
 
-          {/* Excel File Upload */}
+          {/* Excel File Upload Alternative */}
           <div className="border border-gray-200 rounded-lg p-6">
             <div className="flex items-center space-x-3 mb-4">
               <Upload className="h-6 w-6 text-blue-600" />
@@ -328,35 +507,6 @@ export function DataSourceSettings() {
             </div>
           </div>
 
-          {/* Refresh Data */}
-          <div className="border border-blue-200 bg-blue-50 rounded-lg p-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <RefreshCw className="h-6 w-6 text-blue-600" />
-              <h3 className="text-lg font-semibold text-gray-900">Refresh Data</h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">
-              Refresh the application data to ensure you're viewing the latest content.
-            </p>
-            
-            <button
-              onClick={handleRefreshData}
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
-            >
-              {loading ? (
-                <>
-                  <RefreshCw className="h-5 w-5 animate-spin" />
-                  <span>Refreshing...</span>
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-5 w-5" />
-                  <span>Refresh Data</span>
-                </>
-              )}
-            </button>
-          </div>
-
           {/* Clear All Data */}
           <div className="border border-red-200 bg-red-50 rounded-lg p-6">
             <div className="flex items-center space-x-3 mb-4">
@@ -398,33 +548,6 @@ export function DataSourceSettings() {
                 <span className="font-semibold text-gray-900">
                   {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
                 </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Technical Details */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Technical Information</h3>
-            <div className="space-y-3 text-sm">
-              <div>
-                <p className="text-gray-700 font-medium mb-1">Data Storage Method:</p>
-                <p className="text-gray-600">
-                  {serverStatus === 'online' 
-                    ? 'Supabase database with local fallback' 
-                    : 'Local browser storage with Excel file import capability'}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-700 font-medium mb-1">Class Data Sources:</p>
-                <p className="text-gray-600">LKG, UKG, and Reception data stored locally</p>
-              </div>
-              <div>
-                <p className="text-gray-700 font-medium mb-1">Update Frequency:</p>
-                <p className="text-gray-600">Manual refresh or file upload</p>
-              </div>
-              <div>
-                <p className="text-gray-700 font-medium mb-1">Supported File Formats:</p>
-                <p className="text-gray-600">Excel (.xlsx, .xls), CSV (.csv)</p>
               </div>
             </div>
           </div>
