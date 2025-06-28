@@ -266,7 +266,7 @@ export function UnitViewer() {
   if (selectedUnit) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
-        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Unit Header */}
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-6">
             <div 
@@ -408,7 +408,7 @@ export function UnitViewer() {
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
-        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header - Updated with search field on the right */}
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-6">
             <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
