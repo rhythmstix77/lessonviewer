@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Download, FileText, File, Printer, X, Check, ChevronDown, ChevronUp, Tag, Clock, Users, ExternalLink } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Download, Printer, X, Check, Tag } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { jsPDF } from 'jspdf';
@@ -14,7 +14,6 @@ interface LessonPrintModalProps {
 export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPrintModalProps) {
   const { allLessonsData, currentSheetInfo, eyfsStatements, halfTerms } = useData();
   const { getCategoryColor } = useSettings();
-  const [exportFormat, setExportFormat] = useState<'pdf' | 'preview'>('preview');
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
   const [showEyfs, setShowEyfs] = useState(true);
@@ -74,12 +73,10 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
     setIsExporting(true);
     
     try {
-      if (exportFormat === 'pdf') {
-        if (exportMode === 'single') {
-          await exportSingleLessonToPdf();
-        } else {
-          await exportHalfTermToPdf();
-        }
+      if (exportMode === 'single') {
+        await exportSingleLessonToPdf();
+      } else {
+        await exportHalfTermToPdf();
       }
       
       setExportSuccess(true);
@@ -365,36 +362,12 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
               {lessonData.title || `Lesson ${lessonNumber}`} - {currentSheetInfo.display}
             </p>
           </div>
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-2 bg-gray-100 p-1 rounded-lg">
-              <button
-                onClick={() => setExportFormat('preview')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium ${
-                  exportFormat === 'preview' 
-                    ? 'bg-white shadow-sm text-gray-900' 
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Preview
-              </button>
-              <button
-                onClick={() => setExportFormat('pdf')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium ${
-                  exportFormat === 'pdf' 
-                    ? 'bg-white shadow-sm text-gray-900' 
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                PDF
-              </button>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-            >
-              <X className="h-6 w-6" />
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+          >
+            <X className="h-6 w-6" />
+          </button>
         </div>
 
         {/* Options */}
@@ -465,7 +438,7 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
                 ) : (
                   <>
                     <Download className="h-4 w-4" />
-                    <span>Export {exportFormat.toUpperCase()}</span>
+                    <span>Export PDF</span>
                   </>
                 )}
               </button>
