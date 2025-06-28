@@ -56,7 +56,6 @@ export function LessonLibraryCard({
   const [showAssignDropdown, setShowAssignDropdown] = useState(false);
   const [expandedEyfsAreas, setExpandedEyfsAreas] = useState<string[]>([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [isSelected, setIsSelected] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
@@ -102,7 +101,7 @@ export function LessonLibraryCard({
   }, []);
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Don't trigger card click if clicking on a button or star icon
+    // Don't trigger card click if clicking on a button
     if ((e.target as HTMLElement).closest('button')) {
       return;
     }
@@ -168,23 +167,6 @@ export function LessonLibraryCard({
     }
   };
 
-  const handleSaveAndPrint = () => {
-    setShowPrintModal(true);
-  };
-
-  const handleStarClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsSelected(!isSelected);
-    
-    // If onAssignToUnit is provided, use it to toggle the lesson in the half-term
-    if (onAssignToUnit && halfTerms.length > 0) {
-      // For simplicity, we'll use the first half-term in the list
-      // In a real implementation, you'd want to use the currently selected half-term
-      const halfTermId = halfTerms[0].id;
-      onAssignToUnit(lessonNumber, halfTermId);
-    }
-  };
-
   if (viewMode === 'compact') {
     return (
       <div className="relative group">
@@ -205,31 +187,20 @@ export function LessonLibraryCard({
           </div>
         </div>
         
-        {/* Star icon for selection */}
-        <button
-          onClick={handleStarClick}
-          className="absolute top-2 right-2 p-1 text-gray-400 hover:text-yellow-500 transition-colors duration-200"
-          title={isSelected ? "Remove from half-term" : "Add to half-term"}
-        >
-          <Star className={`h-4 w-4 ${isSelected ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'}`} />
-        </button>
-
         {/* Action buttons - Assign button */}
-        <div className="absolute top-0 right-8 h-full flex items-center pr-2">
-          {onAssignToUnit && halfTerms.length > 0 && (
-            <div className="mr-2">
-              <button
-                onClick={handleAssignClick}
-                className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm flex items-center space-x-1"
-                title="Assign to Unit"
-              >
-                <Calendar className="h-4 w-4" />
-                <span className="text-xs">Assign</span>
-                <ChevronDown className="h-3 w-3" />
-              </button>
-            </div>
-          )}
-        </div>
+        {onAssignToUnit && halfTerms.length > 0 && (
+          <div className="absolute top-0 right-0 h-full flex items-center pr-2">
+            <button
+              onClick={handleAssignClick}
+              className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm flex items-center space-x-1"
+              title="Assign to Unit"
+            >
+              <Calendar className="h-4 w-4" />
+              <span className="text-xs">Assign</span>
+              <ChevronDown className="h-3 w-3" />
+            </button>
+          </div>
+        )}
 
         {/* Assign Modal */}
         {showAssignModal && (
@@ -291,44 +262,20 @@ export function LessonLibraryCard({
           </div>
         </div>
         
-        {/* Star icon for selection */}
-        <button
-          onClick={handleStarClick}
-          className="absolute top-2 right-2 p-1 text-gray-400 hover:text-yellow-500 transition-colors duration-200"
-          title={isSelected ? "Remove from half-term" : "Add to half-term"}
-        >
-          <Star className={`h-5 w-5 ${isSelected ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'}`} />
-        </button>
-
-        {/* Action buttons - Always visible now */}
-        <div className="absolute top-2 right-8 flex items-center space-x-2">
-          {onAssignToUnit && halfTerms.length > 0 && (
-            <div>
-              <button
-                onClick={handleAssignClick}
-                className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm flex items-center space-x-1"
-                title="Assign to Unit"
-              >
-                <FolderPlus className="h-4 w-4" />
-                <span className="text-xs">Assign</span>
-                <ChevronDown className="h-3 w-3 ml-1" />
-              </button>
-            </div>
-          )}
-          
-          {/* Save/Print Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowPrintModal(true);
-            }}
-            className="p-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm flex items-center space-x-1"
-            title="Save/Print Lesson"
-          >
-            <Printer className="h-4 w-4" />
-            <span className="text-xs">Save/Print</span>
-          </button>
-        </div>
+        {/* Action buttons - Only Assign button */}
+        {onAssignToUnit && halfTerms.length > 0 && (
+          <div className="absolute top-2 right-2 flex items-center space-x-2">
+            <button
+              onClick={handleAssignClick}
+              className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm flex items-center space-x-1"
+              title="Assign to Unit"
+            >
+              <FolderPlus className="h-4 w-4" />
+              <span className="text-xs">Assign</span>
+              <ChevronDown className="h-3 w-3 ml-1" />
+            </button>
+          </div>
+        )}
 
         {/* Assign Modal */}
         {showAssignModal && (
@@ -426,41 +373,18 @@ export function LessonLibraryCard({
           </p>
         </div>
         
-        {/* Star icon for selection */}
-        <button
-          onClick={handleStarClick}
-          className="absolute top-2 right-2 p-1.5 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full shadow-sm text-gray-400 hover:text-yellow-500 transition-colors duration-200 z-10"
-          title={isSelected ? "Remove from half-term" : "Add to half-term"}
-        >
-          <Star className={`h-5 w-5 ${isSelected ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'}`} />
-        </button>
-        
-        {/* Action buttons - Always visible now */}
-        <div className="absolute top-2 right-10 flex items-center space-x-2 z-10">
-          {onAssignToUnit && halfTerms.length > 0 && (
-            <div>
-              <button
-                onClick={handleAssignClick}
-                className="p-2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-lg shadow-sm text-blue-600 hover:text-blue-800 transition-colors"
-                title="Assign to Unit"
-              >
-                <Calendar className="h-4 w-4" />
-              </button>
-            </div>
-          )}
-          
-          {/* Save/Print Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowPrintModal(true);
-            }}
-            className="p-2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-lg shadow-sm text-green-600 hover:text-green-800 transition-colors"
-            title="Save/Print Lesson"
-          >
-            <Printer className="h-4 w-4" />
-          </button>
-        </div>
+        {/* Action buttons - Only Assign button */}
+        {onAssignToUnit && halfTerms.length > 0 && (
+          <div className="absolute top-2 right-2 z-10">
+            <button
+              onClick={handleAssignClick}
+              className="p-2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-lg shadow-sm text-blue-600 hover:text-blue-800 transition-colors"
+              title="Assign to Unit"
+            >
+              <Calendar className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Assign Modal */}
