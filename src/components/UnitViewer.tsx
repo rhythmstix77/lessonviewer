@@ -7,7 +7,6 @@ import {
   EyeOff, 
   Grid, 
   List, 
-  MoreVertical, 
   ChevronLeft, 
   Clock, 
   BookOpen, 
@@ -83,7 +82,7 @@ export function UnitViewer() {
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTerm, setSelectedTerm] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [selectedLessonForExport, setSelectedLessonForExport] = useState<string | null>(null);
   const [focusedHalfTermId, setFocusedHalfTermId] = useState<string | null>(null);
@@ -410,53 +409,50 @@ export function UnitViewer() {
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header - UPDATED: Made more compact with search field aligned with title */}
+          {/* Header - Updated with search field on the right */}
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-6">
             <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-3">
                   <FolderOpen className="h-6 w-6" />
                   <h2 className="text-xl font-bold">Half-Term Planner</h2>
-                  
-                  {/* Search field - now smaller and positioned next to the title */}
-                  <div className="relative w-64">
+                </div>
+                
+                <div className="flex items-center space-x-3">
+                  {/* Search field - moved to the right */}
+                  <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-indigo-300" />
                     <input
                       type="text"
                       placeholder="Search units..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-indigo-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
+                      className="w-64 pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-indigo-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
                       dir="ltr"
                     />
                   </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-2 rounded-lg transition-colors duration-200 ${
-                      viewMode === 'grid' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
-                    }`}
-                  >
-                    <Grid className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`p-2 rounded-lg transition-colors duration-200 ${
-                      viewMode === 'list' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
-                    }`}
-                  >
-                    <List className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('compact')}
-                    className={`p-2 rounded-lg transition-colors duration-200 ${
-                      viewMode === 'compact' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
-                    }`}
-                  >
-                    <MoreVertical className="h-5 w-5" />
-                  </button>
+                  
+                  {/* Simplified view options - only keep grid and list */}
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setViewMode('grid')}
+                      className={`p-2 rounded-lg transition-colors duration-200 ${
+                        viewMode === 'grid' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
+                      }`}
+                      title="Grid View"
+                    >
+                      <Grid className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode('list')}
+                      className={`p-2 rounded-lg transition-colors duration-200 ${
+                        viewMode === 'list' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
+                      }`}
+                      title="List View"
+                    >
+                      <List className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
