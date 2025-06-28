@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Calendar, Eye, Save, Star, Clock, Search, Filter, Printer } from 'lucide-react';
+import { X, Calendar, Eye, Save, Star, Clock, Search, Filter, Printer, Tag } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 
 interface LessonSelectionModalProps {
