@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { Download, Printer, X, Check, Tag } from 'lucide-react';
+import { Download, Printer, X, Check, Tag, FileText, Clock, Users, BookOpen } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface LessonPrintModalProps {
   lessonNumber: string;
@@ -72,10 +73,57 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
     setIsExporting(true);
     
     try {
-      if (exportMode === 'single') {
-        await exportSingleLessonToPdf();
-      } else {
-        await exportHalfTermToPdf();
+      if (previewRef.current) {
+        // Use html2canvas to capture the styled preview
+        const canvas = await html2canvas(previewRef.current, {
+          scale: 2, // Higher scale for better quality
+          useCORS: true, // Allow loading cross-origin images
+          logging: false,
+          backgroundColor: '#ffffff'
+        });
+        
+        const imgData = canvas.toDataURL('image/png');
+        
+        // Create PDF with proper A4 dimensions
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4'
+        });
+        
+        // A4 dimensions: 210mm x 297mm
+        const imgWidth = 210;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        // Add image to PDF
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+        
+        // If the content is longer than one page, create additional pages
+        if (imgHeight > 297) {
+          let remainingHeight = imgHeight;
+          let currentPosition = 0;
+          
+          while (remainingHeight > 0) {
+            currentPosition += 297;
+            remainingHeight -= 297;
+            
+            if (remainingHeight > 0) {
+              pdf.addPage();
+              pdf.addImage(
+                imgData, 
+                'PNG', 
+                0, 
+                -currentPosition, 
+                imgWidth, 
+                imgHeight
+              );
+            }
+          }
+        }
+        
+        // Save the PDF
+        const title = lessonData.title || `Lesson ${lessonNumber}`;
+        pdf.save(`${currentSheetInfo.sheet}_${title.replace(/\s+/g, '_')}.pdf`);
       }
       
       setExportSuccess(true);
@@ -88,428 +136,8 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
     }
   };
 
-  const exportSingleLessonToPdf = async () => {
-    try {
-      // Create a new PDF document with compression enabled
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-        compress: true // Enable compression to reduce file size
-      });
-      
-      // Add the lesson title and header
-      pdf.setFontSize(18);
-      pdf.setTextColor(0, 0, 0);
-      const title = lessonData.title || `Lesson ${lessonNumber}`;
-      pdf.text(`${currentSheetInfo.display} Lesson Plan`, 105, 20, { align: 'center' });
-      pdf.text(title, 105, 30, { align: 'center' });
-      pdf.setFontSize(12);
-      pdf.text(`Total Time: ${totalDuration} minutes`, 105, 40, { align: 'center' });
-      
-      let yPos = 50;
-      
-      // Add EYFS standards if enabled
-      if (showEyfs && lessonEyfs.length > 0) {
-        pdf.setFontSize(14);
-        pdf.text('Learning Goals', 20, yPos);
-        yPos += 6;
-        
-        // Add each EYFS area and its statements
-        Object.entries(groupedEyfs).forEach(([area, statements]) => {
-          // Check if we need a new page
-          if (yPos > 270) {
-            pdf.addPage();
-            yPos = 20;
-          }
-          
-          pdf.setFontSize(12);
-          pdf.setTextColor(0, 0, 150);
-          pdf.text(area, 20, yPos);
-          yPos += 6;
-          
-          pdf.setTextColor(0, 0, 0);
-          pdf.setFontSize(10);
-          
-          statements.forEach(statement => {
-            // Check if we need a new page
-            if (yPos > 270) {
-              pdf.addPage();
-              yPos = 20;
-            }
-            
-            pdf.text(`• ${statement}`, 25, yPos);
-            yPos += 5;
-          });
-          
-          yPos += 5;
-        });
-        
-        yPos += 10;
-      }
-      
-      // Add activities by category
-      lessonData.categoryOrder.forEach(category => {
-        const activities = lessonData.grouped[category] || [];
-        if (activities.length === 0) return;
-        
-        // Check if we need a new page
-        if (yPos > 270) {
-          pdf.addPage();
-          yPos = 20;
-        }
-        
-        // Category header
-        pdf.setFontSize(14);
-        const categoryColor = getCategoryColor(category);
-        const colorRGB = hexToRgb(categoryColor);
-        if (colorRGB) {
-          pdf.setTextColor(colorRGB.r, colorRGB.g, colorRGB.b);
-        } else {
-          pdf.setTextColor(0, 0, 150);
-        }
-        pdf.text(category, 20, yPos);
-        yPos += 8;
-        
-        // Reset text color
-        pdf.setTextColor(0, 0, 0);
-        
-        // Add each activity
-        activities.forEach(activity => {
-          // Check if we need a new page
-          if (yPos > 270) {
-            pdf.addPage();
-            yPos = 20;
-          }
-          
-          // Activity title and duration
-          pdf.setFontSize(12);
-          pdf.setFont(undefined, 'bold');
-          pdf.text(`${activity.activity}${activity.time ? ` (${activity.time} mins)` : ''}`, 25, yPos);
-          yPos += 6;
-          
-          // Activity description
-          pdf.setFont(undefined, 'normal');
-          pdf.setFontSize(10);
-          
-          // Clean HTML from description
-          const descText = activity.description.replace(/<[^>]*>/g, '');
-          const splitText = pdf.splitTextToSize(descText, 165);
-          
-          splitText.forEach(line => {
-            // Check if we need a new page
-            if (yPos > 270) {
-              pdf.addPage();
-              yPos = 20;
-            }
-            
-            pdf.text(line, 30, yPos);
-            yPos += 5;
-          });
-          
-          // Add resources with hyperlinks
-          const resources = [];
-          if (activity.videoLink) resources.push({ type: 'Video', url: activity.videoLink });
-          if (activity.musicLink) resources.push({ type: 'Music', url: activity.musicLink });
-          if (activity.backingLink) resources.push({ type: 'Backing', url: activity.backingLink });
-          if (activity.resourceLink) resources.push({ type: 'Resource', url: activity.resourceLink });
-          if (activity.link) resources.push({ type: 'Link', url: activity.link });
-          if (activity.vocalsLink) resources.push({ type: 'Vocals', url: activity.vocalsLink });
-          if (activity.imageLink) resources.push({ type: 'Image', url: activity.imageLink });
-          
-          if (resources.length > 0) {
-            yPos += 5;
-            pdf.setFontSize(10);
-            pdf.setFont(undefined, 'bold');
-            pdf.text('Resources:', 30, yPos);
-            yPos += 5;
-            
-            pdf.setFont(undefined, 'normal');
-            pdf.setTextColor(0, 0, 255); // Blue color for links
-            
-            resources.forEach(resource => {
-              // Check if we need a new page
-              if (yPos > 270) {
-                pdf.addPage();
-                yPos = 20;
-              }
-              
-              // Add clickable link
-              const linkText = resource.type;
-              
-              pdf.textWithLink(linkText, 35, yPos, {
-                url: resource.url
-              });
-              
-              yPos += 5;
-            });
-            
-            // Reset text color
-            pdf.setTextColor(0, 0, 0);
-          }
-          
-          yPos += 10;
-        });
-        
-        yPos += 5;
-      });
-      
-      // Add page number to each page
-      const pageCount = pdf.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        pdf.setPage(i);
-        pdf.setFontSize(10);
-        pdf.setTextColor(100, 100, 100);
-        pdf.text(`Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
-      }
-      
-      // Save the PDF
-      pdf.save(`${currentSheetInfo.sheet}_${title.replace(/\s+/g, '_')}.pdf`);
-    } catch (error) {
-      console.error('PDF export failed:', error);
-      throw error;
-    }
-  };
-
-  const exportHalfTermToPdf = async () => {
-    if (!halfTermId || halfTermLessons.length === 0) {
-      alert('No lessons found for this half-term');
-      return;
-    }
-    
-    try {
-      // Create PDF with proper A4 dimensions and compression
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-        compress: true // Enable compression to reduce file size
-      });
-      
-      // Add title page
-      pdf.setFontSize(24);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text(`${currentSheetInfo.display}`, 105, 100, { align: 'center' });
-      pdf.setFontSize(30);
-      pdf.text(`Half-Term Plan`, 105, 120, { align: 'center' });
-      
-      const currentHalfTerm = halfTerms?.find(term => term.id === halfTermId);
-      if (currentHalfTerm) {
-        pdf.setFontSize(20);
-        pdf.text(`${currentHalfTerm.name} (${currentHalfTerm.months})`, 105, 140, { align: 'center' });
-      }
-      
-      pdf.setFontSize(12);
-      pdf.text(`${halfTermLessons.length} Lessons`, 105, 160, { align: 'center' });
-      pdf.text(`Generated on ${new Date().toLocaleDateString()}`, 105, 170, { align: 'center' });
-      
-      // Process each lesson
-      for (let i = 0; i < halfTermLessons.length; i++) {
-        const lessonNum = halfTermLessons[i];
-        const lesson = allLessonsData[lessonNum];
-        
-        if (!lesson) continue;
-        
-        // Add a new page for each lesson
-        pdf.addPage();
-        
-        // Add lesson header
-        pdf.setFontSize(18);
-        pdf.setTextColor(0, 0, 0);
-        pdf.text(`Lesson ${lessonNum}: ${lesson.title || `Lesson ${lessonNum}`}`, 105, 20, { align: 'center' });
-        
-        pdf.setFontSize(12);
-        pdf.text(`Duration: ${lesson.totalTime} minutes`, 105, 30, { align: 'center' });
-        
-        let yPos = 40;
-        
-        // Add EYFS standards if available
-        const lessonEyfs = eyfsStatements[lessonNum] || [];
-        if (showEyfs && lessonEyfs.length > 0) {
-          pdf.setFontSize(14);
-          pdf.text('Learning Goals', 20, yPos);
-          yPos += 6;
-          
-          // Group EYFS statements by area
-          const groupedEyfs: Record<string, string[]> = {};
-          lessonEyfs.forEach(statement => {
-            const parts = statement.split(':');
-            const area = parts[0].trim();
-            const detail = parts.length > 1 ? parts[1].trim() : statement;
-            
-            if (!groupedEyfs[area]) {
-              groupedEyfs[area] = [];
-            }
-            
-            groupedEyfs[area].push(detail);
-          });
-          
-          // Add EYFS statements to PDF
-          Object.entries(groupedEyfs).forEach(([area, statements]) => {
-            // Check if we need a new page
-            if (yPos > 270) {
-              pdf.addPage();
-              yPos = 20;
-            }
-            
-            pdf.setFontSize(12);
-            pdf.setTextColor(0, 0, 150);
-            pdf.text(area, 20, yPos);
-            yPos += 6;
-            
-            pdf.setTextColor(0, 0, 0);
-            pdf.setFontSize(10);
-            statements.forEach(statement => {
-              // Check if we need a new page
-              if (yPos > 270) {
-                pdf.addPage();
-                yPos = 20;
-              }
-              
-              pdf.text(`• ${statement}`, 25, yPos);
-              yPos += 5;
-            });
-            
-            yPos += 5;
-          });
-          
-          yPos += 10;
-        }
-        
-        // Add activities
-        lesson.categoryOrder.forEach(category => {
-          const activities = lesson.grouped[category] || [];
-          if (activities.length === 0) return;
-          
-          // Check if we need a new page
-          if (yPos > 270) {
-            pdf.addPage();
-            yPos = 20;
-          }
-          
-          // Category header
-          pdf.setFontSize(14);
-          const categoryColor = getCategoryColor(category);
-          const colorRGB = hexToRgb(categoryColor);
-          if (colorRGB) {
-            pdf.setTextColor(colorRGB.r, colorRGB.g, colorRGB.b);
-          } else {
-            pdf.setTextColor(0, 0, 150);
-          }
-          pdf.text(category, 20, yPos);
-          yPos += 8;
-          
-          // Reset text color
-          pdf.setTextColor(0, 0, 0);
-          
-          // Add each activity
-          activities.forEach(activity => {
-            // Check if we need a new page
-            if (yPos > 270) {
-              pdf.addPage();
-              yPos = 20;
-            }
-            
-            // Activity title and duration
-            pdf.setFontSize(12);
-            pdf.setFont(undefined, 'bold');
-            pdf.text(`${activity.activity}${activity.time ? ` (${activity.time} mins)` : ''}`, 25, yPos);
-            yPos += 6;
-            
-            // Activity description
-            pdf.setFont(undefined, 'normal');
-            pdf.setFontSize(10);
-            
-            // Clean HTML from description
-            const descText = activity.description.replace(/<[^>]*>/g, '');
-            const splitText = pdf.splitTextToSize(descText, 165);
-            
-            splitText.forEach(line => {
-              // Check if we need a new page
-              if (yPos > 270) {
-                pdf.addPage();
-                yPos = 20;
-              }
-              
-              pdf.text(line, 30, yPos);
-              yPos += 5;
-            });
-            
-            // Add resources with hyperlinks
-            const resources = [];
-            if (activity.videoLink) resources.push({ type: 'Video', url: activity.videoLink });
-            if (activity.musicLink) resources.push({ type: 'Music', url: activity.musicLink });
-            if (activity.backingLink) resources.push({ type: 'Backing', url: activity.backingLink });
-            if (activity.resourceLink) resources.push({ type: 'Resource', url: activity.resourceLink });
-            if (activity.link) resources.push({ type: 'Link', url: activity.link });
-            if (activity.vocalsLink) resources.push({ type: 'Vocals', url: activity.vocalsLink });
-            if (activity.imageLink) resources.push({ type: 'Image', url: activity.imageLink });
-            
-            if (resources.length > 0) {
-              yPos += 5;
-              pdf.setFontSize(10);
-              pdf.setFont(undefined, 'bold');
-              pdf.text('Resources:', 30, yPos);
-              yPos += 5;
-              
-              pdf.setFont(undefined, 'normal');
-              pdf.setTextColor(0, 0, 255); // Blue color for links
-              
-              resources.forEach(resource => {
-                // Check if we need a new page
-                if (yPos > 270) {
-                  pdf.addPage();
-                  yPos = 20;
-                }
-                
-                // Add clickable link
-                const linkText = resource.type;
-                
-                pdf.textWithLink(linkText, 35, yPos, {
-                  url: resource.url
-                });
-                
-                yPos += 5;
-              });
-              
-              // Reset text color
-              pdf.setTextColor(0, 0, 0);
-            }
-            
-            yPos += 10;
-          });
-          
-          yPos += 5;
-        });
-        
-        // Add page number
-        pdf.setFontSize(10);
-        pdf.setTextColor(100, 100, 100);
-        pdf.text(`Page ${i + 2} of ${halfTermLessons.length + 1}`, 105, 290, { align: 'center' });
-      }
-      
-      // Save the PDF
-      const halfTerm = halfTerms?.find(term => term.id === halfTermId);
-      const halfTermName = halfTerm ? halfTerm.name.replace(/\s+/g, '_') : halfTermId;
-      pdf.save(`${currentSheetInfo.sheet}_${halfTermName}_Half_Term_Plan.pdf`);
-    } catch (error) {
-      console.error('PDF export failed:', error);
-      throw error;
-    }
-  };
-
   const handlePrint = () => {
     window.print();
-  };
-
-  // Helper function to convert hex color to RGB
-  const hexToRgb = (hex: string) => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-      r: parseInt(result[1], 16),
-      g: parseInt(result[2], 16),
-      b: parseInt(result[3], 16)
-    } : null;
   };
 
   return (
@@ -544,34 +172,6 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
                 />
                 <span>Include Learning Goals</span>
               </label>
-              
-              {halfTermId && (
-                <div className="flex items-center space-x-2">
-                  <label className="text-sm font-medium text-gray-700">Export:</label>
-                  <div className="flex bg-white border border-gray-300 rounded-lg overflow-hidden">
-                    <button
-                      onClick={() => setExportMode('single')}
-                      className={`px-3 py-1.5 text-sm font-medium ${
-                        exportMode === 'single' 
-                          ? 'bg-blue-600 text-white' 
-                          : 'bg-white text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      Single Lesson
-                    </button>
-                    <button
-                      onClick={() => setExportMode('halfterm')}
-                      className={`px-3 py-1.5 text-sm font-medium ${
-                        exportMode === 'halfterm' 
-                          ? 'bg-blue-600 text-white' 
-                          : 'bg-white text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      Entire Half-Term
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
             <div className="flex space-x-3">
               <button
@@ -634,22 +234,22 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
                 </div>
               </div>
               
-              {/* EYFS Goals - Full width section */}
+              {/* EYFS Goals */}
               {showEyfs && lessonEyfs.length > 0 && (
-                <div className="mb-6 print:mb-4 w-full">
+                <div className="mb-6 print:mb-4">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center space-x-2 print:text-base print:mb-2">
-                    <Tag className="h-5 w-5 text-blue-600 print:h-4 print:w-4" />
+                    <span className="text-blue-600">🎯</span>
                     <span>Learning Goals</span>
                   </h3>
-                  <div className="w-full grid grid-cols-1 gap-3 print:gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 print:gap-2">
                     {Object.entries(groupedEyfs).map(([area, statements]) => (
-                      <div key={area} className="bg-gray-50 rounded-lg p-3 border border-gray-200 print:p-2 print:bg-gray-100 w-full">
+                      <div key={area} className="bg-gray-50 rounded-lg p-3 border border-gray-200 print:p-2 print:bg-gray-100">
                         <h4 className="font-medium text-gray-800 text-sm mb-2 print:text-xs print:mb-1">{area}</h4>
-                        <ul className="space-y-1 w-full">
+                        <ul className="space-y-1">
                           {statements.map((statement, index) => (
                             <li key={index} className="flex items-start space-x-2 text-sm text-gray-700 print:text-xs">
-                              <span className="text-green-500 font-bold flex-shrink-0">✓</span>
-                              <span className="flex-1">{statement}</span>
+                              <span className="text-green-500 font-bold">✓</span>
+                              <span>{statement}</span>
                             </li>
                           ))}
                         </ul>
@@ -683,7 +283,7 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
                       {activities.map((activity, index) => (
                         <div 
                           key={`${category}-${index}`} 
-                          className="bg-white rounded-lg border border-gray-200 overflow-hidden print:border print:rounded-lg print:mb-3 print-activity"
+                          className="bg-white rounded-lg border border-gray-200 overflow-hidden print:border print:rounded-lg print:mb-3 page-break-inside-avoid"
                           style={{ 
                             borderLeftWidth: '4px',
                             borderLeftColor: categoryColor
