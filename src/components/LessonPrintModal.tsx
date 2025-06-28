@@ -500,22 +500,22 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
                 </div>
               </div>
               
-              {/* EYFS Goals */}
+              {/* EYFS Goals - Full width section */}
               {showEyfs && lessonEyfs.length > 0 && (
-                <div className="mb-6 print:mb-4">
+                <div className="mb-6 print:mb-4 w-full">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center space-x-2 print:text-base print:mb-2">
                     <Tag className="h-5 w-5 text-blue-600 print:h-4 print:w-4" />
                     <span>Learning Goals</span>
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 print:gap-2">
+                  <div className="w-full grid grid-cols-1 gap-3 print:gap-2">
                     {Object.entries(groupedEyfs).map(([area, statements]) => (
-                      <div key={area} className="bg-gray-50 rounded-lg p-3 border border-gray-200 print:p-2 print:bg-gray-100">
+                      <div key={area} className="bg-gray-50 rounded-lg p-3 border border-gray-200 print:p-2 print:bg-gray-100 w-full">
                         <h4 className="font-medium text-gray-800 text-sm mb-2 print:text-xs print:mb-1">{area}</h4>
-                        <ul className="space-y-1">
+                        <ul className="space-y-1 w-full">
                           {statements.map((statement, index) => (
                             <li key={index} className="flex items-start space-x-2 text-sm text-gray-700 print:text-xs">
-                              <span className="text-green-500 font-bold">✓</span>
-                              <span>{statement}</span>
+                              <span className="text-green-500 font-bold flex-shrink-0">✓</span>
+                              <span className="flex-1">{statement}</span>
                             </li>
                           ))}
                         </ul>
