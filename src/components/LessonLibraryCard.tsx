@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Clock, Users, Tag, X, ExternalLink, FileText, Edit3, Save, FolderPlus, ChevronDown, Calendar, Hand, Star, Printer, ChevronRight } from 'lucide-react';
+import { Clock, Users, Tag, X, ExternalLink, FileText, Edit3, Save, FolderPlus, ChevronDown, Calendar, Hand, ChevronRight } from 'lucide-react';
 import type { LessonData, Activity } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { useData } from '../contexts/DataContext';
@@ -38,12 +38,12 @@ const TERM_NAMES: Record<string, string> = {
   'SM2': 'Summer 2',
 };
 
-export function LessonLibraryCard({ 
-  lessonNumber, 
-  lessonData, 
-  viewMode, 
-  onClick, 
-  theme, 
+export function LessonLibraryCard({
+  lessonNumber,
+  lessonData,
+  viewMode,
+  onClick,
+  theme,
   onAssignToUnit,
   halfTerms = []
 }: LessonLibraryCardProps) {
@@ -58,6 +58,20 @@ export function LessonLibraryCard({
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Calculate total activities
+  const totalActivities = React.useMemo(() => {
+    try {
+      if (!lessonData || !lessonData.grouped) return 0;
+      return Object.values(lessonData.grouped).reduce(
+        (sum, activities) => sum + (Array.isArray(activities) ? activities.length : 0),
+        0
+      );
+    } catch (error) {
+      console.error('Error calculating total activities:', error);
+      return 0;
+    }
+  }, [lessonData]);
   
   // Format date for display
   const formatDate = (date: Date) => {
@@ -181,13 +195,13 @@ export function LessonLibraryCard({
               <div className="flex items-center space-x-2 text-xs text-gray-500">
                 <span>{lessonData.totalTime} mins</span>
                 <span>•</span>
-                <span>{Object.values(lessonData.grouped).reduce((sum, activities) => sum + activities.length, 0)} activities</span>
+                <span>{totalActivities} activities</span>
               </div>
             </div>
           </div>
         </div>
         
-        {/* Action buttons - Assign button */}
+        {/* Action buttons - Assign button only */}
         {onAssignToUnit && halfTerms.length > 0 && (
           <div className="absolute top-0 right-0 h-full flex items-center pr-2">
             <button
@@ -251,7 +265,7 @@ export function LessonLibraryCard({
                 </div>
                 <div className="flex items-center space-x-1">
                   <Users className="h-4 w-4 text-gray-500" />
-                  <span>{Object.values(lessonData.grouped).reduce((sum, activities) => sum + activities.length, 0)} activities</span>
+                  <span>{totalActivities} activities</span>
                 </div>
               </div>
               
@@ -339,7 +353,7 @@ export function LessonLibraryCard({
             </div>
             <div className="flex items-center space-x-1">
               <Users className="h-4 w-4" />
-              <span className="text-sm">{Object.values(lessonData.grouped).reduce((sum, activities) => sum + activities.length, 0)} activities</span>
+              <span className="text-sm">{totalActivities} activities</span>
             </div>
           </div>
           
