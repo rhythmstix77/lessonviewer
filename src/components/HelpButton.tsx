@@ -14,10 +14,10 @@ export function HelpButton({ onOpenGuide }: HelpButtonProps) {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-40">
+    <div className="fixed top-20 right-6 z-40">
       {/* Help Menu */}
       {isOpen && (
-        <div className="absolute bottom-16 right-0 bg-white rounded-lg shadow-xl border border-gray-200 w-64 overflow-hidden animate-bounce-in">
+        <div className="absolute bottom-12 right-0 bg-white rounded-lg shadow-xl border border-gray-200 w-64 overflow-hidden animate-bounce-in">
           <div className="p-3 bg-blue-600 text-white">
             <h3 className="font-medium">Help Guide</h3>
             <p className="text-xs text-blue-100">Select a topic to learn more</p>
@@ -65,9 +65,9 @@ export function HelpButton({ onOpenGuide }: HelpButtonProps) {
       {/* Main Help Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg transition-all duration-200 hover:scale-105 flex items-center justify-center"
+        className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-md transition-all duration-200 hover:scale-105 flex items-center justify-center"
       >
-        <HelpCircle className="h-6 w-6" />
+        <HelpCircle className="h-5 w-5" />
       </button>
     </div>
   );

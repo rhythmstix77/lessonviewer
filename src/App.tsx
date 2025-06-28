@@ -8,7 +8,6 @@ import { LoginForm } from './components/LoginForm';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { Footer } from './components/Footer';
 import { useAuth } from './hooks/useAuth';
-import { HelpButton } from './components/HelpButton';
 import { HelpGuide } from './components/HelpGuide';
 
 function AppContent() {
@@ -40,7 +39,6 @@ function AppContent() {
         <Dashboard />
       </main>
       <Footer />
-      <HelpButton onOpenGuide={handleOpenGuide} />
       <HelpGuide 
         isOpen={showHelpGuide} 
         onClose={() => setShowHelpGuide(false)} 
