@@ -169,7 +169,7 @@ export function DataSourceSettings({ embedded = false }: DataSourceSettingsProps
     }
   }, [isOpen]);
 
-  // Don't render the settings button if user is not admin or if embedded
+  // Don't render the settings button if user is not admin
   if (!isAdmin) {
     return null;
   }
@@ -249,33 +249,26 @@ export function DataSourceSettings({ embedded = false }: DataSourceSettingsProps
           </div>
         </div>
 
-        {/* Refresh Data */}
-        <div className="border border-blue-200 bg-blue-50 rounded-lg p-6">
+        {/* Clear All Data */}
+        <div className="border border-red-200 bg-red-50 rounded-lg p-6">
           <div className="flex items-center space-x-3 mb-4">
-            <RefreshCw className="h-6 w-6 text-blue-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Refresh Data</h3>
+            <Trash2 className="h-6 w-6 text-red-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Clear All Local Data</h3>
           </div>
           <p className="text-sm text-gray-600 mb-4">
-            Refresh the application data to ensure you're viewing the latest content.
+            Clear all locally stored data including lessons, activities, units, and settings. This action cannot be undone.
           </p>
           
           <button
-            onClick={handleRefreshData}
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+            onClick={handleClearAllLocalData}
+            className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
           >
-            {loading ? (
-              <>
-                <RefreshCw className="h-5 w-5 animate-spin" />
-                <span>Refreshing...</span>
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-5 w-5" />
-                <span>Refresh Data</span>
-              </>
-            )}
+            <Trash2 className="h-5 w-5" />
+            <span>Clear All Local Data</span>
           </button>
+          <p className="text-xs text-red-600 mt-2 text-center">
+            Warning: This will remove all your lessons, activities, units, and settings.
+          </p>
         </div>
       </div>
     );
