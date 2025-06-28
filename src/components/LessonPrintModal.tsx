@@ -141,35 +141,6 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
         }
       }
       
-      // Add hyperlinks for all resources
-      lessonData.categoryOrder.forEach(category => {
-        const activities = lessonData.grouped[category] || [];
-        activities.forEach(activity => {
-          // Add hyperlinks for each resource type
-          if (activity.videoLink) {
-            addHyperlinkToPdf(pdf, 'Video', activity.videoLink);
-          }
-          if (activity.musicLink) {
-            addHyperlinkToPdf(pdf, 'Music', activity.musicLink);
-          }
-          if (activity.backingLink) {
-            addHyperlinkToPdf(pdf, 'Backing', activity.backingLink);
-          }
-          if (activity.resourceLink) {
-            addHyperlinkToPdf(pdf, 'Resource', activity.resourceLink);
-          }
-          if (activity.link) {
-            addHyperlinkToPdf(pdf, 'Link', activity.link);
-          }
-          if (activity.vocalsLink) {
-            addHyperlinkToPdf(pdf, 'Vocals', activity.vocalsLink);
-          }
-          if (activity.imageLink) {
-            addHyperlinkToPdf(pdf, 'Image', activity.imageLink);
-          }
-        });
-      });
-      
       // Save the PDF
       const title = lessonData.title || `Lesson ${lessonNumber}`;
       pdf.save(`${currentSheetInfo.sheet}_${title.replace(/\s+/g, '_')}.pdf`);
@@ -364,36 +335,9 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
     }
     
     // Save the PDF
-    const finalHalfTerm = halfTerms.find(term => term.id === halfTermId);
-    const halfTermName = finalHalfTerm ? finalHalfTerm.name.replace(/\s+/g, '_') : halfTermId;
+    const halfTerm = halfTerms.find(term => term.id === halfTermId);
+    const halfTermName = halfTerm ? halfTerm.name.replace(/\s+/g, '_') : halfTermId;
     pdf.save(`${currentSheetInfo.sheet}_${halfTermName}_Half_Term_Plan.pdf`);
-  };
-
-  // Helper function to add hyperlinks to the PDF
-  const addHyperlinkToPdf = (pdf: jsPDF, resourceType: string, url: string) => {
-    // Find all instances of this resource type in the PDF
-    // This is a simplified approach - in a real implementation, you would need to
-    // calculate the exact positions of each resource badge in the PDF
-    
-    // For now, we'll add a page of hyperlinks at the end
-    const pageCount = pdf.getNumberOfPages();
-    pdf.addPage();
-    
-    pdf.setFontSize(16);
-    pdf.setTextColor(0, 0, 0);
-    pdf.text('Resource Links', 20, 20);
-    
-    pdf.setFontSize(12);
-    pdf.setTextColor(0, 0, 255);
-    
-    // Add the hyperlink
-    const linkText = `${resourceType}: ${url}`;
-    pdf.textWithLink(linkText, 20, 40, { url });
-    
-    // Add a note about the hyperlinks
-    pdf.setTextColor(0, 0, 0);
-    pdf.setFontSize(10);
-    pdf.text('Note: All resource badges in the lesson plan are clickable links.', 20, 60);
   };
 
   const handlePrint = () => {
