@@ -303,6 +303,14 @@ export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }
         )}
       </div>
 
+      {/* Lesson Exporter */}
+      {selectedLessonForExport && (
+        <LessonExporter
+          lessonNumber={selectedLessonForExport}
+          onClose={() => setSelectedLessonForExport(null)}
+        />
+      )}
+
       {/* Lesson Details Modal */}
       {selectedLessonForDetails && (
         <LessonDetailsModal
@@ -313,14 +321,6 @@ export function LessonLibrary({ onLessonSelect, className = '', onAssignToUnit }
             setSelectedLessonForExport(selectedLessonForDetails);
             setSelectedLessonForDetails(null);
           }}
-        />
-      )}
-
-      {/* Lesson Exporter */}
-      {selectedLessonForExport && (
-        <LessonExporter
-          lessonNumber={selectedLessonForExport}
-          onClose={() => setSelectedLessonForExport(null)}
         />
       )}
     </div>

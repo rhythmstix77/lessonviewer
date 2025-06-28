@@ -144,7 +144,7 @@ export function LessonPlanBuilder() {
     // Generate a unique ID for this activity instance to ensure it's treated as unique
     const uniqueActivity = {
       ...activityCopy,
-      uniqueId: Date.now() + Math.random().toString(36).substring(2, 9)
+      _uniqueId: Date.now() + Math.random().toString(36).substring(2, 9)
     };
     
     const updatedPlan = {
@@ -369,7 +369,7 @@ export function LessonPlanBuilder() {
       // Add a unique ID
       return {
         ...activityCopy,
-        uniqueId: Date.now() + Math.random().toString(36).substring(2, 9)
+        _uniqueId: Date.now() + Math.random().toString(36).substring(2, 9)
       };
     });
     
