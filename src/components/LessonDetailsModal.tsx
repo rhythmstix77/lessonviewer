@@ -129,133 +129,9 @@ export function LessonDetailsModal({
   const eyfsCount = (eyfsStatements[lessonNumber] || []).length;
 
   // Handle print or export
-  const handlePrintOrExport = async (type: 'print' | 'export') => {
-    if (type === 'print') {
-      window.print();
-      return;
-    }
-    
-    // Export to PDF
-    setIsExporting(true);
-    
-    try {
-      if (previewRef.current) {
-        const canvas = await html2canvas(previewRef.current, {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          backgroundColor: '#ffffff'
-        });
-        
-        const imgData = canvas.toDataURL('image/png');
-        
-        // Create PDF with proper A4 dimensions
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: 'a4'
-        });
-        
-        // A4 dimensions: 210mm x 297mm
-        const imgWidth = 210;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        
-        // Add image to PDF
-        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-        
-        // If the content is longer than one page, create additional pages
-        if (imgHeight > 297) {
-          let remainingHeight = imgHeight;
-          let currentPosition = 0;
-          
-          while (remainingHeight > 0) {
-            currentPosition += 297;
-            remainingHeight -= 297;
-            
-            if (remainingHeight > 0) {
-              pdf.addPage();
-              pdf.addImage(
-                imgData, 
-                'PNG', 
-                0, 
-                -currentPosition, 
-                imgWidth, 
-                imgHeight
-              );
-            }
-          }
-        }
-        
-        // Now add hyperlinks for all resources
-        // We need to collect all resource links from the activities
-        lessonData.categoryOrder.forEach(category => {
-          const activities = lessonData.grouped[category] || [];
-          activities.forEach(activity => {
-            // Add hyperlinks for each resource type
-            if (activity.videoLink) {
-              addHyperlinkToPdf(pdf, 'Video', activity.videoLink);
-            }
-            if (activity.musicLink) {
-              addHyperlinkToPdf(pdf, 'Music', activity.musicLink);
-            }
-            if (activity.backingLink) {
-              addHyperlinkToPdf(pdf, 'Backing', activity.backingLink);
-            }
-            if (activity.resourceLink) {
-              addHyperlinkToPdf(pdf, 'Resource', activity.resourceLink);
-            }
-            if (activity.link) {
-              addHyperlinkToPdf(pdf, 'Link', activity.link);
-            }
-            if (activity.vocalsLink) {
-              addHyperlinkToPdf(pdf, 'Vocals', activity.vocalsLink);
-            }
-            if (activity.imageLink) {
-              addHyperlinkToPdf(pdf, 'Image', activity.imageLink);
-            }
-          });
-        });
-        
-        // Save the PDF
-        const title = lessonData.title || `Lesson ${lessonNumber}`;
-        pdf.save(`${title.replace(/\s+/g, '_')}.pdf`);
-        
-        setExportSuccess(true);
-        setTimeout(() => setExportSuccess(false), 3000);
-      }
-    } catch (error) {
-      console.error('Export failed:', error);
-      alert('Export failed. Please try again.');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  // Helper function to add hyperlinks to the PDF
-  const addHyperlinkToPdf = (pdf: jsPDF, resourceType: string, url: string) => {
-    // Find all instances of this resource type in the PDF
-    // This is a simplified approach - in a real implementation, you would need to
-    // calculate the exact positions of each resource badge in the PDF
-    
-    // For now, we'll add a page of hyperlinks at the end
-    const pageCount = pdf.getNumberOfPages();
-    pdf.addPage();
-    
-    pdf.setFontSize(16);
-    pdf.setTextColor(0, 0, 0);
-    pdf.text('Resource Links', 20, 20);
-    
-    pdf.setFontSize(12);
-    pdf.setTextColor(0, 0, 255);
-    
-    // Add the hyperlink
-    const linkText = `${resourceType}: ${url}`;
-    pdf.textWithLink(linkText, 20, 40, { url });
-    
-    // Add a note about the hyperlinks
-    pdf.setTextColor(0, 0, 0);
-    pdf.setFontSize(10);
-    pdf.text('Note: All resource badges in the lesson plan are clickable links.', 20, 60);
+  const handleSavePrint = async () => {
+    // Use the browser's print functionality
+    window.print();
   };
 
   return (
@@ -329,30 +205,14 @@ export function LessonDetailsModal({
                 <Tag className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
                 <span className="text-sm font-medium">EYFS Standards</span>
               </button>
-              {/* Print Button */}
+              {/* Unified Save/Print Button */}
               <button
-                onClick={() => handlePrintOrExport('print')}
+                onClick={handleSavePrint}
                 className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 group flex items-center space-x-2"
-                title="Print Lesson"
+                title="Save/Print Lesson"
               >
                 <Printer className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
-                <span className="text-sm font-medium">Print</span>
-              </button>
-              {/* Export Button */}
-              <button
-                onClick={() => handlePrintOrExport('export')}
-                className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 group flex items-center space-x-2"
-                title="Export Lesson as PDF"
-                disabled={isExporting}
-              >
-                {isExporting ? (
-                  <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-                ) : exportSuccess ? (
-                  <Check className="h-5 w-5" />
-                ) : (
-                  <Download className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
-                )}
-                <span className="text-sm font-medium">Export</span>
+                <span className="text-sm font-medium">Save / Print</span>
               </button>
               <button
                 onClick={onClose}
@@ -620,7 +480,7 @@ export function LessonDetailsModal({
 
             {/* Print-only footer */}
             <div className="hidden print:block mt-8 pt-4 border-t border-gray-200 text-center text-xs text-gray-500">
-              <p>EYFS Lesson Builder</p>
+              <p>Curriculum Designer</p>
               <p className="pageNumber">Page 1</p>
             </div>
           </div>
