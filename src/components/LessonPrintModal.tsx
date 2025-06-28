@@ -90,138 +90,48 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
   };
 
   const exportSingleLessonToPdf = async () => {
-    // Export to PDF using html2canvas to capture the styled preview
-    if (previewRef.current) {
-      const canvas = await html2canvas(previewRef.current, {
-        scale: 2, // Higher scale for better quality
-        useCORS: true, // Allow loading cross-origin images
-        logging: false,
-        backgroundColor: '#ffffff'
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      
-      // Create PDF with proper A4 dimensions
+    try {
+      // Create a new PDF document
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'a4'
+        format: 'a4',
+        compress: true // Enable compression to reduce file size
       });
       
-      // A4 dimensions: 210mm x 297mm
-      const imgWidth = 210;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      // Add image to PDF
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      
-      // If the content is longer than one page, create additional pages
-      if (imgHeight > 297) {
-        let remainingHeight = imgHeight;
-        let currentPosition = 0;
-        
-        while (remainingHeight > 0) {
-          currentPosition += 297;
-          remainingHeight -= 297;
-          
-          if (remainingHeight > 0) {
-            pdf.addPage();
-            pdf.addImage(
-              imgData, 
-              'PNG', 
-              0, 
-              -currentPosition, 
-              imgWidth, 
-              imgHeight
-            );
-          }
-        }
-      }
-      
-      // Save the PDF
-      const title = lessonData.title || `Lesson ${lessonNumber}`;
-      pdf.save(`${currentSheetInfo.sheet}_${title.replace(/\s+/g, '_')}.pdf`);
-    }
-  };
-
-  const exportHalfTermToPdf = async () => {
-    if (!halfTermId || halfTermLessons.length === 0) {
-      alert('No lessons found for this half-term');
-      return;
-    }
-    
-    // Create PDF with proper A4 dimensions
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
-    
-    // Add title page
-    pdf.setFontSize(24);
-    pdf.setTextColor(0, 0, 0);
-    pdf.text(`${currentSheetInfo.display}`, 105, 100, { align: 'center' });
-    pdf.setFontSize(30);
-    pdf.text(`Half-Term Plan`, 105, 120, { align: 'center' });
-    
-    const currentHalfTerm = halfTerms.find(term => term.id === halfTermId);
-    if (currentHalfTerm) {
-      pdf.setFontSize(20);
-      pdf.text(`${currentHalfTerm.name} (${currentHalfTerm.months})`, 105, 140, { align: 'center' });
-    }
-    
-    pdf.setFontSize(12);
-    pdf.text(`${halfTermLessons.length} Lessons`, 105, 160, { align: 'center' });
-    pdf.text(`Generated on ${new Date().toLocaleDateString()}`, 105, 170, { align: 'center' });
-    
-    // Process each lesson
-    for (let i = 0; i < halfTermLessons.length; i++) {
-      const lessonNum = halfTermLessons[i];
-      const lesson = allLessonsData[lessonNum];
-      
-      if (!lesson) continue;
-      
-      // Add a new page for each lesson
-      pdf.addPage();
-      
-      // Add lesson header
+      // Add the lesson title and header
       pdf.setFontSize(18);
       pdf.setTextColor(0, 0, 0);
-      pdf.text(`Lesson ${lessonNum}: ${lesson.title || `Lesson ${lessonNum}`}`, 105, 20, { align: 'center' });
-      
+      const title = lessonData.title || `Lesson ${lessonNumber}`;
+      pdf.text(`${currentSheetInfo.display} Lesson Plan`, 105, 20, { align: 'center' });
+      pdf.text(title, 105, 30, { align: 'center' });
       pdf.setFontSize(12);
-      pdf.text(`Duration: ${lesson.totalTime} minutes`, 105, 30, { align: 'center' });
+      pdf.text(`Total Time: ${totalDuration} minutes`, 105, 40, { align: 'center' });
       
-      // Add EYFS standards if available
-      const lessonEyfs = eyfsStatements[lessonNum] || [];
+      let yPos = 50;
+      
+      // Add EYFS standards if enabled
       if (showEyfs && lessonEyfs.length > 0) {
         pdf.setFontSize(14);
-        pdf.text('Learning Goals', 20, 45);
+        pdf.text('Learning Goals', 20, yPos);
+        yPos += 6;
         
-        // Group EYFS statements by area
-        const groupedEyfs: Record<string, string[]> = {};
-        lessonEyfs.forEach(statement => {
-          const parts = statement.split(':');
-          const area = parts[0].trim();
-          const detail = parts.length > 1 ? parts[1].trim() : statement;
-          
-          if (!groupedEyfs[area]) {
-            groupedEyfs[area] = [];
+        // Add each EYFS area and its statements
+        Object.entries(groupedEyfs).forEach(([area, statements]) => {
+          // Check if we need a new page
+          if (yPos > 270) {
+            pdf.addPage();
+            yPos = 20;
           }
           
-          groupedEyfs[area].push(detail);
-        });
-        
-        // Add EYFS statements to PDF
-        let yPos = 55;
-        Object.entries(groupedEyfs).forEach(([area, statements]) => {
           pdf.setFontSize(12);
           pdf.setTextColor(0, 0, 150);
           pdf.text(area, 20, yPos);
-          yPos += 7;
+          yPos += 6;
           
           pdf.setTextColor(0, 0, 0);
           pdf.setFontSize(10);
+          
           statements.forEach(statement => {
             // Check if we need a new page
             if (yPos > 270) {
@@ -230,21 +140,22 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
             }
             
             pdf.text(`• ${statement}`, 25, yPos);
-            yPos += 6;
+            yPos += 5;
           });
           
           yPos += 5;
         });
+        
+        yPos += 10;
       }
       
-      // Add activities
-      let yPos = showEyfs && lessonEyfs.length > 0 ? 130 : 45;
-      
-      lesson.categoryOrder.forEach(category => {
-        const activities = lesson.grouped[category] || [];
+      // Add activities by category
+      lessonData.categoryOrder.forEach(category => {
+        const activities = lessonData.grouped[category] || [];
+        if (activities.length === 0) return;
         
         // Check if we need a new page
-        if (yPos > 250) {
+        if (yPos > 270) {
           pdf.addPage();
           yPos = 20;
         }
@@ -260,23 +171,29 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
         }
         pdf.text(category, 20, yPos);
         yPos += 8;
+        
+        // Reset text color
         pdf.setTextColor(0, 0, 0);
         
-        // Activities
-        pdf.setFontSize(12);
+        // Add each activity
         activities.forEach(activity => {
           // Check if we need a new page
-          if (yPos > 250) {
+          if (yPos > 270) {
             pdf.addPage();
             yPos = 20;
           }
           
+          // Activity title and duration
+          pdf.setFontSize(12);
           pdf.setFont(undefined, 'bold');
           pdf.text(`${activity.activity}${activity.time ? ` (${activity.time} mins)` : ''}`, 25, yPos);
           yPos += 6;
           
+          // Activity description
           pdf.setFont(undefined, 'normal');
-          // Split description into lines
+          pdf.setFontSize(10);
+          
+          // Clean HTML from description
           const descText = activity.description.replace(/<[^>]*>/g, '');
           const splitText = pdf.splitTextToSize(descText, 165);
           
@@ -288,53 +205,299 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
             }
             
             pdf.text(line, 30, yPos);
-            yPos += 6;
+            yPos += 5;
           });
           
-          // Add resources if available
+          // Add resources with hyperlinks
           const resources = [];
-          if (activity.videoLink) resources.push(`Video: ${activity.videoLink}`);
-          if (activity.musicLink) resources.push(`Music: ${activity.musicLink}`);
-          if (activity.backingLink) resources.push(`Backing: ${activity.backingLink}`);
-          if (activity.resourceLink) resources.push(`Resource: ${activity.resourceLink}`);
-          if (activity.link) resources.push(`Link: ${activity.link}`);
-          if (activity.vocalsLink) resources.push(`Vocals: ${activity.vocalsLink}`);
-          if (activity.imageLink) resources.push(`Image: ${activity.imageLink}`);
+          if (activity.videoLink) resources.push({ type: 'Video', url: activity.videoLink });
+          if (activity.musicLink) resources.push({ type: 'Music', url: activity.musicLink });
+          if (activity.backingLink) resources.push({ type: 'Backing', url: activity.backingLink });
+          if (activity.resourceLink) resources.push({ type: 'Resource', url: activity.resourceLink });
+          if (activity.link) resources.push({ type: 'Link', url: activity.link });
+          if (activity.vocalsLink) resources.push({ type: 'Vocals', url: activity.vocalsLink });
+          if (activity.imageLink) resources.push({ type: 'Image', url: activity.imageLink });
           
           if (resources.length > 0) {
-            yPos += 3;
-            pdf.setFont(undefined, 'italic');
+            yPos += 5;
+            pdf.setFontSize(10);
+            pdf.setFont(undefined, 'bold');
             pdf.text('Resources:', 30, yPos);
             yPos += 5;
             
+            pdf.setFont(undefined, 'normal');
+            pdf.setTextColor(0, 0, 255); // Blue color for links
+            
             resources.forEach(resource => {
+              // Check if we need a new page
               if (yPos > 270) {
                 pdf.addPage();
                 yPos = 20;
               }
-              pdf.text(resource, 35, yPos, { maxWidth: 160 });
+              
+              // Add clickable link
+              const linkText = resource.type;
+              const linkWidth = pdf.getTextWidth(linkText);
+              
+              pdf.textWithLink(linkText, 35, yPos, {
+                url: resource.url
+              });
+              
               yPos += 5;
             });
             
-            pdf.setFont(undefined, 'normal');
+            // Reset text color
+            pdf.setTextColor(0, 0, 0);
           }
+          
+          yPos += 10;
+        });
+        
+        yPos += 5;
+      });
+      
+      // Add page number to each page
+      const pageCount = pdf.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(10);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(`Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
+      }
+      
+      // Save the PDF
+      pdf.save(`${currentSheetInfo.sheet}_${title.replace(/\s+/g, '_')}.pdf`);
+    } catch (error) {
+      console.error('PDF export failed:', error);
+      throw error;
+    }
+  };
+
+  const exportHalfTermToPdf = async () => {
+    if (!halfTermId || halfTermLessons.length === 0) {
+      alert('No lessons found for this half-term');
+      return;
+    }
+    
+    try {
+      // Create PDF with proper A4 dimensions
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true // Enable compression to reduce file size
+      });
+      
+      // Add title page
+      pdf.setFontSize(24);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(`${currentSheetInfo.display}`, 105, 100, { align: 'center' });
+      pdf.setFontSize(30);
+      pdf.text(`Half-Term Plan`, 105, 120, { align: 'center' });
+      
+      const currentHalfTerm = halfTerms.find(term => term.id === halfTermId);
+      if (currentHalfTerm) {
+        pdf.setFontSize(20);
+        pdf.text(`${currentHalfTerm.name} (${currentHalfTerm.months})`, 105, 140, { align: 'center' });
+      }
+      
+      pdf.setFontSize(12);
+      pdf.text(`${halfTermLessons.length} Lessons`, 105, 160, { align: 'center' });
+      pdf.text(`Generated on ${new Date().toLocaleDateString()}`, 105, 170, { align: 'center' });
+      
+      // Process each lesson
+      for (let i = 0; i < halfTermLessons.length; i++) {
+        const lessonNum = halfTermLessons[i];
+        const lesson = allLessonsData[lessonNum];
+        
+        if (!lesson) continue;
+        
+        // Add a new page for each lesson
+        pdf.addPage();
+        
+        // Add lesson header
+        pdf.setFontSize(18);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text(`Lesson ${lessonNum}: ${lesson.title || `Lesson ${lessonNum}`}`, 105, 20, { align: 'center' });
+        
+        pdf.setFontSize(12);
+        pdf.text(`Duration: ${lesson.totalTime} minutes`, 105, 30, { align: 'center' });
+        
+        let yPos = 40;
+        
+        // Add EYFS standards if available
+        const lessonEyfs = eyfsStatements[lessonNum] || [];
+        if (showEyfs && lessonEyfs.length > 0) {
+          pdf.setFontSize(14);
+          pdf.text('Learning Goals', 20, yPos);
+          yPos += 6;
+          
+          // Group EYFS statements by area
+          const groupedEyfs: Record<string, string[]> = {};
+          lessonEyfs.forEach(statement => {
+            const parts = statement.split(':');
+            const area = parts[0].trim();
+            const detail = parts.length > 1 ? parts[1].trim() : statement;
+            
+            if (!groupedEyfs[area]) {
+              groupedEyfs[area] = [];
+            }
+            
+            groupedEyfs[area].push(detail);
+          });
+          
+          // Add EYFS statements to PDF
+          Object.entries(groupedEyfs).forEach(([area, statements]) => {
+            // Check if we need a new page
+            if (yPos > 270) {
+              pdf.addPage();
+              yPos = 20;
+            }
+            
+            pdf.setFontSize(12);
+            pdf.setTextColor(0, 0, 150);
+            pdf.text(area, 20, yPos);
+            yPos += 6;
+            
+            pdf.setTextColor(0, 0, 0);
+            pdf.setFontSize(10);
+            statements.forEach(statement => {
+              // Check if we need a new page
+              if (yPos > 270) {
+                pdf.addPage();
+                yPos = 20;
+              }
+              
+              pdf.text(`• ${statement}`, 25, yPos);
+              yPos += 5;
+            });
+            
+            yPos += 5;
+          });
+          
+          yPos += 10;
+        }
+        
+        // Add activities
+        lesson.categoryOrder.forEach(category => {
+          const activities = lesson.grouped[category] || [];
+          if (activities.length === 0) return;
+          
+          // Check if we need a new page
+          if (yPos > 270) {
+            pdf.addPage();
+            yPos = 20;
+          }
+          
+          // Category header
+          pdf.setFontSize(14);
+          const categoryColor = getCategoryColor(category);
+          const colorRGB = hexToRgb(categoryColor);
+          if (colorRGB) {
+            pdf.setTextColor(colorRGB.r, colorRGB.g, colorRGB.b);
+          } else {
+            pdf.setTextColor(0, 0, 150);
+          }
+          pdf.text(category, 20, yPos);
+          yPos += 8;
+          
+          // Reset text color
+          pdf.setTextColor(0, 0, 0);
+          
+          // Add each activity
+          activities.forEach(activity => {
+            // Check if we need a new page
+            if (yPos > 270) {
+              pdf.addPage();
+              yPos = 20;
+            }
+            
+            // Activity title and duration
+            pdf.setFontSize(12);
+            pdf.setFont(undefined, 'bold');
+            pdf.text(`${activity.activity}${activity.time ? ` (${activity.time} mins)` : ''}`, 25, yPos);
+            yPos += 6;
+            
+            // Activity description
+            pdf.setFont(undefined, 'normal');
+            pdf.setFontSize(10);
+            
+            // Clean HTML from description
+            const descText = activity.description.replace(/<[^>]*>/g, '');
+            const splitText = pdf.splitTextToSize(descText, 165);
+            
+            splitText.forEach(line => {
+              // Check if we need a new page
+              if (yPos > 270) {
+                pdf.addPage();
+                yPos = 20;
+              }
+              
+              pdf.text(line, 30, yPos);
+              yPos += 5;
+            });
+            
+            // Add resources with hyperlinks
+            const resources = [];
+            if (activity.videoLink) resources.push({ type: 'Video', url: activity.videoLink });
+            if (activity.musicLink) resources.push({ type: 'Music', url: activity.musicLink });
+            if (activity.backingLink) resources.push({ type: 'Backing', url: activity.backingLink });
+            if (activity.resourceLink) resources.push({ type: 'Resource', url: activity.resourceLink });
+            if (activity.link) resources.push({ type: 'Link', url: activity.link });
+            if (activity.vocalsLink) resources.push({ type: 'Vocals', url: activity.vocalsLink });
+            if (activity.imageLink) resources.push({ type: 'Image', url: activity.imageLink });
+            
+            if (resources.length > 0) {
+              yPos += 5;
+              pdf.setFontSize(10);
+              pdf.setFont(undefined, 'bold');
+              pdf.text('Resources:', 30, yPos);
+              yPos += 5;
+              
+              pdf.setFont(undefined, 'normal');
+              pdf.setTextColor(0, 0, 255); // Blue color for links
+              
+              resources.forEach(resource => {
+                // Check if we need a new page
+                if (yPos > 270) {
+                  pdf.addPage();
+                  yPos = 20;
+                }
+                
+                // Add clickable link
+                const linkText = resource.type;
+                
+                pdf.textWithLink(linkText, 35, yPos, {
+                  url: resource.url
+                });
+                
+                yPos += 5;
+              });
+              
+              // Reset text color
+              pdf.setTextColor(0, 0, 0);
+            }
+            
+            yPos += 10;
+          });
           
           yPos += 5;
         });
         
-        yPos += 10;
-      });
+        // Add page number
+        pdf.setFontSize(10);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(`Page ${i + 2} of ${halfTermLessons.length + 1}`, 105, 290, { align: 'center' });
+      }
       
-      // Add page number
-      pdf.setFontSize(10);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text(`Page ${i + 2} of ${halfTermLessons.length + 1}`, 105, 285, { align: 'center' });
+      // Save the PDF
+      const halfTerm = halfTerms.find(term => term.id === halfTermId);
+      const halfTermName = halfTerm ? halfTerm.name.replace(/\s+/g, '_') : halfTermId;
+      pdf.save(`${currentSheetInfo.sheet}_${halfTermName}_Half_Term_Plan.pdf`);
+    } catch (error) {
+      console.error('PDF export failed:', error);
+      throw error;
     }
-    
-    // Save the PDF
-    const halfTerm = halfTerms.find(term => term.id === halfTermId);
-    const halfTermName = halfTerm ? halfTerm.name.replace(/\s+/g, '_') : halfTermId;
-    pdf.save(`${currentSheetInfo.sheet}_${halfTermName}_Half_Term_Plan.pdf`);
   };
 
   const handlePrint = () => {
@@ -572,6 +735,8 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-red-200 transition-colors"
+                                      data-resource-type="Video"
+                                      data-resource-url={activity.videoLink}
                                     >
                                       Video
                                     </a>
@@ -582,6 +747,8 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-green-200 transition-colors"
+                                      data-resource-type="Music"
+                                      data-resource-url={activity.musicLink}
                                     >
                                       Music
                                     </a>
@@ -592,6 +759,8 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-blue-200 transition-colors"
+                                      data-resource-type="Backing"
+                                      data-resource-url={activity.backingLink}
                                     >
                                       Backing
                                     </a>
@@ -602,6 +771,8 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-purple-200 transition-colors"
+                                      data-resource-type="Resource"
+                                      data-resource-url={activity.resourceLink}
                                     >
                                       Resource
                                     </a>
@@ -612,6 +783,8 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-gray-200 transition-colors"
+                                      data-resource-type="Link"
+                                      data-resource-url={activity.link}
                                     >
                                       Link
                                     </a>
@@ -622,6 +795,8 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-orange-200 transition-colors"
+                                      data-resource-type="Vocals"
+                                      data-resource-url={activity.vocalsLink}
                                     >
                                       Vocals
                                     </a>
@@ -632,6 +807,8 @@ export function LessonPrintModal({ lessonNumber, onClose, halfTermId }: LessonPr
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="inline-flex items-center px-2 py-1 bg-pink-100 text-pink-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-pink-200 transition-colors"
+                                      data-resource-type="Image"
+                                      data-resource-url={activity.imageLink}
                                     >
                                       Image
                                     </a>
