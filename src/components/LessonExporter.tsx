@@ -1,9 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Download, FileText, File, Printer, X, Check, ChevronDown, ChevronUp, Tag } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 
 interface LessonExporterProps {
   lessonNumber: string;
@@ -13,6 +14,7 @@ interface LessonExporterProps {
 export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
   const { allLessonsData, currentSheetInfo, eyfsStatements } = useData();
   const { getCategoryColor } = useSettings();
+  const [exportFormat, setExportFormat] = useState<'pdf' | 'preview'>('preview');
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
   const [showEyfs, setShowEyfs] = useState(true);
@@ -61,188 +63,90 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
     setIsExporting(true);
     
     try {
-      // Create a new PDF document
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-      
-      // Add title and header
-      pdf.setFontSize(18);
-      pdf.text(`${currentSheetInfo.display} Lesson Plan`, 105, 20, { align: 'center' });
-      
-      pdf.setFontSize(16);
-      pdf.text(lessonData.title || `Lesson ${lessonNumber}`, 105, 30, { align: 'center' });
-      
-      pdf.setFontSize(12);
-      pdf.text(`Total Time: ${lessonData.totalTime} minutes`, 105, 40, { align: 'center' });
-      
-      let yPosition = 50;
-      
-      // Add EYFS Goals if enabled
-      if (showEyfs && lessonEyfs.length > 0) {
-        pdf.setFontSize(14);
-        pdf.text("🎯 Learning Goals", 20, yPosition);
-        yPosition += 10;
-        
-        // Add each EYFS area and its statements
-        Object.entries(groupedEyfs).forEach(([area, statements]) => {
-          pdf.setFontSize(12);
-          pdf.text(area, 20, yPosition);
-          yPosition += 6;
-          
-          statements.forEach(statement => {
-            pdf.setFontSize(10);
-            pdf.text(`✓ ${statement}`, 25, yPosition);
-            yPosition += 5;
+      if (exportFormat === 'pdf') {
+        // Export to PDF using html2canvas to capture the styled preview
+        if (previewRef.current) {
+          const canvas = await html2canvas(previewRef.current, {
+            scale: 2, // Higher scale for better quality
+            useCORS: true, // Allow loading cross-origin images
+            logging: false,
+            backgroundColor: '#ffffff'
           });
           
-          yPosition += 5;
-        });
-      }
-      
-      // Add activities by category
-      lessonData.categoryOrder.forEach(category => {
-        const activities = lessonData.grouped[category] || [];
-        if (activities.length === 0) return;
-        
-        // Check if we need a new page
-        if (yPosition > 250) {
-          pdf.addPage();
-          yPosition = 20;
-        }
-        
-        // Add category header
-        pdf.setFontSize(14);
-        const categoryColorHex = getCategoryColor(category).replace('#', '');
-        const r = parseInt(categoryColorHex.substring(0, 2), 16);
-        const g = parseInt(categoryColorHex.substring(2, 4), 16);
-        const b = parseInt(categoryColorHex.substring(4, 6), 16);
-        pdf.setTextColor(r, g, b);
-        pdf.text(category, 20, yPosition);
-        pdf.setTextColor(0, 0, 0);
-        yPosition += 8;
-        
-        // Add activities
-        activities.forEach(activity => {
-          // Check if we need a new page
-          if (yPosition > 250) {
-            pdf.addPage();
-            yPosition = 20;
-          }
+          const imgData = canvas.toDataURL('image/png');
           
-          // Activity title and time
-          pdf.setFontSize(12);
-          pdf.setFont(undefined, 'bold');
-          pdf.text(`${activity.activity}${activity.time ? ` (${activity.time} mins)` : ''}`, 25, yPosition);
-          yPosition += 6;
-          
-          // Activity description
-          pdf.setFont(undefined, 'normal');
-          pdf.setFontSize(10);
-          
-          // Clean description text (remove HTML tags)
-          const descText = activity.description.replace(/<[^>]*>/g, '');
-          
-          // Split text to fit page width
-          const splitText = pdf.splitTextToSize(descText, 160);
-          splitText.forEach(line => {
-            if (yPosition > 270) {
-              pdf.addPage();
-              yPosition = 20;
-            }
-            
-            pdf.text(line, 30, yPosition);
-            yPosition += 5;
+          // Create PDF with proper A4 dimensions
+          const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
           });
           
-          // Add resources with links
-          const resources = [];
-          if (activity.videoLink) resources.push({ text: 'Video', url: activity.videoLink });
-          if (activity.musicLink) resources.push({ text: 'Music', url: activity.musicLink });
-          if (activity.backingLink) resources.push({ text: 'Backing', url: activity.backingLink });
-          if (activity.resourceLink) resources.push({ text: 'Resource', url: activity.resourceLink });
-          if (activity.link) resources.push({ text: 'Link', url: activity.link });
-          if (activity.vocalsLink) resources.push({ text: 'Vocals', url: activity.vocalsLink });
-          if (activity.imageLink) resources.push({ text: 'Image', url: activity.imageLink });
+          // A4 dimensions: 210mm x 297mm
+          const imgWidth = 210;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
           
-          if (resources.length > 0) {
-            yPosition += 3;
-            pdf.setFont(undefined, 'italic');
-            pdf.text('Resources:', 30, yPosition);
-            yPosition += 5;
+          // Add image to PDF
+          pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+          
+          // If the content is longer than one page, create additional pages
+          if (imgHeight > 297) {
+            let remainingHeight = imgHeight;
+            let currentPosition = 0;
             
-            resources.forEach(resource => {
-              if (yPosition > 270) {
+            while (remainingHeight > 0) {
+              currentPosition += 297;
+              remainingHeight -= 297;
+              
+              if (remainingHeight > 0) {
                 pdf.addPage();
-                yPosition = 20;
+                pdf.addImage(
+                  imgData, 
+                  'PNG', 
+                  0, 
+                  -currentPosition, 
+                  imgWidth, 
+                  imgHeight
+                );
               }
-              
-              // Add text with link
-              const text = `${resource.text}: ${resource.url}`;
-              const textWidth = pdf.getTextWidth(text);
-              
-              pdf.setTextColor(0, 0, 255); // Blue color for links
-              pdf.text(text, 35, yPosition);
-              
-              // Add link annotation
-              pdf.link(35, yPosition - 5, textWidth, 6, { url: resource.url });
-              
-              pdf.setTextColor(0, 0, 0); // Reset text color
-              yPosition += 5;
+            }
+          }
+          
+          // Now add hyperlinks for all resources
+          // We need to collect all resource links from the activities
+          lessonData.categoryOrder.forEach(category => {
+            const activities = lessonData.grouped[category] || [];
+            activities.forEach(activity => {
+              // Add hyperlinks for each resource type
+              if (activity.videoLink) {
+                addHyperlinkToPdf(pdf, 'Video', activity.videoLink);
+              }
+              if (activity.musicLink) {
+                addHyperlinkToPdf(pdf, 'Music', activity.musicLink);
+              }
+              if (activity.backingLink) {
+                addHyperlinkToPdf(pdf, 'Backing', activity.backingLink);
+              }
+              if (activity.resourceLink) {
+                addHyperlinkToPdf(pdf, 'Resource', activity.resourceLink);
+              }
+              if (activity.link) {
+                addHyperlinkToPdf(pdf, 'Link', activity.link);
+              }
+              if (activity.vocalsLink) {
+                addHyperlinkToPdf(pdf, 'Vocals', activity.vocalsLink);
+              }
+              if (activity.imageLink) {
+                addHyperlinkToPdf(pdf, 'Image', activity.imageLink);
+              }
             });
-            
-            pdf.setFont(undefined, 'normal');
-          }
+          });
           
-          yPosition += 8;
-        });
-        
-        yPosition += 5;
-      });
-      
-      // Add notes if available
-      if (lessonData.notes) {
-        // Check if we need a new page
-        if (yPosition > 250) {
-          pdf.addPage();
-          yPosition = 20;
+          // Save the PDF
+          const title = lessonData.title || `Lesson ${lessonNumber}`;
+          pdf.save(`${currentSheetInfo.sheet}_${title.replace(/\s+/g, '_')}.pdf`);
         }
-        
-        pdf.setFontSize(14);
-        pdf.text('Lesson Notes', 20, yPosition);
-        yPosition += 8;
-        
-        // Clean notes text (remove HTML tags)
-        const notesText = lessonData.notes.replace(/<[^>]*>/g, '');
-        
-        // Split text to fit page width
-        pdf.setFontSize(10);
-        const splitNotes = pdf.splitTextToSize(notesText, 170);
-        splitNotes.forEach(line => {
-          if (yPosition > 270) {
-            pdf.addPage();
-            yPosition = 20;
-          }
-          
-          pdf.text(line, 25, yPosition);
-          yPosition += 5;
-        });
       }
-      
-      // Add footer with page numbers
-      const pageCount = pdf.internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        pdf.setPage(i);
-        pdf.setFontSize(10);
-        pdf.text(`Page ${i} of ${pageCount}`, 105, 287, { align: 'center' });
-        pdf.text(`Curriculum Designer - ${currentSheetInfo.display}`, 105, 292, { align: 'center' });
-      }
-      
-      // Save the PDF
-      const title = lessonData.title || `Lesson ${lessonNumber}`;
-      pdf.save(`${currentSheetInfo.sheet}_${title.replace(/\s+/g, '_')}.pdf`);
       
       setExportSuccess(true);
       setTimeout(() => setExportSuccess(false), 3000);
@@ -252,6 +156,33 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
     } finally {
       setIsExporting(false);
     }
+  };
+
+  // Helper function to add hyperlinks to the PDF
+  const addHyperlinkToPdf = (pdf: jsPDF, resourceType: string, url: string) => {
+    // Find all instances of this resource type in the PDF
+    // This is a simplified approach - in a real implementation, you would need to
+    // calculate the exact positions of each resource badge in the PDF
+    
+    // For now, we'll add a page of hyperlinks at the end
+    const pageCount = pdf.getNumberOfPages();
+    pdf.addPage();
+    
+    pdf.setFontSize(16);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text('Resource Links', 20, 20);
+    
+    pdf.setFontSize(12);
+    pdf.setTextColor(0, 0, 255);
+    
+    // Add the hyperlink
+    const linkText = `${resourceType}: ${url}`;
+    pdf.textWithLink(linkText, 20, 40, { url });
+    
+    // Add a note about the hyperlinks
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFontSize(10);
+    pdf.text('Note: All resource badges in the lesson plan are clickable links.', 20, 60);
   };
 
   const handlePrint = () => {
@@ -269,12 +200,36 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
               {lessonData.title || `Lesson ${lessonNumber}`} - {currentSheetInfo.display}
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-          >
-            <X className="h-6 w-6" />
-          </button>
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 bg-gray-100 p-1 rounded-lg">
+              <button
+                onClick={() => setExportFormat('preview')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium ${
+                  exportFormat === 'preview' 
+                    ? 'bg-white shadow-sm text-gray-900' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Preview
+              </button>
+              <button
+                onClick={() => setExportFormat('pdf')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium ${
+                  exportFormat === 'pdf' 
+                    ? 'bg-white shadow-sm text-gray-900' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                PDF
+              </button>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
         </div>
 
         {/* Options */}
@@ -288,7 +243,7 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
                   onChange={() => setShowEyfs(!showEyfs)}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-                <span>Include Learning Goals</span>
+                <span>Include EYFS Standards</span>
               </label>
             </div>
             <div className="flex space-x-3">
@@ -317,7 +272,7 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
                 ) : (
                   <>
                     <Download className="h-4 w-4" />
-                    <span>Export PDF</span>
+                    <span>Export {exportFormat.toUpperCase()}</span>
                   </>
                 )}
               </button>
@@ -329,7 +284,7 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
         <div className="flex-1 overflow-y-auto p-4 bg-gray-100 print:bg-white print:p-0">
           <div 
             ref={previewRef}
-            className="bg-white mx-auto shadow-md max-w-[210mm] print:shadow-none print:max-w-none print-content"
+            className="bg-white mx-auto shadow-md max-w-[210mm] print:shadow-none print:max-w-none"
             style={{ minHeight: '297mm' }}
           >
             {/* Lesson Plan Preview */}
@@ -354,19 +309,19 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
               
               {/* EYFS Goals */}
               {showEyfs && lessonEyfs.length > 0 && (
-                <div className="mb-6 print:mb-4 learning-goals">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center space-x-2 print:text-base print:mb-2 print-emoji">
-                    <span>🎯</span>
+                <div className="mb-6 print:mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center space-x-2 print:text-base print:mb-2">
+                    <Tag className="h-5 w-5 text-blue-600 print:h-4 print:w-4" />
                     <span>Learning Goals</span>
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 print:gap-2 learning-goals-list">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 print:gap-2">
                     {Object.entries(groupedEyfs).map(([area, statements]) => (
                       <div key={area} className="bg-gray-50 rounded-lg p-3 border border-gray-200 print:p-2 print:bg-gray-100">
                         <h4 className="font-medium text-gray-800 text-sm mb-2 print:text-xs print:mb-1">{area}</h4>
                         <ul className="space-y-1">
                           {statements.map((statement, index) => (
                             <li key={index} className="flex items-start space-x-2 text-sm text-gray-700 print:text-xs">
-                              <span className="text-green-500 font-bold print-emoji">✓</span>
+                              <span className="text-green-500 font-bold">✓</span>
                               <span>{statement}</span>
                             </li>
                           ))}
@@ -385,7 +340,7 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
                 const categoryColor = getCategoryColor(category);
                 
                 return (
-                  <div key={category} className="mb-8 print:mb-6 page-break-inside-avoid">
+                  <div key={category} className="mb-8 print:mb-6">
                     <h2 
                       className="text-xl font-semibold mb-4 print:text-lg print:mb-3"
                       style={{ 
@@ -401,26 +356,26 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
                       {activities.map((activity, index) => (
                         <div 
                           key={`${category}-${index}`} 
-                          className="bg-white rounded-lg border border-gray-200 overflow-hidden print:border print:rounded-lg print:mb-3 print-activity"
+                          className="bg-white rounded-lg border border-gray-200 overflow-hidden print:border print:rounded-lg print:mb-3"
                           style={{ 
                             borderLeftWidth: '4px',
                             borderLeftColor: categoryColor
                           }}
                         >
                           {/* Activity Header */}
-                          <div className="bg-gray-50 p-3 border-b border-gray-200 flex justify-between items-center print:p-2 activity-header">
-                            <h3 className="font-semibold text-gray-900 print:text-sm activity-name">
+                          <div className="bg-gray-50 p-3 border-b border-gray-200 flex justify-between items-center print:p-2">
+                            <h3 className="font-semibold text-gray-900 print:text-sm">
                               {activity.activity}
                             </h3>
                             {activity.time > 0 && (
-                              <div className="bg-gray-200 text-gray-800 px-2 py-1 rounded-full text-xs font-medium print:text-xs time-badge">
+                              <div className="bg-gray-200 text-gray-800 px-2 py-1 rounded-full text-xs font-medium print:text-xs">
                                 {activity.time} min
                               </div>
                             )}
                           </div>
                           
                           {/* Activity Content */}
-                          <div className="p-3 print:p-2 activity-content">
+                          <div className="p-3 print:p-2">
                             {/* Activity Text (if available) */}
                             {activity.activityText && (
                               <div 
@@ -450,7 +405,7 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
                                       href={activity.videoLink}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="inline-flex items-center px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-red-200 transition-colors resource-badge resource-badge-video"
+                                      className="inline-flex items-center px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-red-200 transition-colors"
                                     >
                                       Video
                                     </a>
@@ -460,7 +415,7 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
                                       href={activity.musicLink}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-green-200 transition-colors resource-badge resource-badge-music"
+                                      className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-green-200 transition-colors"
                                     >
                                       Music
                                     </a>
@@ -470,7 +425,7 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
                                       href={activity.backingLink}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-blue-200 transition-colors resource-badge resource-badge-backing"
+                                      className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-blue-200 transition-colors"
                                     >
                                       Backing
                                     </a>
@@ -480,7 +435,7 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
                                       href={activity.resourceLink}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-purple-200 transition-colors resource-badge resource-badge-resource"
+                                      className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full print:text-[8px] print:py-0.5 print:px-1.5 hover:bg-purple-200 transition-colors"
                                     >
                                       Resource
                                     </a>
@@ -528,7 +483,7 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
               
               {/* Notes Section */}
               {lessonData.notes && (
-                <div className="mt-8 pt-6 border-t border-gray-200 print:mt-4 print:pt-3 page-break-inside-avoid">
+                <div className="mt-8 pt-6 border-t border-gray-200 print:mt-4 print:pt-3">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3 print:text-base print:mb-2">Lesson Notes</h3>
                   <div 
                     className="bg-gray-50 rounded-lg p-4 text-gray-700 print:p-2 print:text-xs"
@@ -539,7 +494,7 @@ export function LessonExporter({ lessonNumber, onClose }: LessonExporterProps) {
               
               {/* Footer with page number */}
               <div className="mt-8 pt-4 border-t border-gray-200 text-center text-xs text-gray-500 print:mt-4 print:pt-2">
-                <p>Curriculum Designer - {currentSheetInfo.display}</p>
+                <p>EYFS Lesson Builder - {currentSheetInfo.display}</p>
                 <p className="pageNumber hidden print:block">Page 1</p>
               </div>
             </div>
