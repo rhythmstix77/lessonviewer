@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, User, LogOut, BookOpen, RefreshCw, Settings, Download, HelpCircle } from 'lucide-react';
+import { Menu, X, User, LogOut, BookOpen, RefreshCw, Settings, Download } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -19,12 +19,6 @@ export function Header() {
 
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
-
-  // Open specific help guide section
-  const openHelpGuide = (section?: 'activity' | 'lesson' | 'unit' | 'assign') => {
-    setHelpGuideSection(section);
-    setShowHelpGuide(true);
-  };
 
   return (
     <>
@@ -85,16 +79,6 @@ export function Header() {
                   ))}
                 </select>
               </div>
-
-              {/* Help Button */}
-              <button
-                onClick={() => openHelpGuide()}
-                className="p-2.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200 flex-shrink-0"
-                title="Help Guide"
-                data-help-button
-              >
-                <HelpCircle className="h-5 w-5" />
-              </button>
 
               {/* Export Database Button */}
               <button
@@ -215,12 +199,6 @@ export function Header() {
                     </span>
                   </div>
                   <div className="flex space-x-2 flex-shrink-0">
-                    <button
-                      onClick={() => openHelpGuide()}
-                      className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                    >
-                      <HelpCircle className="h-5 w-5" />
-                    </button>
                     <button
                       onClick={handleExportDatabase}
                       className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
