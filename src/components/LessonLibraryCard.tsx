@@ -125,7 +125,7 @@ export function LessonLibraryCard({
   };
 
   const handleAssignClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Stop the event from bubbling up to the card
     setShowAssignModal(true);
   };
 
