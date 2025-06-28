@@ -474,7 +474,7 @@ export function UnitViewer() {
                   <div>
                     <h2 className="text-xl font-bold">Half-Term Planner</h2>
                     <p className="text-indigo-100 text-sm">
-                      Organize lessons by academic half-term
+                      Choose your units for each term
                     </p>
                   </div>
                 </div>
