@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Download, Printer, X, Check, Tag } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -31,6 +31,7 @@ export function LessonPrintModal({
   const [showEyfs, setShowEyfs] = useState(true);
   const [exportMode, setExportMode] = useState<'single' | 'halfterm' | 'unit'>('single');
   const previewRef = useRef<HTMLDivElement>(null);
+  const [contentReady, setContentReady] = useState(false);
 
   // Determine which lesson numbers to use
   const effectiveLessonNumbers = lessonNumber 
@@ -51,6 +52,23 @@ export function LessonPrintModal({
     const halfTerm = halfTerms.find(term => term.id === halfTermId);
     return halfTerm?.lessons || [];
   }
+
+  // Set content ready after component mounts
+  useEffect(() => {
+    setContentReady(true);
+  }, []);
+
+  // Auto-print when content is ready for unit print
+  useEffect(() => {
+    if (contentReady && isUnitPrint && previewRef.current) {
+      // Small delay to ensure content is fully rendered
+      const timer = setTimeout(() => {
+        handlePrint();
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [contentReady, isUnitPrint]);
 
   if (!firstLessonData && effectiveLessonNumbers.length === 0) {
     return (
@@ -127,255 +145,384 @@ export function LessonPrintModal({
   };
 
   const exportLessonsToPdf = async (lessonNums: string[]) => {
-    // Create PDF with proper A4 dimensions
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
-    
-    // Add title page
-    pdf.setFontSize(24);
-    pdf.setTextColor(0, 0, 0);
-    
-    if (isUnitPrint && unitName) {
-      // Unit title page
-      pdf.text(`${currentSheetInfo.display}`, 105, 60, { align: 'center' });
-      pdf.setFontSize(30);
-      pdf.text(`Unit: ${unitName}`, 105, 80, { align: 'center' });
-      pdf.setFontSize(16);
-      pdf.text(`${lessonNums.length} Lessons`, 105, 100, { align: 'center' });
-      
-      // Add footer to title page
-      pdf.setFontSize(10);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text(`Page 1 of ${lessonNums.length + 1}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
-    } else if (lessonNums.length > 1) {
-      // Multiple lessons title page
-      pdf.text(`${currentSheetInfo.display}`, 105, 60, { align: 'center' });
-      pdf.setFontSize(30);
-      pdf.text(`Lesson Collection`, 105, 80, { align: 'center' });
-      pdf.setFontSize(16);
-      pdf.text(`${lessonNums.length} Lessons`, 105, 100, { align: 'center' });
-      
-      // Add footer to title page
-      pdf.setFontSize(10);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text(`Page 1 of ${lessonNums.length + 1}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
-    } else {
-      // Single lesson - no title page needed
-      // We'll start directly with the lesson content
-    }
-    
-    // Process each lesson
-    for (let i = 0; i < lessonNums.length; i++) {
-      const lessonNum = lessonNums[i];
-      const lesson = allLessonsData[lessonNum];
-      
-      if (!lesson) continue;
-      
-      // For unit print or multiple lessons, add a new page for each lesson
-      // For single lesson, only add title page if it's the first lesson
-      if ((isUnitPrint || lessonNums.length > 1) || i > 0) {
-        pdf.addPage();
-      }
-      
-      // Add lesson header
-      pdf.setFontSize(18);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text(`Lesson ${lessonNum}: ${lesson.title || `Lesson ${lessonNum}`}`, 105, 20, { align: 'center' });
-      
-      pdf.setFontSize(12);
-      pdf.text(`Duration: ${lesson.totalTime} minutes`, 105, 30, { align: 'center' });
-      
-      // Add EYFS standards if available
-      const lessonEyfs = getLessonEyfs(lessonNum);
-      if (showEyfs && lessonEyfs.length > 0) {
-        pdf.setFontSize(14);
-        pdf.text('EYFS Objectives', 20, 45);
-        
-        // Group EYFS statements by area
-        const groupedEyfs = groupEyfsStatements(lessonEyfs);
-        
-        // Add EYFS statements to PDF
-        let yPos = 55;
-        Object.entries(groupedEyfs).forEach(([area, statements]) => {
-          pdf.setFontSize(12);
-          pdf.setTextColor(0, 0, 150);
-          pdf.text(area, 20, yPos);
-          yPos += 7;
-          
-          pdf.setTextColor(0, 0, 0);
-          pdf.setFontSize(10);
-          statements.forEach(statement => {
-            // Check if we need a new page
-            if (yPos > 270) {
-              pdf.addPage();
-              yPos = 20;
-              
-              // Add footer to new page
-              pdf.setFontSize(10);
-              pdf.setTextColor(100, 100, 100);
-              const pageNum = isUnitPrint || lessonNums.length > 1 ? i + 2 : i + 1;
-              const totalPages = isUnitPrint || lessonNums.length > 1 ? lessonNums.length + 1 : lessonNums.length;
-              pdf.text(`Page ${pageNum} of ${totalPages}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
-            }
-            
-            pdf.text(`• ${statement}`, 25, yPos);
-            yPos += 6;
-          });
-          
-          yPos += 5;
+    // Export to PDF using html2canvas to capture the styled preview
+    if (previewRef.current) {
+      try {
+        // Create PDF with proper A4 dimensions
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4'
         });
-      }
-      
-      // Add activities
-      let yPos = showEyfs && lessonEyfs.length > 0 ? 130 : 45;
-      
-      lesson.categoryOrder.forEach(category => {
-        const activities = lesson.grouped[category] || [];
         
-        // Check if we need a new page
-        if (yPos > 250) {
-          pdf.addPage();
-          yPos = 20;
+        // Add title page for unit or multiple lessons
+        if (isUnitPrint || lessonNums.length > 1) {
+          pdf.setFontSize(24);
+          pdf.setTextColor(0, 0, 0);
           
-          // Add footer to new page
+          if (isUnitPrint && unitName) {
+            // Unit title page
+            pdf.text(`${currentSheetInfo.display}`, 105, 60, { align: 'center' });
+            pdf.setFontSize(30);
+            pdf.text(`Unit: ${unitName}`, 105, 80, { align: 'center' });
+            pdf.setFontSize(16);
+            pdf.text(`${lessonNums.length} Lessons`, 105, 100, { align: 'center' });
+          } else {
+            // Multiple lessons title page
+            pdf.text(`${currentSheetInfo.display}`, 105, 60, { align: 'center' });
+            pdf.setFontSize(30);
+            pdf.text(`Lesson Collection`, 105, 80, { align: 'center' });
+            pdf.setFontSize(16);
+            pdf.text(`${lessonNums.length} Lessons`, 105, 100, { align: 'center' });
+          }
+          
+          // Add footer to title page
           pdf.setFontSize(10);
           pdf.setTextColor(100, 100, 100);
-          const pageNum = isUnitPrint || lessonNums.length > 1 ? i + 2 : i + 1;
-          const totalPages = isUnitPrint || lessonNums.length > 1 ? lessonNums.length + 1 : lessonNums.length;
-          pdf.text(`Page ${pageNum} of ${totalPages}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
+          pdf.text(`Page 1 of ${lessonNums.length + 1}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
         }
         
-        // Category header
-        pdf.setFontSize(14);
-        const categoryColor = getCategoryColor(category);
-        const colorRGB = hexToRgb(categoryColor);
-        if (colorRGB) {
-          pdf.setTextColor(colorRGB.r, colorRGB.g, colorRGB.b);
-        } else {
-          pdf.setTextColor(0, 0, 150);
-        }
-        pdf.text(category, 20, yPos);
-        yPos += 8;
-        pdf.setTextColor(0, 0, 0);
-        
-        // Activities
-        pdf.setFontSize(12);
-        activities.forEach(activity => {
-          // Check if we need a new page
-          if (yPos > 250) {
+        // Process each lesson
+        for (let i = 0; i < lessonNums.length; i++) {
+          const lessonNum = lessonNums[i];
+          const lesson = allLessonsData[lessonNum];
+          
+          if (!lesson) continue;
+          
+          // For unit print or multiple lessons, add a new page for each lesson
+          // For single lesson, only add page if it's not the first lesson or if we added a title page
+          if ((isUnitPrint || lessonNums.length > 1) || i > 0) {
             pdf.addPage();
-            yPos = 20;
-            
-            // Add footer to new page
-            pdf.setFontSize(10);
-            pdf.setTextColor(100, 100, 100);
-            const pageNum = isUnitPrint || lessonNums.length > 1 ? i + 2 : i + 1;
-            const totalPages = isUnitPrint || lessonNums.length > 1 ? lessonNums.length + 1 : lessonNums.length;
-            pdf.text(`Page ${pageNum} of ${totalPages}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
           }
           
-          pdf.setFont(undefined, 'bold');
-          pdf.text(`${activity.activity}${activity.time ? ` (${activity.time} mins)` : ''}`, 25, yPos);
-          yPos += 6;
+          // Create a temporary div for this lesson
+          const lessonDiv = document.createElement('div');
+          lessonDiv.className = "bg-white p-8 print:p-4";
+          lessonDiv.style.width = "210mm";
+          lessonDiv.style.minHeight = "297mm";
+          lessonDiv.style.position = "absolute";
+          lessonDiv.style.left = "-9999px";
+          document.body.appendChild(lessonDiv);
           
-          pdf.setFont(undefined, 'normal');
-          // Split description into lines
-          const descText = activity.description.replace(/<[^>]*>/g, '');
-          const splitText = pdf.splitTextToSize(descText, 165);
+          // Add lesson header HTML
+          lessonDiv.innerHTML = `
+            <div class="text-center border-b border-gray-200 pb-6 mb-6 relative">
+              <h1 class="text-2xl font-bold text-gray-900 mb-2">
+                ${currentSheetInfo.display} Lesson Plan
+              </h1>
+              <h2 class="text-xl font-semibold text-gray-800 mb-2">
+                ${lesson.title || `Lesson ${lessonNum}`}
+              </h2>
+              <div class="text-gray-600 font-medium">
+                Total Time: ${lesson.totalTime} minutes
+              </div>
+            </div>
+          `;
           
-          splitText.forEach(line => {
-            // Check if we need a new page
-            if (yPos > 270) {
-              pdf.addPage();
-              yPos = 20;
-              
-              // Add footer to new page
-              pdf.setFontSize(10);
-              pdf.setTextColor(100, 100, 100);
-              const pageNum = isUnitPrint || lessonNums.length > 1 ? i + 2 : i + 1;
-              const totalPages = isUnitPrint || lessonNums.length > 1 ? lessonNums.length + 1 : lessonNums.length;
-              pdf.text(`Page ${pageNum} of ${totalPages}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
-            }
+          // Add EYFS standards if available
+          const lessonEyfs = getLessonEyfs(lessonNum);
+          if (showEyfs && lessonEyfs.length > 0) {
+            const eyfsDiv = document.createElement('div');
+            eyfsDiv.className = "mb-6";
             
-            pdf.text(line, 30, yPos);
-            yPos += 6;
-          });
-          
-          // Add resources if available
-          const resources = [];
-          if (activity.videoLink) resources.push(`Video: ${activity.videoLink}`);
-          if (activity.musicLink) resources.push(`Music: ${activity.musicLink}`);
-          if (activity.backingLink) resources.push(`Backing: ${activity.backingLink}`);
-          if (activity.resourceLink) resources.push(`Resource: ${activity.resourceLink}`);
-          if (activity.link) resources.push(`Link: ${activity.link}`);
-          if (activity.vocalsLink) resources.push(`Vocals: ${activity.vocalsLink}`);
-          if (activity.imageLink) resources.push(`Image: ${activity.imageLink}`);
-          
-          if (resources.length > 0) {
-            yPos += 3;
-            pdf.setFont(undefined, 'italic');
-            pdf.text('Resources:', 30, yPos);
-            yPos += 5;
+            const eyfsHeader = document.createElement('h3');
+            eyfsHeader.className = "text-lg font-semibold text-gray-900 mb-3";
+            eyfsHeader.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 inline-block mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                <line x1="7" y1="7" x2="7.01" y2="7"></line>
+              </svg>
+              EYFS Objectives
+            `;
+            eyfsDiv.appendChild(eyfsHeader);
             
-            resources.forEach(resource => {
-              if (yPos > 270) {
-                pdf.addPage();
-                yPos = 20;
-                
-                // Add footer to new page
-                pdf.setFontSize(10);
-                pdf.setTextColor(100, 100, 100);
-                const pageNum = isUnitPrint || lessonNums.length > 1 ? i + 2 : i + 1;
-                const totalPages = isUnitPrint || lessonNums.length > 1 ? lessonNums.length + 1 : lessonNums.length;
-                pdf.text(`Page ${pageNum} of ${totalPages}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
-              }
+            // Group EYFS statements by area
+            const groupedEyfs = groupEyfsStatements(lessonEyfs);
+            
+            const eyfsGrid = document.createElement('div');
+            eyfsGrid.className = "grid grid-cols-1 gap-3";
+            
+            Object.entries(groupedEyfs).forEach(([area, statements]) => {
+              const areaDiv = document.createElement('div');
+              areaDiv.className = "bg-gray-50 rounded-lg p-3 border border-gray-200";
               
-              // Add hyperlinks for resources
-              const linkText = resource.split(': ')[0];
-              const linkUrl = resource.split(': ')[1];
+              const areaHeader = document.createElement('h4');
+              areaHeader.className = "font-medium text-gray-800 text-sm mb-2";
+              areaHeader.textContent = area;
+              areaDiv.appendChild(areaHeader);
               
-              // Add text with link
-              const textWidth = pdf.getTextWidth(linkText);
-              pdf.setTextColor(0, 0, 255); // Blue color for links
-              pdf.textWithLink(linkText, 35, yPos, { url: linkUrl });
+              const statementsList = document.createElement('ul');
+              statementsList.className = "space-y-1";
               
-              // Add the URL after the link text
-              pdf.setTextColor(0, 0, 0); // Reset to black
-              pdf.text(`: ${linkUrl}`, 35 + textWidth, yPos);
+              statements.forEach(statement => {
+                const listItem = document.createElement('li');
+                listItem.className = "flex items-start space-x-2 text-sm text-gray-700";
+                listItem.innerHTML = `
+                  <span class="text-green-500 font-bold">✓</span>
+                  <span>${statement}</span>
+                `;
+                statementsList.appendChild(listItem);
+              });
               
-              yPos += 5;
+              areaDiv.appendChild(statementsList);
+              eyfsGrid.appendChild(areaDiv);
             });
             
-            pdf.setFont(undefined, 'normal');
-            pdf.setTextColor(0, 0, 0);
+            eyfsDiv.appendChild(eyfsGrid);
+            lessonDiv.appendChild(eyfsDiv);
           }
           
-          yPos += 5;
-        });
+          // Add activities by category
+          lesson.categoryOrder.forEach(category => {
+            const activities = lesson.grouped[category] || [];
+            if (activities.length === 0) return;
+            
+            const categoryColor = getCategoryColor(category);
+            
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = "mb-8 page-break-inside-avoid";
+            
+            const categoryHeader = document.createElement('h2');
+            categoryHeader.className = "text-xl font-semibold mb-4";
+            categoryHeader.textContent = category;
+            categoryHeader.style.color = category === 'Welcome' ? '#F59E0B' : 
+                                        category === 'Kodaly Songs' ? '#8B5CF6' : 
+                                        category === 'Goodbye' ? '#10B981' : categoryColor;
+            categoryDiv.appendChild(categoryHeader);
+            
+            const activitiesDiv = document.createElement('div');
+            activitiesDiv.className = "space-y-4";
+            
+            activities.forEach((activity, index) => {
+              const activityDiv = document.createElement('div');
+              activityDiv.className = "bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden print-activity";
+              activityDiv.style.borderLeftWidth = '4px';
+              activityDiv.style.borderLeftColor = categoryColor;
+              
+              // Activity Header
+              const activityHeader = document.createElement('div');
+              activityHeader.className = "bg-gray-50 p-3 border-b border-gray-200 flex justify-between items-center";
+              
+              const activityTitle = document.createElement('h3');
+              activityTitle.className = "font-semibold text-gray-900";
+              activityTitle.textContent = activity.activity;
+              activityHeader.appendChild(activityTitle);
+              
+              if (activity.time > 0) {
+                const timeBadge = document.createElement('div');
+                timeBadge.className = "bg-gray-200 text-gray-800 px-2 py-1 rounded-full text-xs font-medium";
+                timeBadge.textContent = `${activity.time} min`;
+                activityHeader.appendChild(timeBadge);
+              }
+              
+              activityDiv.appendChild(activityHeader);
+              
+              // Activity Content
+              const activityContent = document.createElement('div');
+              activityContent.className = "p-3";
+              
+              // Activity Text (if available)
+              if (activity.activityText) {
+                const activityTextDiv = document.createElement('div');
+                activityTextDiv.className = "mb-2 text-sm text-gray-800";
+                activityTextDiv.innerHTML = activity.activityText;
+                activityContent.appendChild(activityTextDiv);
+              }
+              
+              // Description
+              const descriptionDiv = document.createElement('div');
+              descriptionDiv.className = "text-sm text-gray-700";
+              descriptionDiv.innerHTML = activity.description.includes('<') ? 
+                activity.description : 
+                activity.description.replace(/\n/g, '<br>');
+              activityContent.appendChild(descriptionDiv);
+              
+              // Resources
+              if (activity.videoLink || activity.musicLink || activity.backingLink || 
+                  activity.resourceLink || activity.link || activity.vocalsLink || 
+                  activity.imageLink) {
+                const resourcesDiv = document.createElement('div');
+                resourcesDiv.className = "mt-2 pt-2 border-t border-gray-100";
+                
+                const resourcesWrap = document.createElement('div');
+                resourcesWrap.className = "flex flex-wrap gap-1";
+                
+                if (activity.videoLink) {
+                  const videoLink = document.createElement('a');
+                  videoLink.href = activity.videoLink;
+                  videoLink.target = "_blank";
+                  videoLink.rel = "noopener noreferrer";
+                  videoLink.className = "inline-flex items-center px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full hover:bg-red-200 transition-colors";
+                  videoLink.textContent = "Video";
+                  resourcesWrap.appendChild(videoLink);
+                }
+                
+                if (activity.musicLink) {
+                  const musicLink = document.createElement('a');
+                  musicLink.href = activity.musicLink;
+                  musicLink.target = "_blank";
+                  musicLink.rel = "noopener noreferrer";
+                  musicLink.className = "inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full hover:bg-green-200 transition-colors";
+                  musicLink.textContent = "Music";
+                  resourcesWrap.appendChild(musicLink);
+                }
+                
+                if (activity.backingLink) {
+                  const backingLink = document.createElement('a');
+                  backingLink.href = activity.backingLink;
+                  backingLink.target = "_blank";
+                  backingLink.rel = "noopener noreferrer";
+                  backingLink.className = "inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full hover:bg-blue-200 transition-colors";
+                  backingLink.textContent = "Backing";
+                  resourcesWrap.appendChild(backingLink);
+                }
+                
+                if (activity.resourceLink) {
+                  const resourceLink = document.createElement('a');
+                  resourceLink.href = activity.resourceLink;
+                  resourceLink.target = "_blank";
+                  resourceLink.rel = "noopener noreferrer";
+                  resourceLink.className = "inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full hover:bg-purple-200 transition-colors";
+                  resourceLink.textContent = "Resource";
+                  resourcesWrap.appendChild(resourceLink);
+                }
+                
+                if (activity.link) {
+                  const link = document.createElement('a');
+                  link.href = activity.link;
+                  link.target = "_blank";
+                  link.rel = "noopener noreferrer";
+                  link.className = "inline-flex items-center px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full hover:bg-gray-200 transition-colors";
+                  link.textContent = "Link";
+                  resourcesWrap.appendChild(link);
+                }
+                
+                if (activity.vocalsLink) {
+                  const vocalsLink = document.createElement('a');
+                  vocalsLink.href = activity.vocalsLink;
+                  vocalsLink.target = "_blank";
+                  vocalsLink.rel = "noopener noreferrer";
+                  vocalsLink.className = "inline-flex items-center px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full hover:bg-orange-200 transition-colors";
+                  vocalsLink.textContent = "Vocals";
+                  resourcesWrap.appendChild(vocalsLink);
+                }
+                
+                if (activity.imageLink) {
+                  const imageLink = document.createElement('a');
+                  imageLink.href = activity.imageLink;
+                  imageLink.target = "_blank";
+                  imageLink.rel = "noopener noreferrer";
+                  imageLink.className = "inline-flex items-center px-2 py-1 bg-pink-100 text-pink-800 text-xs rounded-full hover:bg-pink-200 transition-colors";
+                  imageLink.textContent = "Image";
+                  resourcesWrap.appendChild(imageLink);
+                }
+                
+                resourcesDiv.appendChild(resourcesWrap);
+                activityContent.appendChild(resourcesDiv);
+              }
+              
+              activityDiv.appendChild(activityContent);
+              activitiesDiv.appendChild(activityDiv);
+            });
+            
+            categoryDiv.appendChild(activitiesDiv);
+            lessonDiv.appendChild(categoryDiv);
+          });
+          
+          // Add notes section if available
+          if (lesson.notes) {
+            const notesDiv = document.createElement('div');
+            notesDiv.className = "mt-8 pt-6 border-t border-gray-200 page-break-inside-avoid";
+            
+            const notesHeader = document.createElement('h3');
+            notesHeader.className = "text-lg font-semibold text-gray-900 mb-3";
+            notesHeader.textContent = "Lesson Notes";
+            notesDiv.appendChild(notesHeader);
+            
+            const notesContent = document.createElement('div');
+            notesContent.className = "bg-gray-50 rounded-lg p-4 text-gray-700";
+            notesContent.innerHTML = lesson.notes;
+            notesDiv.appendChild(notesContent);
+            
+            lessonDiv.appendChild(notesDiv);
+          }
+          
+          // Add footer
+          const footerDiv = document.createElement('div');
+          footerDiv.className = "mt-8 pt-4 border-t border-gray-200 text-center text-xs text-gray-500";
+          
+          const pageNum = isUnitPrint || lessonNums.length > 1 ? i + 2 : i + 1;
+          const totalPages = isUnitPrint || lessonNums.length > 1 ? lessonNums.length + 1 : lessonNums.length;
+          
+          footerDiv.innerHTML = `
+            <p>Page ${pageNum} of ${totalPages} | Curriculum Designer – ${currentSheetInfo.display} | © 2025</p>
+          `;
+          
+          lessonDiv.appendChild(footerDiv);
+          
+          // Capture the lesson div with html2canvas
+          const canvas = await html2canvas(lessonDiv, {
+            scale: 2, // Higher scale for better quality
+            useCORS: true, // Allow loading cross-origin images
+            logging: false,
+            backgroundColor: '#ffffff'
+          });
+          
+          // Remove the temporary div
+          document.body.removeChild(lessonDiv);
+          
+          const imgData = canvas.toDataURL('image/png');
+          
+          // A4 dimensions: 210mm x 297mm
+          const imgWidth = 210;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          
+          // Add image to PDF
+          if (i > 0 || isUnitPrint || lessonNums.length > 1) {
+            // Don't add image to first page if we already added a title page
+            pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+          } else {
+            // For single lesson without title page, add directly to first page
+            pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+          }
+          
+          // If the content is longer than one page, create additional pages
+          if (imgHeight > 297) {
+            let remainingHeight = imgHeight;
+            let currentPosition = 0;
+            
+            while (remainingHeight > 0) {
+              currentPosition += 297;
+              remainingHeight -= 297;
+              
+              if (remainingHeight > 0) {
+                pdf.addPage();
+                pdf.addImage(
+                  imgData, 
+                  'PNG', 
+                  0, 
+                  -currentPosition, 
+                  imgWidth, 
+                  imgHeight
+                );
+              }
+            }
+          }
+        }
         
-        yPos += 10;
-      });
-      
-      // Add page number and footer
-      pdf.setFontSize(10);
-      pdf.setTextColor(100, 100, 100);
-      
-      const pageNum = isUnitPrint || lessonNums.length > 1 ? i + 2 : i + 1;
-      const totalPages = isUnitPrint || lessonNums.length > 1 ? lessonNums.length + 1 : lessonNums.length;
-      pdf.text(`Page ${pageNum} of ${totalPages}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
-    }
-    
-    // Save the PDF
-    if (isUnitPrint && unitName) {
-      pdf.save(`${currentSheetInfo.sheet}_Unit_${unitName.replace(/\s+/g, '_')}.pdf`);
-    } else if (lessonNums.length > 1) {
-      pdf.save(`${currentSheetInfo.sheet}_Multiple_Lessons.pdf`);
-    } else {
-      const lessonTitle = allLessonsData[lessonNums[0]]?.title || `Lesson_${lessonNums[0]}`;
-      pdf.save(`${currentSheetInfo.sheet}_${lessonTitle.replace(/\s+/g, '_')}.pdf`);
+        // Save the PDF
+        if (isUnitPrint && unitName) {
+          pdf.save(`${currentSheetInfo.sheet}_Unit_${unitName.replace(/\s+/g, '_')}.pdf`);
+        } else if (lessonNums.length > 1) {
+          pdf.save(`${currentSheetInfo.sheet}_Multiple_Lessons.pdf`);
+        } else {
+          const lessonTitle = allLessonsData[lessonNums[0]]?.title || `Lesson_${lessonNums[0]}`;
+          pdf.save(`${currentSheetInfo.sheet}_${lessonTitle.replace(/\s+/g, '_')}.pdf`);
+        }
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        throw error;
+      }
     }
   };
 
@@ -725,7 +872,7 @@ export function LessonPrintModal({
         <div className="flex-1 overflow-y-auto p-4 bg-gray-100 print:bg-white print:p-0">
           <div 
             ref={previewRef}
-            className="bg-white mx-auto shadow-md max-w-[210mm] print:shadow-none print:max-w-none"
+            className="bg-white mx-auto shadow-md max-w-[210mm] print:shadow-none print:max-w-none print-content"
             style={{ minHeight: '297mm' }}
           >
             {/* Lesson Plan Preview */}
