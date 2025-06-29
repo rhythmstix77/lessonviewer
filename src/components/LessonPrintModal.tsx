@@ -145,6 +145,11 @@ export function LessonPrintModal({
       pdf.text(`Unit: ${unitName}`, 105, 80, { align: 'center' });
       pdf.setFontSize(16);
       pdf.text(`${lessonNums.length} Lessons`, 105, 100, { align: 'center' });
+      
+      // Add footer to title page
+      pdf.setFontSize(10);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(`Page 1 of ${lessonNums.length + 1}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
     } else if (lessonNums.length > 1) {
       // Multiple lessons title page
       pdf.text(`${currentSheetInfo.display}`, 105, 60, { align: 'center' });
@@ -152,6 +157,11 @@ export function LessonPrintModal({
       pdf.text(`Lesson Collection`, 105, 80, { align: 'center' });
       pdf.setFontSize(16);
       pdf.text(`${lessonNums.length} Lessons`, 105, 100, { align: 'center' });
+      
+      // Add footer to title page
+      pdf.setFontSize(10);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(`Page 1 of ${lessonNums.length + 1}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
     } else {
       // Single lesson - no title page needed
       // We'll start directly with the lesson content
@@ -182,7 +192,7 @@ export function LessonPrintModal({
       const lessonEyfs = getLessonEyfs(lessonNum);
       if (showEyfs && lessonEyfs.length > 0) {
         pdf.setFontSize(14);
-        pdf.text('Learning Goals', 20, 45);
+        pdf.text('EYFS Objectives', 20, 45);
         
         // Group EYFS statements by area
         const groupedEyfs = groupEyfsStatements(lessonEyfs);
@@ -202,6 +212,13 @@ export function LessonPrintModal({
             if (yPos > 270) {
               pdf.addPage();
               yPos = 20;
+              
+              // Add footer to new page
+              pdf.setFontSize(10);
+              pdf.setTextColor(100, 100, 100);
+              const pageNum = isUnitPrint || lessonNums.length > 1 ? i + 2 : i + 1;
+              const totalPages = isUnitPrint || lessonNums.length > 1 ? lessonNums.length + 1 : lessonNums.length;
+              pdf.text(`Page ${pageNum} of ${totalPages}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
             }
             
             pdf.text(`• ${statement}`, 25, yPos);
@@ -222,6 +239,13 @@ export function LessonPrintModal({
         if (yPos > 250) {
           pdf.addPage();
           yPos = 20;
+          
+          // Add footer to new page
+          pdf.setFontSize(10);
+          pdf.setTextColor(100, 100, 100);
+          const pageNum = isUnitPrint || lessonNums.length > 1 ? i + 2 : i + 1;
+          const totalPages = isUnitPrint || lessonNums.length > 1 ? lessonNums.length + 1 : lessonNums.length;
+          pdf.text(`Page ${pageNum} of ${totalPages}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
         }
         
         // Category header
@@ -244,6 +268,13 @@ export function LessonPrintModal({
           if (yPos > 250) {
             pdf.addPage();
             yPos = 20;
+            
+            // Add footer to new page
+            pdf.setFontSize(10);
+            pdf.setTextColor(100, 100, 100);
+            const pageNum = isUnitPrint || lessonNums.length > 1 ? i + 2 : i + 1;
+            const totalPages = isUnitPrint || lessonNums.length > 1 ? lessonNums.length + 1 : lessonNums.length;
+            pdf.text(`Page ${pageNum} of ${totalPages}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
           }
           
           pdf.setFont(undefined, 'bold');
@@ -260,6 +291,13 @@ export function LessonPrintModal({
             if (yPos > 270) {
               pdf.addPage();
               yPos = 20;
+              
+              // Add footer to new page
+              pdf.setFontSize(10);
+              pdf.setTextColor(100, 100, 100);
+              const pageNum = isUnitPrint || lessonNums.length > 1 ? i + 2 : i + 1;
+              const totalPages = isUnitPrint || lessonNums.length > 1 ? lessonNums.length + 1 : lessonNums.length;
+              pdf.text(`Page ${pageNum} of ${totalPages}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
             }
             
             pdf.text(line, 30, yPos);
@@ -286,6 +324,13 @@ export function LessonPrintModal({
               if (yPos > 270) {
                 pdf.addPage();
                 yPos = 20;
+                
+                // Add footer to new page
+                pdf.setFontSize(10);
+                pdf.setTextColor(100, 100, 100);
+                const pageNum = isUnitPrint || lessonNums.length > 1 ? i + 2 : i + 1;
+                const totalPages = isUnitPrint || lessonNums.length > 1 ? lessonNums.length + 1 : lessonNums.length;
+                pdf.text(`Page ${pageNum} of ${totalPages}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
               }
               
               // Add hyperlinks for resources
@@ -314,15 +359,13 @@ export function LessonPrintModal({
         yPos += 10;
       });
       
-      // Add page number
+      // Add page number and footer
       pdf.setFontSize(10);
       pdf.setTextColor(100, 100, 100);
       
-      if (isUnitPrint || lessonNums.length > 1) {
-        pdf.text(`Page ${i + 2} of ${lessonNums.length + 1}`, 105, 285, { align: 'center' });
-      } else {
-        pdf.text(`Page ${i + 1} of ${lessonNums.length}`, 105, 285, { align: 'center' });
-      }
+      const pageNum = isUnitPrint || lessonNums.length > 1 ? i + 2 : i + 1;
+      const totalPages = isUnitPrint || lessonNums.length > 1 ? lessonNums.length + 1 : lessonNums.length;
+      pdf.text(`Page ${pageNum} of ${totalPages}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
     }
     
     // Save the PDF
@@ -372,6 +415,11 @@ export function LessonPrintModal({
     pdf.text(`${lessons.length} Lessons`, 105, 120, { align: 'center' });
     pdf.text(`Generated on ${new Date().toLocaleDateString()}`, 105, 130, { align: 'center' });
     
+    // Add footer to title page
+    pdf.setFontSize(10);
+    pdf.setTextColor(100, 100, 100);
+    pdf.text(`Page 1 of ${lessons.length + 1}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
+    
     // Process each lesson
     for (let i = 0; i < lessons.length; i++) {
       const lessonNum = lessons[i];
@@ -394,7 +442,7 @@ export function LessonPrintModal({
       const lessonEyfs = eyfsStatements[lessonNum] || [];
       if (showEyfs && lessonEyfs.length > 0) {
         pdf.setFontSize(14);
-        pdf.text('Learning Goals', 20, 45);
+        pdf.text('EYFS Objectives', 20, 45);
         
         // Group EYFS statements by area
         const groupedEyfs: Record<string, string[]> = {};
@@ -425,6 +473,11 @@ export function LessonPrintModal({
             if (yPos > 270) {
               pdf.addPage();
               yPos = 20;
+              
+              // Add footer to new page
+              pdf.setFontSize(10);
+              pdf.setTextColor(100, 100, 100);
+              pdf.text(`Page ${i + 2} of ${lessons.length + 1}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
             }
             
             pdf.text(`• ${statement}`, 25, yPos);
@@ -445,6 +498,11 @@ export function LessonPrintModal({
         if (yPos > 250) {
           pdf.addPage();
           yPos = 20;
+          
+          // Add footer to new page
+          pdf.setFontSize(10);
+          pdf.setTextColor(100, 100, 100);
+          pdf.text(`Page ${i + 2} of ${lessons.length + 1}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
         }
         
         // Category header
@@ -467,6 +525,11 @@ export function LessonPrintModal({
           if (yPos > 250) {
             pdf.addPage();
             yPos = 20;
+            
+            // Add footer to new page
+            pdf.setFontSize(10);
+            pdf.setTextColor(100, 100, 100);
+            pdf.text(`Page ${i + 2} of ${lessons.length + 1}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
           }
           
           pdf.setFont(undefined, 'bold');
@@ -483,6 +546,11 @@ export function LessonPrintModal({
             if (yPos > 270) {
               pdf.addPage();
               yPos = 20;
+              
+              // Add footer to new page
+              pdf.setFontSize(10);
+              pdf.setTextColor(100, 100, 100);
+              pdf.text(`Page ${i + 2} of ${lessons.length + 1}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
             }
             
             pdf.text(line, 30, yPos);
@@ -509,6 +577,11 @@ export function LessonPrintModal({
               if (yPos > 270) {
                 pdf.addPage();
                 yPos = 20;
+                
+                // Add footer to new page
+                pdf.setFontSize(10);
+                pdf.setTextColor(100, 100, 100);
+                pdf.text(`Page ${i + 2} of ${lessons.length + 1}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
               }
               pdf.text(resource, 35, yPos, { maxWidth: 160 });
               yPos += 5;
@@ -523,10 +596,10 @@ export function LessonPrintModal({
         yPos += 10;
       });
       
-      // Add page number
+      // Add page number and footer
       pdf.setFontSize(10);
       pdf.setTextColor(100, 100, 100);
-      pdf.text(`Page ${i + 2} of ${lessons.length + 1}`, 105, 285, { align: 'center' });
+      pdf.text(`Page ${i + 2} of ${lessons.length + 1}   |   Curriculum Designer – ${currentSheetInfo.display}   |   © 2025`, 105, 285, { align: 'center' });
     }
     
     // Save the PDF
@@ -733,7 +806,7 @@ export function LessonPrintModal({
                     <div className="mb-6 print:mb-4 w-full">
                       <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center space-x-2 print:text-base print:mb-2">
                         <Tag className="h-5 w-5 text-blue-600 print:h-4 print:w-4" />
-                        <span>Learning Goals</span>
+                        <span>EYFS Objectives</span>
                       </h3>
                       <div className="w-full grid grid-cols-1 gap-3 print:gap-2">
                         {Object.entries(groupEyfsStatements(getLessonEyfs(effectiveLessonNumbers[0]))).map(([area, statements]) => (
@@ -777,7 +850,7 @@ export function LessonPrintModal({
                           {activities.map((activity, index) => (
                             <div 
                               key={`${category}-${index}`} 
-                              className="bg-white rounded-lg border border-gray-200 overflow-hidden print:border print:rounded-lg print:mb-3 print-activity"
+                              className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden print:border print:rounded-lg print:mb-3 print-activity"
                               style={{ 
                                 borderLeftWidth: '4px',
                                 borderLeftColor: categoryColor
@@ -932,8 +1005,7 @@ export function LessonPrintModal({
               
               {/* Footer with page number */}
               <div className="mt-8 pt-4 border-t border-gray-200 text-center text-xs text-gray-500 print:mt-4 print:pt-2">
-                <p>Curriculum Designer - {currentSheetInfo.display}</p>
-                <p className="pageNumber hidden print:block">Page 1</p>
+                <p>Page <span className="pageNumber">1</span> | Curriculum Designer – {currentSheetInfo.display} | © 2025</p>
               </div>
             </div>
           </div>

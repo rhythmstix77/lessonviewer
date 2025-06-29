@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Save, Trash2, Clock, MapPin, Repeat, FolderOpen, Check, Info as InfoIcon, Pencil } from 'lucide-react';
+import { X, Plus, Save, Trash2, Clock, MapPin, Repeat, FolderOpen, Check, InfoIcon, Pencil } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 
 interface TimetableClass {

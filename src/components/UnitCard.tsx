@@ -49,6 +49,7 @@ export function UnitCard({
   onPrintUnit
 }: UnitCardProps) {
   const { getCategoryColor } = useSettings();
+  const { allLessonsData } = useData();
   
   // Format date for display
   const formatDate = (date: Date) => {
