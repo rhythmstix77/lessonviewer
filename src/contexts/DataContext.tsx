@@ -60,6 +60,14 @@ export interface LessonPlan {
   updatedAt: Date;
 }
 
+export interface HalfTerm {
+  id: string;
+  name: string;
+  months: string;
+  lessons: string[];
+  isComplete: boolean;
+}
+
 interface DataContextType {
   currentSheetInfo: SheetInfo;
   setCurrentSheetInfo: (info: SheetInfo) => void;
@@ -83,7 +91,7 @@ interface DataContextType {
   addActivity: (activity: Activity) => Promise<Activity>; // Add a new activity
   updateActivity: (activity: Activity) => Promise<Activity>; // Update an existing activity
   deleteActivity: (activityId: string) => Promise<void>; // Delete an activity
-  halfTerms: any[]; // Half-term data
+  halfTerms: HalfTerm[]; // Half-term data
   updateHalfTerm: (halfTermId: string, lessons: string[], isComplete: boolean) => void; // Update half-term data
 }
 
@@ -152,7 +160,7 @@ const DEFAULT_EYFS_STATEMENTS = [
 ];
 
 // Define half-term periods
-const DEFAULT_HALF_TERMS = [
+const DEFAULT_HALF_TERMS: HalfTerm[] = [
   { id: 'A1', name: 'Autumn 1', months: 'Sep-Oct', lessons: [], isComplete: false },
   { id: 'A2', name: 'Autumn 2', months: 'Nov-Dec', lessons: [], isComplete: false },
   { id: 'SP1', name: 'Spring 1', months: 'Jan-Feb', lessons: [], isComplete: false },
@@ -209,7 +217,7 @@ export function DataProvider({ children }: DataProviderProps) {
   // Centralized activities state
   const [allActivities, setAllActivities] = useState<Activity[]>([]);
   // Half-term data
-  const [halfTerms, setHalfTerms] = useState<any[]>(DEFAULT_HALF_TERMS);
+  const [halfTerms, setHalfTerms] = useState<HalfTerm[]>(DEFAULT_HALF_TERMS);
 
   useEffect(() => {
     // Check if data was just cleared by looking for a URL parameter
@@ -245,7 +253,13 @@ export function DataProvider({ children }: DataProviderProps) {
       // Load from localStorage
       const savedHalfTerms = localStorage.getItem(`half-terms-${currentSheetInfo.sheet}`);
       if (savedHalfTerms) {
-        setHalfTerms(JSON.parse(savedHalfTerms));
+        try {
+          const parsedHalfTerms = JSON.parse(savedHalfTerms);
+          setHalfTerms(parsedHalfTerms);
+        } catch (error) {
+          console.error('Error parsing saved half-terms:', error);
+          setHalfTerms(DEFAULT_HALF_TERMS);
+        }
       } else {
         // Initialize with default half-terms
         setHalfTerms(DEFAULT_HALF_TERMS);
@@ -259,19 +273,23 @@ export function DataProvider({ children }: DataProviderProps) {
 
   // Update half-term data
   const updateHalfTerm = (halfTermId: string, lessons: string[], isComplete: boolean) => {
-    const updatedHalfTerms = halfTerms.map(term => {
-      if (term.id === halfTermId) {
-        return {
-          ...term,
-          lessons,
-          isComplete
-        };
-      }
-      return term;
-    });
-    
-    setHalfTerms(updatedHalfTerms);
-    localStorage.setItem(`half-terms-${currentSheetInfo.sheet}`, JSON.stringify(updatedHalfTerms));
+    try {
+      const updatedHalfTerms = halfTerms.map(term => {
+        if (term.id === halfTermId) {
+          return {
+            ...term,
+            lessons,
+            isComplete
+          };
+        }
+        return term;
+      });
+      
+      setHalfTerms(updatedHalfTerms);
+      localStorage.setItem(`half-terms-${currentSheetInfo.sheet}`, JSON.stringify(updatedHalfTerms));
+    } catch (error) {
+      console.error('Failed to update half-term data:', error);
+    }
   };
 
   // Load all activities
@@ -467,7 +485,7 @@ export function DataProvider({ children }: DataProviderProps) {
         supabase
           .from(TABLES.LESSON_PLANS)
           .select('*')
-          .eq('class_name', currentSheetInfo.sheet)
+          .eq('class_name', currentSheetInfo.sheet) // Filter by current class
           .then(({ data, error }) => {
             if (error) {
               console.warn('Failed to load lesson plans from Supabase:', error);
@@ -512,6 +530,7 @@ export function DataProvider({ children }: DataProviderProps) {
         return;
       }
       
+      // Load class-specific lesson plans
       const savedPlans = localStorage.getItem(`user-created-lesson-plans-${currentSheetInfo.sheet}`);
       if (savedPlans) {
         const plans = JSON.parse(savedPlans).map((plan: any) => ({
@@ -682,10 +701,10 @@ export function DataProvider({ children }: DataProviderProps) {
     // Also update any half-terms that contain this lesson
     setHalfTerms(prev => {
       const updatedHalfTerms = prev.map(term => {
-        if (term.lessons && term.lessons.includes(lessonNumber)) {
+        if (term.lessons.includes(lessonNumber)) {
           return {
             ...term,
-            lessons: term.lessons.filter((num: string) => num !== lessonNumber)
+            lessons: term.lessons.filter(num => num !== lessonNumber)
           };
         }
         return term;

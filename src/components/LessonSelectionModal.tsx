@@ -43,7 +43,7 @@ export function LessonSelectionModal({
 
   // Load completion status from localStorage
   React.useEffect(() => {
-    const savedHalfTerms = localStorage.getItem('half-terms');
+    const savedHalfTerms = localStorage.getItem(`half-terms-${currentSheetInfo.sheet}`);
     if (savedHalfTerms) {
       try {
         const parsedHalfTerms = JSON.parse(savedHalfTerms);
@@ -55,7 +55,7 @@ export function LessonSelectionModal({
         console.error('Error parsing saved half-terms:', error);
       }
     }
-  }, [halfTermId]);
+  }, [halfTermId, currentSheetInfo.sheet]);
 
   if (!isOpen) return null;
 
