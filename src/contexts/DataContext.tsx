@@ -60,6 +60,17 @@ export interface LessonPlan {
   updatedAt: Date;
 }
 
+export interface Unit {
+  id: string;
+  name: string;
+  description: string;
+  lessonNumbers: string[];
+  color: string;
+  term?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface HalfTerm {
   id: string;
   name: string;
@@ -91,8 +102,11 @@ interface DataContextType {
   addActivity: (activity: Activity) => Promise<Activity>; // Add a new activity
   updateActivity: (activity: Activity) => Promise<Activity>; // Update an existing activity
   deleteActivity: (activityId: string) => Promise<void>; // Delete an activity
-  halfTerms: HalfTerm[]; // Half-term data
-  updateHalfTerm: (halfTermId: string, lessons: string[], isComplete: boolean) => void; // Update half-term data
+  units: Unit[]; // Units for the current class
+  updateUnit: (unit: Unit) => void; // Update a unit
+  deleteUnit: (unitId: string) => void; // Delete a unit
+  halfTerms: HalfTerm[]; // Half-terms for the current class
+  updateHalfTerm: (halfTermId: string, lessons: string[], isComplete: boolean) => void; // Update a half-term
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -159,16 +173,6 @@ const DEFAULT_EYFS_STATEMENTS = [
   "Expressive Arts and Design: 🎨 Develops storylines in pretend play"
 ];
 
-// Define half-term periods
-const DEFAULT_HALF_TERMS: HalfTerm[] = [
-  { id: 'A1', name: 'Autumn 1', months: 'Sep-Oct', lessons: [], isComplete: false },
-  { id: 'A2', name: 'Autumn 2', months: 'Nov-Dec', lessons: [], isComplete: false },
-  { id: 'SP1', name: 'Spring 1', months: 'Jan-Feb', lessons: [], isComplete: false },
-  { id: 'SP2', name: 'Spring 2', months: 'Mar-Apr', lessons: [], isComplete: false },
-  { id: 'SM1', name: 'Summer 1', months: 'Apr-May', lessons: [], isComplete: false },
-  { id: 'SM2', name: 'Summer 2', months: 'Jun-Jul', lessons: [], isComplete: false },
-];
-
 // Default lesson titles based on categories
 const generateDefaultLessonTitle = (lessonData: LessonData): string => {
   // Get the main categories in this lesson
@@ -198,6 +202,16 @@ const generateDefaultLessonTitle = (lessonData: LessonData): string => {
   return `${categories[0]} Lesson`;
 };
 
+// Define half-term periods
+const DEFAULT_HALF_TERMS = [
+  { id: 'A1', name: 'Autumn 1', months: 'Sep-Oct', lessons: [], isComplete: false },
+  { id: 'A2', name: 'Autumn 2', months: 'Nov-Dec', lessons: [], isComplete: false },
+  { id: 'SP1', name: 'Spring 1', months: 'Jan-Feb', lessons: [], isComplete: false },
+  { id: 'SP2', name: 'Spring 2', months: 'Mar-Apr', lessons: [], isComplete: false },
+  { id: 'SM1', name: 'Summer 1', months: 'Apr-May', lessons: [], isComplete: false },
+  { id: 'SM2', name: 'Summer 2', months: 'Jun-Jul', lessons: [], isComplete: false },
+];
+
 export function DataProvider({ children }: DataProviderProps) {
   const [currentSheetInfo, setCurrentSheetInfo] = useState<SheetInfo>({
     sheet: 'LKG',
@@ -216,7 +230,9 @@ export function DataProvider({ children }: DataProviderProps) {
   const [dataWasCleared, setDataWasCleared] = useState(false);
   // Centralized activities state
   const [allActivities, setAllActivities] = useState<Activity[]>([]);
-  // Half-term data
+  // Units state
+  const [units, setUnits] = useState<Unit[]>([]);
+  // Half-terms state
   const [halfTerms, setHalfTerms] = useState<HalfTerm[]>(DEFAULT_HALF_TERMS);
 
   useEffect(() => {
@@ -237,14 +253,85 @@ export function DataProvider({ children }: DataProviderProps) {
     loadUserCreatedLessonPlans();
     // Load activities
     loadActivities();
-    // Load half-terms data
+    // Load units
+    loadUnits();
+    // Load half-terms
     loadHalfTerms();
   }, [currentSheetInfo]);
 
-  // Load half-terms data
+  // Load units for the current class
+  const loadUnits = () => {
+    try {
+      // If data was cleared, set empty state
+      if (dataWasCleared) {
+        setUnits([]);
+        return;
+      }
+      
+      // Load from localStorage
+      const savedUnits = localStorage.getItem(`units-${currentSheetInfo.sheet}`);
+      if (savedUnits) {
+        try {
+          const parsedUnits = JSON.parse(savedUnits).map((unit: any) => ({
+            ...unit,
+            createdAt: new Date(unit.createdAt),
+            updatedAt: new Date(unit.updatedAt),
+          }));
+          setUnits(parsedUnits);
+        } catch (error) {
+          console.error('Error parsing saved units:', error);
+          setUnits([]);
+        }
+      } else {
+        // Initialize with an empty array
+        setUnits([]);
+        localStorage.setItem(`units-${currentSheetInfo.sheet}`, JSON.stringify([]));
+      }
+    } catch (error) {
+      console.error('Failed to load units:', error);
+      setUnits([]);
+    }
+  };
+
+  // Update a unit
+  const updateUnit = (unit: Unit) => {
+    setUnits(prev => {
+      const index = prev.findIndex(u => u.id === unit.id);
+      if (index !== -1) {
+        // Update existing unit
+        const updatedUnits = [...prev];
+        updatedUnits[index] = {
+          ...unit,
+          updatedAt: new Date()
+        };
+        localStorage.setItem(`units-${currentSheetInfo.sheet}`, JSON.stringify(updatedUnits));
+        return updatedUnits;
+      } else {
+        // Add new unit
+        const newUnits = [...prev, {
+          ...unit,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }];
+        localStorage.setItem(`units-${currentSheetInfo.sheet}`, JSON.stringify(newUnits));
+        return newUnits;
+      }
+    });
+  };
+
+  // Delete a unit
+  const deleteUnit = (unitId: string) => {
+    setUnits(prev => {
+      const updatedUnits = prev.filter(u => u.id !== unitId);
+      localStorage.setItem(`units-${currentSheetInfo.sheet}`, JSON.stringify(updatedUnits));
+      return updatedUnits;
+    });
+  };
+
+  // Load half-terms for the current class
   const loadHalfTerms = () => {
     try {
-      // If data was cleared, set default half-terms
+      // If data was cleared, set empty state
       if (dataWasCleared) {
         setHalfTerms(DEFAULT_HALF_TERMS);
         return;
@@ -266,30 +353,20 @@ export function DataProvider({ children }: DataProviderProps) {
         localStorage.setItem(`half-terms-${currentSheetInfo.sheet}`, JSON.stringify(DEFAULT_HALF_TERMS));
       }
     } catch (error) {
-      console.error('Failed to load half-terms data:', error);
+      console.error('Failed to load half-terms:', error);
       setHalfTerms(DEFAULT_HALF_TERMS);
     }
   };
 
-  // Update half-term data
+  // Update a half-term
   const updateHalfTerm = (halfTermId: string, lessons: string[], isComplete: boolean) => {
-    try {
-      const updatedHalfTerms = halfTerms.map(term => {
-        if (term.id === halfTermId) {
-          return {
-            ...term,
-            lessons,
-            isComplete
-          };
-        }
-        return term;
-      });
-      
-      setHalfTerms(updatedHalfTerms);
+    setHalfTerms(prev => {
+      const updatedHalfTerms = prev.map(term => 
+        term.id === halfTermId ? { ...term, lessons, isComplete } : term
+      );
       localStorage.setItem(`half-terms-${currentSheetInfo.sheet}`, JSON.stringify(updatedHalfTerms));
-    } catch (error) {
-      console.error('Failed to update half-term data:', error);
-    }
+      return updatedHalfTerms;
+    });
   };
 
   // Load all activities
@@ -485,7 +562,6 @@ export function DataProvider({ children }: DataProviderProps) {
         supabase
           .from(TABLES.LESSON_PLANS)
           .select('*')
-          .eq('class_name', currentSheetInfo.sheet) // Filter by current class
           .then(({ data, error }) => {
             if (error) {
               console.warn('Failed to load lesson plans from Supabase:', error);
@@ -530,8 +606,7 @@ export function DataProvider({ children }: DataProviderProps) {
         return;
       }
       
-      // Load class-specific lesson plans
-      const savedPlans = localStorage.getItem(`user-created-lesson-plans-${currentSheetInfo.sheet}`);
+      const savedPlans = localStorage.getItem('user-created-lesson-plans');
       if (savedPlans) {
         const plans = JSON.parse(savedPlans).map((plan: any) => ({
           ...plan,
@@ -540,8 +615,6 @@ export function DataProvider({ children }: DataProviderProps) {
           updatedAt: new Date(plan.updatedAt),
         }));
         setUserCreatedLessonPlans(plans);
-      } else {
-        setUserCreatedLessonPlans([]);
       }
     } catch (error) {
       console.error('Failed to load user-created lesson plans from localStorage:', error);
@@ -552,7 +625,7 @@ export function DataProvider({ children }: DataProviderProps) {
   const saveUserCreatedLessonPlans = async (plans: LessonPlan[]) => {
     try {
       // Save to localStorage first (this is guaranteed to work)
-      localStorage.setItem(`user-created-lesson-plans-${currentSheetInfo.sheet}`, JSON.stringify(plans));
+      localStorage.setItem('user-created-lesson-plans', JSON.stringify(plans));
       
       // Then try to save to Supabase if connected
       if (isSupabaseConfigured()) {
@@ -630,7 +703,7 @@ export function DataProvider({ children }: DataProviderProps) {
         const updatedPlans = prev.filter(p => p.id !== planId);
         
         // Save to localStorage
-        localStorage.setItem(`user-created-lesson-plans-${currentSheetInfo.sheet}`, JSON.stringify(updatedPlans));
+        localStorage.setItem('user-created-lesson-plans', JSON.stringify(updatedPlans));
         
         return updatedPlans;
       });
@@ -698,22 +771,6 @@ export function DataProvider({ children }: DataProviderProps) {
       return updatedPlans;
     });
 
-    // Also update any half-terms that contain this lesson
-    setHalfTerms(prev => {
-      const updatedHalfTerms = prev.map(term => {
-        if (term.lessons.includes(lessonNumber)) {
-          return {
-            ...term,
-            lessons: term.lessons.filter(num => num !== lessonNumber)
-          };
-        }
-        return term;
-      });
-      
-      localStorage.setItem(`half-terms-${currentSheetInfo.sheet}`, JSON.stringify(updatedHalfTerms));
-      return updatedHalfTerms;
-    });
-
     // Also update any units that contain this lesson
     try {
       const savedUnits = localStorage.getItem(`units-${currentSheetInfo.sheet}`);
@@ -735,10 +792,38 @@ export function DataProvider({ children }: DataProviderProps) {
 
         if (unitsUpdated) {
           localStorage.setItem(`units-${currentSheetInfo.sheet}`, JSON.stringify(updatedUnits));
+          setUnits(updatedUnits);
         }
       }
     } catch (error) {
       console.error('Failed to update units after deleting lesson:', error);
+    }
+
+    // Also update any half-terms that contain this lesson
+    try {
+      const savedHalfTerms = localStorage.getItem(`half-terms-${currentSheetInfo.sheet}`);
+      if (savedHalfTerms) {
+        const halfTerms = JSON.parse(savedHalfTerms);
+        let halfTermsUpdated = false;
+
+        const updatedHalfTerms = halfTerms.map((term: any) => {
+          if (term.lessons.includes(lessonNumber)) {
+            halfTermsUpdated = true;
+            return {
+              ...term,
+              lessons: term.lessons.filter((num: string) => num !== lessonNumber)
+            };
+          }
+          return term;
+        });
+
+        if (halfTermsUpdated) {
+          localStorage.setItem(`half-terms-${currentSheetInfo.sheet}`, JSON.stringify(updatedHalfTerms));
+          setHalfTerms(updatedHalfTerms);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to update half-terms after deleting lesson:', error);
     }
   };
 
@@ -1068,7 +1153,7 @@ export function DataProvider({ children }: DataProviderProps) {
         if (isSupabaseConfigured()) {
           try {
             // Remove id as Supabase will generate its own id
-            const { id, _uniqueId, ...activityForSupabase } = activity;
+            const { id, uniqueId, ...activityForSupabase } = activity;
             
             // Convert camelCase to snake_case for database
             const dbActivity = {
@@ -1316,6 +1401,7 @@ export function DataProvider({ children }: DataProviderProps) {
     await loadEyfsStatements();
     loadUserCreatedLessonPlans();
     loadActivities();
+    loadUnits();
     loadHalfTerms();
   };
 
@@ -1504,6 +1590,9 @@ export function DataProvider({ children }: DataProviderProps) {
     addActivity,
     updateActivity,
     deleteActivity,
+    units,
+    updateUnit,
+    deleteUnit,
     halfTerms,
     updateHalfTerm
   };
