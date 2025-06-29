@@ -72,7 +72,7 @@ export function LessonPrintModal({
 
   if (lessonsToRender.length === 0) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
         <div className="bg-white rounded-xl shadow-lg p-6 max-w-md w-full">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Error</h2>
           <p className="text-gray-600 mb-6">No lessons found to print.</p>
@@ -174,7 +174,7 @@ export function LessonPrintModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
@@ -233,13 +233,6 @@ export function LessonPrintModal({
               </label>
             </div>
             <div className="flex space-x-3">
-              <button
-                onClick={handlePrint}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-lg transition-colors duration-200 flex items-center space-x-2"
-              >
-                <Printer className="h-4 w-4" />
-                <span>Print</span>
-              </button>
               <button
                 onClick={handleExport}
                 disabled={isExporting}

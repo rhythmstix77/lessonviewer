@@ -16,7 +16,6 @@ import {
   Eye,
   Plus,
   Check,
-  Printer,
   Save,
   CheckCircle
 } from 'lucide-react';
@@ -30,6 +29,7 @@ import { HalfTermCard } from './HalfTermCard';
 import { LessonSelectionModal } from './LessonSelectionModal';
 import { HalfTermView } from './HalfTermView';
 import { LessonDetailsModal } from './LessonDetailsModal';
+import { LessonPrintModal } from './LessonPrintModal';
 import type { Activity } from '../contexts/DataContext';
 
 interface Unit {
@@ -87,6 +87,11 @@ export function UnitViewer() {
   const [selectedHalfTerm, setSelectedHalfTerm] = useState<string | null>(null);
   const [showLessonSelectionModal, setShowLessonSelectionModal] = useState(false);
   const [selectedLessonForDetails, setSelectedLessonForDetails] = useState<string | null>(null);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printHalfTermId, setPrintHalfTermId] = useState<string | null>(null);
+  const [printHalfTermName, setPrintHalfTermName] = useState<string | null>(null);
+  const [printUnitId, setPrintUnitId] = useState<string | null>(null);
+  const [printUnitName, setPrintUnitName] = useState<string | null>(null);
   
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
@@ -248,6 +253,23 @@ export function UnitViewer() {
     return colors[Math.floor(Math.random() * colors.length)];
   };
 
+  // Handle printing a half-term
+  const handlePrintHalfTerm = (halfTermId: string, halfTermName: string) => {
+    setPrintHalfTermId(halfTermId);
+    setPrintHalfTermName(halfTermName);
+    setShowPrintModal(true);
+  };
+
+  // Handle printing a unit
+  const handlePrintUnit = (unitId: string) => {
+    const unit = units.find(u => u.id === unitId);
+    if (unit) {
+      setPrintUnitId(unitId);
+      setPrintUnitName(unit.name);
+      setShowPrintModal(true);
+    }
+  };
+
   // If a unit is selected, show its details
   if (selectedUnit) {
     return (
@@ -285,6 +307,14 @@ export function UnitViewer() {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handlePrintUnit(selectedUnit.id)}
+                    className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 group flex items-center space-x-2"
+                    title="Export Unit to PDF"
+                  >
+                    <Download className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+                    <span className="text-sm font-medium">Export PDF</span>
+                  </button>
                   <button
                     className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 group flex items-center space-x-2"
                     title="Edit Unit"
@@ -384,6 +414,19 @@ export function UnitViewer() {
               setSelectedLessonForExport(selectedLessonForDetails);
               setSelectedLessonForDetails(null);
             }}
+            unitId={selectedUnit.id}
+            unitName={selectedUnit.name}
+          />
+        )}
+
+        {/* Print Modal */}
+        {showPrintModal && (
+          <LessonPrintModal
+            lessonNumbers={selectedUnit.lessonNumbers}
+            onClose={() => setShowPrintModal(false)}
+            unitId={printUnitId || selectedUnit.id}
+            unitName={printUnitName || selectedUnit.name}
+            isUnitPrint={true}
           />
         )}
       </div>
@@ -443,7 +486,7 @@ export function UnitViewer() {
 
           {/* Half-Term Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {HALF_TERMS.map(halfTerm => {
+            {HALF_TERMS.map((halfTerm) => {
               const lessons = getLessonsForHalfTerm(halfTerm.id);
               const isComplete = isHalfTermComplete(halfTerm.id);
               
@@ -510,6 +553,18 @@ export function UnitViewer() {
               setSelectedLessonForExport(selectedLessonForDetails);
               setSelectedLessonForDetails(null);
             }}
+          />
+        )}
+
+        {/* Print Modal */}
+        {showPrintModal && (
+          <LessonPrintModal
+            onClose={() => setShowPrintModal(false)}
+            halfTermId={printHalfTermId || undefined}
+            halfTermName={printHalfTermName || undefined}
+            unitId={printUnitId || undefined}
+            unitName={printUnitName || undefined}
+            isUnitPrint={true}
           />
         )}
       </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, X, Eye, Printer, ArrowLeft, ArrowRight, Star } from 'lucide-react';
+import { Calendar, Clock, X, Eye, Printer, ArrowLeft, ArrowRight, Star, Download } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 
@@ -42,8 +42,8 @@ export function HalfTermView({
                 onClick={() => onPrintHalfTerm(halfTermId, halfTermName)}
                 className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg flex items-center space-x-1"
               >
-                <Printer className="h-4 w-4" />
-                <span>Print</span>
+                <Download className="h-4 w-4" />
+                <span>Export PDF</span>
               </button>
             )}
           </div>
@@ -104,7 +104,7 @@ export function HalfTermView({
                     <Clock className="h-3 w-3" />
                     <span>{lessonData.totalTime} mins</span>
                   </div>
-                  <div className="flex flex-wrap gap-1 mt-auto">
+                  <div className="flex flex-wrap gap-1">
                     {lessonData.categoryOrder.slice(0, 2).map(category => (
                       <span 
                         key={category}
@@ -119,32 +119,35 @@ export function HalfTermView({
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+                  <div className="mt-2 pt-2 border-t border-gray-100 print:hidden">
                     <button
-                      onClick={() => onViewLessonDetails(lessonNum)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onViewLessonDetails(lessonNum);
+                      }}
                       className="text-xs text-blue-600 hover:text-blue-800 flex items-center space-x-1"
                     >
                       <Eye className="h-3 w-3" />
-                      <span>View</span>
+                      <span>View Details</span>
                     </button>
-                    <div className="flex items-center space-x-1">
-                      {index > 0 && (
-                        <button
-                          onClick={() => onReorderLessons(index, index - 1)}
-                          className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full"
-                        >
-                          <ArrowLeft className="h-3 w-3" />
-                        </button>
-                      )}
-                      {index < orderedLessons.length - 1 && (
-                        <button
-                          onClick={() => onReorderLessons(index, index + 1)}
-                          className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full"
-                        >
-                          <ArrowRight className="h-3 w-3" />
-                        </button>
-                      )}
-                    </div>
+                  </div>
+                  <div className="mt-auto pt-2 flex items-center justify-end space-x-1">
+                    {index > 0 && (
+                      <button
+                        onClick={() => onReorderLessons(index, index - 1)}
+                        className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full"
+                      >
+                        <ArrowLeft className="h-3 w-3" />
+                      </button>
+                    )}
+                    {index < orderedLessons.length - 1 && (
+                      <button
+                        onClick={() => onReorderLessons(index, index + 1)}
+                        className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full"
+                      >
+                        <ArrowRight className="h-3 w-3" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
