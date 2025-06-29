@@ -2,8 +2,6 @@ import React from 'react';
 import { FolderOpen, Clock, BookOpen, Calendar, Tag, Eye, EyeOff, Printer } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useData } from '../contexts/DataContext';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
 
 interface Unit {
   id: string;
@@ -51,7 +49,6 @@ export function UnitCard({
   onPrintUnit
 }: UnitCardProps) {
   const { getCategoryColor } = useSettings();
-  const { allLessonsData } = useData();
   
   // Format date for display
   const formatDate = (date: Date) => {
@@ -89,183 +86,12 @@ export function UnitCard({
   };
 
   // Handle print button click
-  const handlePrintClick = async (e: React.MouseEvent) => {
+  const handlePrintClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click
     
     if (onPrintUnit) {
       onPrintUnit(unit.id);
-    } else {
-      // Fallback to old print method if onPrintUnit is not provided
-      try {
-        // Create a new PDF document
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: 'a4'
-        });
-        
-        // Add title page
-        pdf.setFontSize(24);
-        pdf.setTextColor(0, 0, 0);
-        pdf.text(`Unit: ${unit.name}`, 105, 40, { align: 'center' });
-        
-        pdf.setFontSize(16);
-        pdf.text(`${getTermName(unit.term)}`, 105, 55, { align: 'center' });
-        
-        pdf.setFontSize(14);
-        pdf.text(`${unit.lessonNumbers.length} Lessons`, 105, 70, { align: 'center' });
-        
-        // Add unit description
-        if (unit.description) {
-          pdf.setFontSize(12);
-          const plainDescription = unit.description.replace(/<[^>]*>/g, '');
-          const splitDescription = pdf.splitTextToSize(plainDescription, 170);
-          pdf.text(splitDescription, 20, 90);
-        }
-        
-        // Process each lesson in the unit
-        for (let i = 0; i < unit.lessonNumbers.length; i++) {
-          const lessonNumber = unit.lessonNumbers[i];
-          const lessonData = allLessonsData[lessonNumber];
-          
-          if (!lessonData) continue;
-          
-          // Add a new page for each lesson
-          pdf.addPage();
-          
-          // Add lesson header
-          pdf.setFontSize(18);
-          pdf.text(`Lesson ${lessonNumber}: ${lessonData.title || `Lesson ${lessonNumber}`}`, 105, 20, { align: 'center' });
-          
-          pdf.setFontSize(12);
-          pdf.text(`Duration: ${lessonData.totalTime} minutes`, 105, 30, { align: 'center' });
-          
-          // Add activities
-          let yPos = 50;
-          
-          lessonData.categoryOrder.forEach(category => {
-            const activities = lessonData.grouped[category] || [];
-            
-            // Check if we need a new page
-            if (yPos > 250) {
-              pdf.addPage();
-              yPos = 20;
-            }
-            
-            // Category header
-            pdf.setFontSize(14);
-            const categoryColor = getCategoryColor(category);
-            const colorRGB = hexToRgb(categoryColor);
-            if (colorRGB) {
-              pdf.setTextColor(colorRGB.r, colorRGB.g, colorRGB.b);
-            } else {
-              pdf.setTextColor(0, 0, 150);
-            }
-            pdf.text(category, 20, yPos);
-            yPos += 8;
-            pdf.setTextColor(0, 0, 0);
-            
-            // Activities
-            pdf.setFontSize(12);
-            activities.forEach(activity => {
-              // Check if we need a new page
-              if (yPos > 250) {
-                pdf.addPage();
-                yPos = 20;
-              }
-              
-              pdf.setFont(undefined, 'bold');
-              pdf.text(`${activity.activity}${activity.time ? ` (${activity.time} mins)` : ''}`, 25, yPos);
-              yPos += 6;
-              
-              pdf.setFont(undefined, 'normal');
-              // Split description into lines
-              const descText = activity.description.replace(/<[^>]*>/g, '');
-              const splitText = pdf.splitTextToSize(descText, 165);
-              
-              splitText.forEach(line => {
-                // Check if we need a new page
-                if (yPos > 270) {
-                  pdf.addPage();
-                  yPos = 20;
-                }
-                
-                pdf.text(line, 30, yPos);
-                yPos += 6;
-              });
-              
-              // Add resources if available
-              const resources = [];
-              if (activity.videoLink) resources.push(`Video: ${activity.videoLink}`);
-              if (activity.musicLink) resources.push(`Music: ${activity.musicLink}`);
-              if (activity.backingLink) resources.push(`Backing: ${activity.backingLink}`);
-              if (activity.resourceLink) resources.push(`Resource: ${activity.resourceLink}`);
-              if (activity.link) resources.push(`Link: ${activity.link}`);
-              if (activity.vocalsLink) resources.push(`Vocals: ${activity.vocalsLink}`);
-              if (activity.imageLink) resources.push(`Image: ${activity.imageLink}`);
-              
-              if (resources.length > 0) {
-                yPos += 3;
-                pdf.setFont(undefined, 'italic');
-                pdf.text('Resources:', 30, yPos);
-                yPos += 5;
-                
-                resources.forEach(resource => {
-                  if (yPos > 270) {
-                    pdf.addPage();
-                    yPos = 20;
-                  }
-                  
-                  // Add hyperlinks for resources
-                  const linkText = resource.split(': ')[0];
-                  const linkUrl = resource.split(': ')[1];
-                  
-                  // Add text with link
-                  const textWidth = pdf.getTextWidth(linkText);
-                  pdf.setTextColor(0, 0, 255); // Blue color for links
-                  pdf.textWithLink(linkText, 35, yPos, { url: linkUrl });
-                  
-                  // Add the URL after the link text
-                  pdf.setTextColor(0, 0, 0); // Reset to black
-                  pdf.text(`: ${linkUrl}`, 35 + textWidth, yPos);
-                  
-                  yPos += 5;
-                });
-                
-                pdf.setFont(undefined, 'normal');
-                pdf.setTextColor(0, 0, 0);
-              }
-              
-              yPos += 5;
-            });
-            
-            yPos += 10;
-          });
-          
-          // Add page number
-          pdf.setFontSize(10);
-          pdf.setTextColor(100, 100, 100);
-          pdf.text(`Page ${i + 2} of ${unit.lessonNumbers.length + 1}`, 105, 285, { align: 'center' });
-        }
-        
-        // Save the PDF
-        pdf.save(`Unit_${unit.name.replace(/\s+/g, '_')}.pdf`);
-        
-      } catch (error) {
-        console.error('Failed to export unit:', error);
-        alert('Failed to export unit. Please try again.');
-      }
     }
-  };
-
-  // Helper function to convert hex color to RGB
-  const hexToRgb = (hex: string) => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-      r: parseInt(result[1], 16),
-      g: parseInt(result[2], 16),
-      b: parseInt(result[3], 16)
-    } : null;
   };
 
   if (viewMode === 'compact') {
