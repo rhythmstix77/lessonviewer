@@ -5,8 +5,6 @@ import {
   FolderOpen, 
   Search, 
   EyeOff, 
-  Grid, 
-  List, 
   ChevronLeft, 
   Clock, 
   BookOpen, 
@@ -32,7 +30,6 @@ import { HalfTermCard } from './HalfTermCard';
 import { LessonSelectionModal } from './LessonSelectionModal';
 import { HalfTermView } from './HalfTermView';
 import { LessonDetailsModal } from './LessonDetailsModal';
-import { LessonPrintModal } from './LessonPrintModal';
 import type { Activity } from '../contexts/DataContext';
 
 interface Unit {
@@ -90,9 +87,6 @@ export function UnitViewer() {
   const [selectedHalfTerm, setSelectedHalfTerm] = useState<string | null>(null);
   const [showLessonSelectionModal, setShowLessonSelectionModal] = useState(false);
   const [selectedLessonForDetails, setSelectedLessonForDetails] = useState<string | null>(null);
-  const [showPrintModal, setShowPrintModal] = useState(false);
-  const [selectedUnitForPrint, setSelectedUnitForPrint] = useState<string | null>(null);
-  const [selectedHalfTermForPrint, setSelectedHalfTermForPrint] = useState<string | null>(null);
   
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
@@ -254,18 +248,6 @@ export function UnitViewer() {
     return colors[Math.floor(Math.random() * colors.length)];
   };
 
-  // Handle print unit
-  const handlePrintUnit = (unitId: string) => {
-    setSelectedUnitForPrint(unitId);
-    setShowPrintModal(true);
-  };
-
-  // Handle print half-term
-  const handlePrintHalfTerm = (halfTermId: string, halfTermName: string) => {
-    setSelectedHalfTermForPrint(halfTermId);
-    setShowPrintModal(true);
-  };
-
   // If a unit is selected, show its details
   if (selectedUnit) {
     return (
@@ -303,14 +285,6 @@ export function UnitViewer() {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => handlePrintUnit(selectedUnit.id)}
-                    className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 group flex items-center space-x-2"
-                    title="Print Unit"
-                  >
-                    <Printer className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
-                    <span className="text-sm font-medium">Print Unit</span>
-                  </button>
                   <button
                     className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200 group flex items-center space-x-2"
                     title="Edit Unit"
@@ -410,22 +384,6 @@ export function UnitViewer() {
               setSelectedLessonForExport(selectedLessonForDetails);
               setSelectedLessonForDetails(null);
             }}
-            unitId={selectedUnit.id}
-            unitName={selectedUnit.name}
-          />
-        )}
-
-        {/* Print Modal for Unit */}
-        {showPrintModal && selectedUnitForPrint && (
-          <LessonPrintModal
-            lessonNumbers={units.find(u => u.id === selectedUnitForPrint)?.lessonNumbers || []}
-            onClose={() => {
-              setShowPrintModal(false);
-              setSelectedUnitForPrint(null);
-            }}
-            unitId={selectedUnitForPrint}
-            unitName={units.find(u => u.id === selectedUnitForPrint)?.name || ''}
-            isUnitPrint={true}
           />
         )}
       </div>
@@ -458,28 +416,6 @@ export function UnitViewer() {
                       className="w-64 pl-10 pr-4 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-indigo-200 focus:ring-2 focus:ring-white focus:ring-opacity-50 focus:border-transparent"
                       dir="ltr"
                     />
-                  </div>
-                  
-                  {/* Simplified view options - only keep grid and list */}
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => setViewMode('grid')}
-                      className={`p-2 rounded-lg transition-colors duration-200 ${
-                        viewMode === 'grid' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
-                      }`}
-                      title="Grid View"
-                    >
-                      <Grid className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => setViewMode('list')}
-                      className={`p-2 rounded-lg transition-colors duration-200 ${
-                        viewMode === 'list' ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10'
-                      }`}
-                      title="List View"
-                    >
-                      <List className="h-5 w-5" />
-                    </button>
                   </div>
                 </div>
               </div>
@@ -574,31 +510,6 @@ export function UnitViewer() {
               setSelectedLessonForExport(selectedLessonForDetails);
               setSelectedLessonForDetails(null);
             }}
-            halfTermId={selectedHalfTerm}
-            halfTermName={HALF_TERMS.find(term => term.id === selectedHalfTerm)?.name}
-          />
-        )}
-
-        {/* Print Modal for Half-Term */}
-        {showPrintModal && (selectedUnitForPrint || selectedHalfTermForPrint) && (
-          <LessonPrintModal
-            onClose={() => {
-              setShowPrintModal(false);
-              setSelectedUnitForPrint(null);
-              setSelectedHalfTermForPrint(null);
-            }}
-            unitId={selectedUnitForPrint}
-            unitName={units.find(u => u.id === selectedUnitForPrint)?.name}
-            halfTermId={selectedHalfTermForPrint}
-            halfTermName={HALF_TERMS.find(term => term.id === selectedHalfTermForPrint)?.name}
-            lessonNumbers={
-              selectedUnitForPrint 
-                ? units.find(u => u.id === selectedUnitForPrint)?.lessonNumbers 
-                : selectedHalfTermForPrint 
-                  ? getLessonsForHalfTerm(selectedHalfTermForPrint)
-                  : undefined
-            }
-            isUnitPrint={true}
           />
         )}
       </div>
