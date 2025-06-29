@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Save, Trash2, Clock, MapPin, Repeat, FolderOpen, Check, Info, Pencil } from 'lucide-react';
+import { X, Plus, Save, Trash2, Clock, MapPin, Repeat, FolderOpen, Check, Info as InfoIcon, Pencil } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
 
 interface TimetableClass {
@@ -207,7 +207,7 @@ export function TimetableModal({
             <div className="space-y-6">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <div className="flex items-center space-x-2">
-                  <Info className="h-5 w-5 text-blue-600" />
+                  <InfoIcon className="h-5 w-5 text-blue-600" />
                   <h3 className="font-medium text-gray-900">About Timetable Classes</h3>
                 </div>
                 <p className="text-sm text-gray-600 mt-1">
