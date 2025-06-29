@@ -76,7 +76,7 @@ const TERM_COLORS: Record<string, string> = {
 };
 
 export function UnitViewer() {
-  const { currentSheetInfo, allLessonsData } = useData();
+  const { currentSheetInfo, allLessonsData, halfTerms, updateHalfTerm } = useData();
   const { getThemeForClass } = useSettings();
   const [units, setUnits] = useState<Unit[]>([]);
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
@@ -86,7 +86,6 @@ export function UnitViewer() {
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [selectedLessonForExport, setSelectedLessonForExport] = useState<string | null>(null);
   const [focusedHalfTermId, setFocusedHalfTermId] = useState<string | null>(null);
-  const [halfTerms, setHalfTerms] = useState<any[]>([]);
   const [selectedHalfTerm, setSelectedHalfTerm] = useState<string | null>(null);
   const [showLessonSelectionModal, setShowLessonSelectionModal] = useState(false);
   const [selectedLessonForDetails, setSelectedLessonForDetails] = useState<string | null>(null);
@@ -96,7 +95,7 @@ export function UnitViewer() {
 
   // Load units from localStorage
   useEffect(() => {
-    const savedUnits = localStorage.getItem('units');
+    const savedUnits = localStorage.getItem(`units-${currentSheetInfo.sheet}`);
     if (savedUnits) {
       try {
         const parsedUnits = JSON.parse(savedUnits).map((unit: any) => ({
@@ -112,38 +111,9 @@ export function UnitViewer() {
     } else {
       // Initialize with an empty array
       setUnits([]);
-      localStorage.setItem('units', JSON.stringify([]));
+      localStorage.setItem(`units-${currentSheetInfo.sheet}`, JSON.stringify([]));
     }
-
-    // Load half-terms data
-    const savedHalfTerms = localStorage.getItem('half-terms');
-    if (savedHalfTerms) {
-      try {
-        const parsedHalfTerms = JSON.parse(savedHalfTerms);
-        setHalfTerms(parsedHalfTerms);
-      } catch (error) {
-        console.error('Error parsing saved half-terms:', error);
-        
-        // Initialize with default half-terms
-        const defaultHalfTerms = HALF_TERMS.map(term => ({
-          ...term,
-          lessons: [],
-          isComplete: false
-        }));
-        setHalfTerms(defaultHalfTerms);
-        localStorage.setItem('half-terms', JSON.stringify(defaultHalfTerms));
-      }
-    } else {
-      // Initialize with default half-terms
-      const defaultHalfTerms = HALF_TERMS.map(term => ({
-        ...term,
-        lessons: [],
-        isComplete: false
-      }));
-      setHalfTerms(defaultHalfTerms);
-      localStorage.setItem('half-terms', JSON.stringify(defaultHalfTerms));
-    }
-  }, []);
+  }, [currentSheetInfo.sheet]);
 
   // Group units by half-term
   const unitsByHalfTerm = React.useMemo(() => {
@@ -218,23 +188,6 @@ export function UnitViewer() {
     return halfTerm ? halfTerm.isComplete || false : false;
   };
 
-  // Save lessons for a half-term
-  const saveLessonsForHalfTerm = (halfTermId: string, lessons: string[], isComplete?: boolean) => {
-    const updatedHalfTerms = halfTerms.map(term => {
-      if (term.id === halfTermId) {
-        return {
-          ...term,
-          lessons,
-          isComplete: isComplete !== undefined ? isComplete : term.isComplete
-        };
-      }
-      return term;
-    });
-    
-    setHalfTerms(updatedHalfTerms);
-    localStorage.setItem('half-terms', JSON.stringify(updatedHalfTerms));
-  };
-
   // Handle lesson reordering
   const handleReorderLessons = (halfTermId: string, dragIndex: number, hoverIndex: number) => {
     const lessons = getLessonsForHalfTerm(halfTermId);
@@ -242,7 +195,7 @@ export function UnitViewer() {
     const newLessons = [...lessons];
     newLessons.splice(dragIndex, 1);
     newLessons.splice(hoverIndex, 0, draggedLesson);
-    saveLessonsForHalfTerm(halfTermId, newLessons);
+    updateHalfTerm(halfTermId, newLessons, isHalfTermComplete(halfTermId));
   };
 
   // Handle lesson removal
@@ -251,15 +204,50 @@ export function UnitViewer() {
     const newLessons = lessons.filter(num => num !== lessonNumber);
     
     // If all lessons are removed, automatically set isComplete to false
-    const halfTerm = halfTerms.find(term => term.id === halfTermId);
-    const isComplete = newLessons.length > 0 ? halfTerm?.isComplete : false;
+    const isComplete = newLessons.length > 0 ? isHalfTermComplete(halfTermId) : false;
     
-    saveLessonsForHalfTerm(halfTermId, newLessons, isComplete);
+    updateHalfTerm(halfTermId, newLessons, isComplete);
   };
 
   // Handle view lesson details
   const handleViewLessonDetails = (lessonNumber: string) => {
     setSelectedLessonForDetails(lessonNumber);
+  };
+
+  // Create a new unit
+  const handleCreateUnit = () => {
+    const newUnit: Unit = {
+      id: `unit-${Date.now()}`,
+      name: 'New Unit',
+      description: 'Add a description for this unit',
+      lessonNumbers: [],
+      color: getRandomColor(),
+      term: 'A1', // Default to Autumn 1
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    const updatedUnits = [...units, newUnit];
+    setUnits(updatedUnits);
+    localStorage.setItem(`units-${currentSheetInfo.sheet}`, JSON.stringify(updatedUnits));
+    
+    // Select the new unit
+    setSelectedUnit(newUnit);
+  };
+
+  // Generate a random color for new units
+  const getRandomColor = () => {
+    const colors = [
+      '#3B82F6', // Blue
+      '#F59E0B', // Amber
+      '#10B981', // Emerald
+      '#8B5CF6', // Violet
+      '#EC4899', // Pink
+      '#EF4444', // Red
+      '#F97316', // Orange
+      '#14B8A6', // Teal
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
   };
 
   // If a unit is selected, show its details
@@ -529,7 +517,7 @@ export function UnitViewer() {
             halfTermColor={TERM_COLORS[selectedHalfTerm]}
             selectedLessons={getLessonsForHalfTerm(selectedHalfTerm)}
             onSave={(lessons, isComplete) => {
-              saveLessonsForHalfTerm(selectedHalfTerm, lessons, isComplete);
+              updateHalfTerm(selectedHalfTerm, lessons, isComplete);
               setShowLessonSelectionModal(false);
               setSelectedHalfTerm(null);
             }}
