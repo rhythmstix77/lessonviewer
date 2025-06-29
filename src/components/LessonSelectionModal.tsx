@@ -1,10 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calendar, Eye, Save, Star, Clock, Search, Filter, Printer, Tag, Download, CheckCircle } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
-import { LessonDetailsModal } from './LessonDetailsModal';
 import { useSettings } from '../contexts/SettingsContext';
+import { LessonDetailsModal } from './LessonDetailsModal';
+import { LessonPrintModal } from './LessonPrintModal';
 
 interface LessonSelectionModalProps {
   isOpen: boolean;
@@ -36,7 +35,7 @@ export function LessonSelectionModal({
   const [isExporting, setIsExporting] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [selectedLessonForDetails, setSelectedLessonForDetails] = useState<string | null>(null);
-  const previewRef = React.useRef<HTMLDivElement>(null);
+  const [showPrintModal, setShowPrintModal] = useState(false);
   
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
@@ -120,8 +119,8 @@ export function LessonSelectionModal({
     // Save first
     onSave(showHalfTermView ? orderedLessons : localSelectedLessons, isComplete);
     
-    // Then print
-    window.print();
+    // Then open print modal
+    setShowPrintModal(true);
   };
 
   // Handle view lesson details
@@ -248,7 +247,7 @@ export function LessonSelectionModal({
               </div>
 
               {/* Printable content */}
-              <div ref={previewRef} className="print-content">
+              <div className="print-content">
                 {orderedLessons.length === 0 ? (
                   <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
                     <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
@@ -470,6 +469,19 @@ export function LessonSelectionModal({
           lessonNumber={selectedLessonForDetails}
           onClose={() => setSelectedLessonForDetails(null)}
           theme={theme}
+          halfTermId={halfTermId}
+          halfTermName={halfTermName}
+        />
+      )}
+
+      {/* Print Modal */}
+      {showPrintModal && (
+        <LessonPrintModal
+          lessonNumbers={orderedLessons}
+          onClose={() => setShowPrintModal(false)}
+          halfTermId={halfTermId}
+          halfTermName={halfTermName}
+          isUnitPrint={true}
         />
       )}
     </div>

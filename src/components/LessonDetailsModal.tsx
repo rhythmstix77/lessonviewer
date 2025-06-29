@@ -3,6 +3,7 @@ import { X, Download, Edit3, Save, Check, Tag, Clock, Users, ExternalLink, FileT
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { ActivityDetails } from './ActivityDetails';
+import { EditableText } from './EditableText';
 import { EyfsStandardsSelector } from './EyfsStandardsSelector';
 import { EyfsStandardsList } from './EyfsStandardsList';
 import { LessonPrintModal } from './LessonPrintModal';
@@ -18,13 +19,21 @@ interface LessonDetailsModalProps {
     gradient: string;
   };
   onExport?: () => void;
+  unitId?: string;
+  unitName?: string;
+  halfTermId?: string;
+  halfTermName?: string;
 }
 
 export function LessonDetailsModal({ 
   lessonNumber, 
   onClose, 
   theme,
-  onExport
+  onExport,
+  unitId,
+  unitName,
+  halfTermId,
+  halfTermName
 }: LessonDetailsModalProps) {
   const { allLessonsData, updateLessonTitle, eyfsStatements, deleteLesson } = useData();
   const { getCategoryColor } = useSettings();
@@ -508,6 +517,10 @@ export function LessonDetailsModal({
         <LessonPrintModal
           lessonNumber={lessonNumber}
           onClose={() => setShowPrintModal(false)}
+          unitId={unitId}
+          unitName={unitName}
+          halfTermId={halfTermId}
+          halfTermName={halfTermName}
         />
       )}
     </div>

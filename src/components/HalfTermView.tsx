@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, Clock, X, Eye, Printer, ArrowLeft, ArrowRight, Star } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface HalfTermViewProps {
   halfTermId: string;
@@ -10,6 +11,7 @@ interface HalfTermViewProps {
   onReorderLessons: (dragIndex: number, hoverIndex: number) => void;
   onRemoveLesson: (lessonNumber: string) => void;
   onViewLessonDetails: (lessonNumber: string) => void;
+  onPrintHalfTerm?: (halfTermId: string, halfTermName: string) => void;
 }
 
 export function HalfTermView({
@@ -19,9 +21,12 @@ export function HalfTermView({
   orderedLessons,
   onReorderLessons,
   onRemoveLesson,
-  onViewLessonDetails
+  onViewLessonDetails,
+  onPrintHalfTerm
 }: HalfTermViewProps) {
   const { allLessonsData } = useData();
+  const { getThemeForClass } = useSettings();
+  const theme = getThemeForClass('LKG'); // Default theme
 
   return (
     <div className="space-y-6">
@@ -32,13 +37,15 @@ export function HalfTermView({
             <h3 className="font-medium text-gray-900">{halfTermName} Complete</h3>
           </div>
           <div className="flex items-center space-x-2">
-            <button
-              onClick={() => window.print()}
-              className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg flex items-center space-x-1"
-            >
-              <Printer className="h-4 w-4" />
-              <span>Print</span>
-            </button>
+            {onPrintHalfTerm && (
+              <button
+                onClick={() => onPrintHalfTerm(halfTermId, halfTermName)}
+                className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg flex items-center space-x-1"
+              >
+                <Printer className="h-4 w-4" />
+                <span>Print</span>
+              </button>
+            )}
           </div>
         </div>
         <p className="text-sm text-gray-600 mt-1">

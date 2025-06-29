@@ -92,6 +92,7 @@ export function UnitViewer() {
   const [selectedLessonForDetails, setSelectedLessonForDetails] = useState<string | null>(null);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [selectedUnitForPrint, setSelectedUnitForPrint] = useState<string | null>(null);
+  const [selectedHalfTermForPrint, setSelectedHalfTermForPrint] = useState<string | null>(null);
   
   // Get theme colors for current class
   const theme = getThemeForClass(currentSheetInfo.sheet);
@@ -259,6 +260,12 @@ export function UnitViewer() {
     setShowPrintModal(true);
   };
 
+  // Handle print half-term
+  const handlePrintHalfTerm = (halfTermId: string, halfTermName: string) => {
+    setSelectedHalfTermForPrint(halfTermId);
+    setShowPrintModal(true);
+  };
+
   // If a unit is selected, show its details
   if (selectedUnit) {
     return (
@@ -403,6 +410,8 @@ export function UnitViewer() {
               setSelectedLessonForExport(selectedLessonForDetails);
               setSelectedLessonForDetails(null);
             }}
+            unitId={selectedUnit.id}
+            unitName={selectedUnit.name}
           />
         )}
 
@@ -565,6 +574,31 @@ export function UnitViewer() {
               setSelectedLessonForExport(selectedLessonForDetails);
               setSelectedLessonForDetails(null);
             }}
+            halfTermId={selectedHalfTerm}
+            halfTermName={HALF_TERMS.find(term => term.id === selectedHalfTerm)?.name}
+          />
+        )}
+
+        {/* Print Modal for Half-Term */}
+        {showPrintModal && (selectedUnitForPrint || selectedHalfTermForPrint) && (
+          <LessonPrintModal
+            onClose={() => {
+              setShowPrintModal(false);
+              setSelectedUnitForPrint(null);
+              setSelectedHalfTermForPrint(null);
+            }}
+            unitId={selectedUnitForPrint}
+            unitName={units.find(u => u.id === selectedUnitForPrint)?.name}
+            halfTermId={selectedHalfTermForPrint}
+            halfTermName={HALF_TERMS.find(term => term.id === selectedHalfTermForPrint)?.name}
+            lessonNumbers={
+              selectedUnitForPrint 
+                ? units.find(u => u.id === selectedUnitForPrint)?.lessonNumbers 
+                : selectedHalfTermForPrint 
+                  ? getLessonsForHalfTerm(selectedHalfTermForPrint)
+                  : undefined
+            }
+            isUnitPrint={true}
           />
         )}
       </div>
